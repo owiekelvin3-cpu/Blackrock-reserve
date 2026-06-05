@@ -1,0 +1,79 @@
+"use client";
+
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRight, TrendingUp } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import Button from "@/components/ui/Button";
+import ChartContainer from "@/components/ui/ChartContainer";
+import GlowIcon from "@/components/ui/GlowIcon";
+import { CHART_BRAND, CHART_TOOLTIP_STYLE } from "@/lib/chart-theme";
+
+const chartData = [
+  { month: "Jan", value: 4200 }, { month: "Feb", value: 4350 }, { month: "Mar", value: 4100 },
+  { month: "Apr", value: 4580 }, { month: "May", value: 4720 }, { month: "Jun", value: 4650 },
+  { month: "Jul", value: 4890 }, { month: "Aug", value: 5020 }, { month: "Sep", value: 5180 },
+  { month: "Oct", value: 5340 }, { month: "Nov", value: 5490 }, { month: "Dec", value: 5720 },
+];
+
+const tickers = ["AAPL", "MSFT", "TSLA", "BTC", "ETH"];
+
+export default function InvestmentPreview() {
+  return (
+    <section className="section-padding relative overflow-hidden">
+      <div className="neon-streak top-1/3 right-[-15%] w-[70%] h-20 opacity-20 rotate-12" />
+      <div className="mx-auto max-w-7xl">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div
+            className="glow-card p-6 sm:p-8 relative"
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="light-leak light-leak-orange w-32 h-32 -bottom-8 -left-8 opacity-40" />
+            <div className="glow-card-inner">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-text-secondary">S&P 500 Index</span>
+                <span className="font-mono text-sm text-accent-green">+36.2% YTD</span>
+              </div>
+              <ChartContainer className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="brandArea" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={CHART_BRAND} stopOpacity={0.35} />
+                        <stop offset="100%" stopColor={CHART_BRAND} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="month" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                    <Area type="monotone" dataKey="value" stroke={CHART_BRAND} fill="url(#brandArea)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+            <GlowIcon icon={TrendingUp} size={22} className="mb-6" />
+            <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+              Invest in What <span className="gold-gradient-text">Moves the World</span>
+            </h2>
+            <p className="mt-4 text-text-secondary leading-relaxed">
+              Access global markets with zero commission trades, curated ETF bundles, and real-time portfolio analytics.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {tickers.map((ticker) => (
+                <span key={ticker} className="pill-label text-xs">{ticker}</span>
+              ))}
+            </div>
+            <Link href="/investments" className="inline-block mt-8">
+              <Button>Start Investing Today <ArrowRight size={18} /></Button>
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}

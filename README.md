@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Platinum Crest Bank
 
-## Getting Started
+Premium digital banking platform built with Next.js 14, TypeScript, Tailwind CSS, Prisma, Supabase PostgreSQL, and NextAuth.
 
-First, run the development server:
+## Deploy to Vercel
+
+1. Push this repo to GitHub and import it in [Vercel](https://vercel.com/new).
+2. Add these **Environment Variables** in the Vercel project settings:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Supabase pooled connection string (with `?pgbouncer=true`) |
+| `DIRECT_URL` | Supabase direct connection string (for Prisma migrations) |
+| `NEXTAUTH_URL` | Your production URL, e.g. `https://platinum-crest-bank.vercel.app` |
+| `NEXTAUTH_SECRET` | Random secret (`openssl rand -base64 32`) |
+| `GOOGLE_CLIENT_ID` | Optional — Google OAuth |
+| `GOOGLE_CLIENT_SECRET` | Optional — Google OAuth |
+
+3. Deploy. Vercel runs `npm install` (which triggers `prisma generate` via `postinstall`) then `npm run build`.
+4. After first deploy, apply the database schema:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx prisma db push
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run this locally with production `DATABASE_URL` / `DIRECT_URL`, or use Supabase SQL editor after exporting the schema.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+cp .env.example .env
+# Fill in Supabase + NextAuth values in .env
+npm run db:push
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000).
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run db:push` | Sync Prisma schema to database |
+| `npm run db:studio` | Open Prisma Studio |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stack
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework:** Next.js 14 (App Router)
+- **Database:** PostgreSQL via Supabase + Prisma
+- **Auth:** NextAuth.js (credentials + optional Google)
+- **UI:** Tailwind CSS, Framer Motion, Recharts, Lucide icons
