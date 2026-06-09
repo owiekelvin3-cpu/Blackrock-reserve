@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ChevronLeft, ChevronRight, HelpCircle, Mail, Share2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, HelpCircle, Mail } from "lucide-react";
 import DashboardNotifications from "@/components/dashboard/DashboardNotifications";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
@@ -59,10 +59,6 @@ export default function DashboardTopBar() {
         <div className="h-9 w-9 rounded-full brand-gradient-bg flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/10">
           {initial}
         </div>
-        <button type="button" className="dash-share-btn hidden md:inline-flex ml-1">
-          <Share2 size={15} />
-          Share
-        </button>
       </div>
     </header>
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BarChart3, ArrowUpFromLine, FileText, Wallet,
-  RefreshCw, MessageSquare, Search, Zap, Menu, X, LineChart, Crown,
+  RefreshCw, MessageSquare, Search, Zap, Menu, X, LineChart,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -92,26 +92,6 @@ export default function DashboardSidebar() {
           })}
         </div>
       </nav>
-
-      <div className="p-4 mt-auto">
-        <div className="dash-upgrade-card p-4">
-          <div className="flex items-start gap-2.5 mb-3">
-            <div className="h-8 w-8 rounded-lg bg-accent-brand/15 flex items-center justify-center shrink-0">
-              <Crown size={16} className="text-accent-brand" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-text-primary leading-tight">Upgrade Pro</p>
-              <p className="text-[11px] text-text-muted mt-1 leading-snug">Unlock premium tools and priority support.</p>
-            </div>
-          </div>
-          <Link
-            href="/#pricing"
-            className="block w-full text-center py-2 rounded-lg text-sm font-semibold text-white brand-gradient-bg shadow-brand hover:brightness-110 transition-all"
-          >
-            Upgrade
-          </Link>
-        </div>
-      </div>
     </>
   );
 
