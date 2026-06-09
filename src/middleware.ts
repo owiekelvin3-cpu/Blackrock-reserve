@@ -10,7 +10,9 @@ function dashboardDeniedResponse(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (token?.role === "ADMIN") {
-    return NextResponse.redirect(new URL("/admin", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("error", "admin_console_unavailable");
+    return NextResponse.redirect(loginUrl);
   }
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
@@ -24,27 +26,17 @@ function dashboardDeniedResponse(
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (!process.env.NEXTAUTH_SECRET?.trim()) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 
   if (pathname.startsWith("/api/dashboard")) {
     if (!isVerifiedCustomerToken(token)) {
       return dashboardDeniedResponse(request, token);
     }
-    return NextResponse.next();
-  }
-
-  if (pathname.startsWith("/admin")) {
-    if (pathname === "/admin/login") {
-      if (token?.role === "ADMIN") {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      }
-      return NextResponse.next();
-    }
-
-    if (!token || token.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
-    }
-
     return NextResponse.next();
   }
 
@@ -59,8 +51,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/admin",
-    "/admin/:path*",
     "/dashboard",
     "/dashboard/:path*",
     "/api/dashboard",
