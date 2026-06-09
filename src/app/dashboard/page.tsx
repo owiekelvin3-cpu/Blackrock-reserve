@@ -12,6 +12,7 @@ import { useChartTheme } from "@/hooks/use-chart-theme";
 import { formatCurrency } from "@/lib/utils";
 import { fetchJson } from "@/lib/fetch-json";
 import DashboardGate from "@/components/dashboard/DashboardGate";
+import DashboardGreeting from "@/components/dashboard/DashboardGreeting";
 import EmptyState from "@/components/dashboard/EmptyState";
 import ChartContainer from "@/components/ui/ChartContainer";
 import Button from "@/components/ui/Button";
@@ -73,6 +74,8 @@ export default function DashboardPage() {
     <DashboardGate isLoading={loading}>
       {data && (
         <div className="space-y-6">
+          <DashboardGreeting />
+
           {!hasActivity && (
             <div className="dash-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border border-accent-brand/20 bg-accent-brand/5">
               <div>
