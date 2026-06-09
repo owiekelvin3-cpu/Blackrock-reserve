@@ -64,13 +64,14 @@ export default function AdminTopBar() {
   const total = data?.totalAlerts ?? 0;
 
   return (
-    <div className="sticky top-0 z-30 -mx-6 lg:-mx-8 px-6 lg:px-8 py-3 mb-6 border-b border-white/5 bg-[var(--admin-bg)]/80 backdrop-blur-md flex items-center justify-between">
-      <div className="flex items-center gap-2">
+    <div className="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 border-b border-white/5 bg-[var(--admin-bg)]/80 backdrop-blur-md flex items-center justify-between gap-3 pl-12 lg:pl-6">
+      <div className="flex items-center gap-2 min-w-0">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
         </span>
-        <span className="text-xs text-[var(--admin-muted)]">Live sync · alerts every 45s</span>
+        <span className="text-xs text-[var(--admin-muted)] truncate hidden sm:inline">Live sync · alerts every 45s</span>
+        <span className="text-xs text-[var(--admin-muted)] sm:hidden">Live</span>
       </div>
 
       <div className="flex items-center gap-4">
@@ -96,7 +97,7 @@ export default function AdminTopBar() {
           </button>
 
           {open && (
-            <div className="absolute right-0 mt-2 w-[360px] max-h-[420px] overflow-y-auto rounded-xl border border-white/10 bg-[var(--admin-card)] shadow-2xl">
+            <div className="absolute right-0 mt-2 w-[min(100vw-2rem,360px)] max-h-[min(70vh,420px)] overflow-y-auto rounded-xl border border-white/10 bg-[var(--admin-card)] shadow-2xl">
               <div className="p-4 border-b border-white/10">
                 <p className="text-sm font-semibold text-white">Notifications</p>
                 <p className="text-[10px] text-[var(--admin-muted)] mt-0.5">

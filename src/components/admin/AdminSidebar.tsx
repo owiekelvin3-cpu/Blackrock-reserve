@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Mail, Building2, LogOut, ChevronRight, Bitcoin, Wallet,
-  ScrollText, Settings, ArrowUpFromLine,
+  ScrollText, Settings, ArrowUpFromLine, Menu, X,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAdminNotifications } from "@/components/admin/AdminNotificationsProvider";
 
@@ -30,13 +31,14 @@ export default function AdminSidebar() {
   const { data: session } = useSession();
   const { data: notificationData } = useAdminNotifications();
   const counts = notificationData;
+  const [open, setOpen] = useState(false);
 
-  return (
-    <aside className="admin-sidebar fixed inset-y-0 left-0 z-40 w-[240px] flex flex-col">
+  const sidebarContent = (
+    <>
       <div className="p-5 border-b border-white/10">
-        <Link href="/admin" className="flex items-center gap-2.5">
+        <Link href="/admin" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <div className="h-9 w-9 rounded-xl brand-gradient-bg flex items-center justify-center text-white font-bold text-sm shadow-brand">
-            AT
+            BR
           </div>
           <div>
             <p className="text-sm font-semibold text-white leading-tight">Blackrock Reserve</p>
@@ -53,6 +55,7 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors border-l-2 border-transparent",
                 active ? "admin-nav-active" : "text-[var(--admin-muted)] hover:text-white hover:bg-white/5"
@@ -90,6 +93,33 @@ export default function AdminSidebar() {
           <LogOut size={14} /> Sign Out
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-[var(--admin-card)] border border-white/10 text-white"
+        onClick={() => setOpen(!open)}
+        aria-label="Toggle admin menu"
+      >
+        {open ? <X size={20} /> : <Menu size={20} />}
+      </button>
+
+      {open && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setOpen(false)} />
+      )}
+
+      <aside
+        className={cn(
+          "admin-sidebar fixed inset-y-0 left-0 z-40 w-[240px] flex flex-col transition-transform duration-300",
+          "lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

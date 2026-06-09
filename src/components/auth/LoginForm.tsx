@@ -82,12 +82,12 @@ function LoginFormInner() {
         <Input label="Email" type="email" {...register("email")} error={errors.email?.message} placeholder="you@example.com" />
         <Input label="Password" type="password" {...register("password")} error={errors.password?.message} placeholder="••••••••" />
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
             <input type="checkbox" {...register("remember")} className="rounded border-border accent-accent-gold" />
             Remember me
           </label>
-          <Link href="/forgot-password" className="text-sm text-accent-gold hover:text-accent-gold-light transition-colors">
+          <Link href="/forgot-password" className="text-sm text-accent-gold hover:text-accent-gold-light transition-colors shrink-0">
             Forgot password?
           </Link>
         </div>

@@ -90,12 +90,12 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-5 sm:px-6 pointer-events-none">
-      <nav className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6 pointer-events-auto">
+      <nav className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 md:grid md:grid-cols-[auto_1fr_auto] md:gap-6 pointer-events-auto">
         <div className="relative z-20 shrink-0">
           <Logo />
         </div>
 
-        <div className="hidden lg:flex min-w-0 justify-center">
+        <div className="hidden md:flex min-w-0 justify-center">
           <div className="glass-dock flex max-w-full items-center gap-0.5 overflow-x-auto px-2 py-1.5">
             {navLinks.map((link) => (
               <Link
@@ -115,13 +115,16 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="relative z-20 flex shrink-0 items-center justify-end">
-          <Link href="/register" className={cn(primaryLinkClass, "hidden lg:inline-flex")}>
+        <div className="relative z-20 flex shrink-0 items-center justify-end gap-2">
+          <Link href="/login" className="hidden md:inline-flex text-sm font-medium text-text-secondary hover:text-white transition-colors px-3 py-2">
+            Sign in
+          </Link>
+          <Link href="/register" className={cn(primaryLinkClass, "hidden md:inline-flex")}>
             Sign up <ArrowRight size={16} />
           </Link>
           <button
             type="button"
-            className="lg:hidden p-2 text-text-primary"
+            className="md:hidden p-2 text-text-primary"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
             aria-expanded={mobileOpen}
@@ -137,7 +140,7 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="lg:hidden mt-4 mx-auto max-w-7xl glass-card p-4 pointer-events-auto"
+            className="md:hidden mt-4 mx-auto max-w-7xl glass-card p-4 pointer-events-auto"
           >
             <div className="flex flex-col gap-1">
               {navLinks.map((link) => (
@@ -155,7 +158,14 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <div className="pt-3 mt-2 border-t border-white/10">
+              <div className="pt-3 mt-2 border-t border-white/10 flex flex-col gap-2">
+                <Link
+                  href="/login"
+                  className="w-full text-center px-5 py-2.5 text-sm font-medium text-text-secondary hover:text-white rounded-full border border-white/10 transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Sign in
+                </Link>
                 <Link href="/register" className={cn(primaryLinkClass, "w-full")} onClick={() => setMobileOpen(false)}>
                   Sign up <ArrowRight size={16} />
                 </Link>

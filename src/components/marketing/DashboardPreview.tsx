@@ -52,23 +52,22 @@ export default function DashboardPreview() {
 
           <div className="flex-1 p-4 sm:p-6 min-w-0">
             <motion.div
-              className="flex items-center justify-between mb-5"
+              className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.55, duration: 0.5 }}
             >
-              <h3 className="text-sm font-semibold text-white hidden sm:block">My Dashboard</h3>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full input-glass flex-1 max-w-xs sm:ml-auto">
-                <Search size={14} className="text-text-muted shrink-0" strokeWidth={1.5} />
-                <span className="text-xs text-text-muted truncate">Search transactions...</span>
-              </div>
-              <div className="flex items-center gap-3 ml-3">
-                <Bell size={16} className="text-text-muted hidden sm:block" strokeWidth={1.5} />
-                <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-white shrink-0">My Dashboard</h3>
+              <div className="flex items-center gap-2 min-w-0 flex-1 sm:justify-end">
+                <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full input-glass flex-1 sm:flex-initial sm:max-w-xs min-w-0">
+                  <Search size={14} className="text-text-muted shrink-0" strokeWidth={1.5} />
+                  <span className="text-xs text-text-muted truncate">Search transactions...</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Bell size={16} className="text-text-muted hidden sm:block" strokeWidth={1.5} />
                   <div className="h-8 w-8 rounded-full brand-gradient-bg flex items-center justify-center text-xs font-bold shadow-brand">
                     D
                   </div>
-                  <span className="text-xs text-text-secondary hidden md:block">Hi David!</span>
                 </div>
               </div>
             </motion.div>
@@ -130,19 +129,19 @@ export default function DashboardPreview() {
                   <motion.div
                     key={tx.name}
                     variants={fadeUp}
-                    className="flex items-center justify-between text-xs"
+                    className="flex items-center justify-between gap-2 text-xs min-w-0"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-6 w-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
                         <ArrowLeftRight size={10} className="text-accent-brand" />
                       </div>
-                      <span className="text-text-secondary">{tx.name}</span>
+                      <span className="text-text-secondary truncate">{tx.name}</span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                       <span className={tx.amount.startsWith("+") ? "text-accent-green" : "text-text-primary"}>
                         {tx.amount}
                       </span>
-                      <span className="text-text-muted">{tx.time}</span>
+                      <span className="text-text-muted hidden sm:inline">{tx.time}</span>
                     </div>
                   </motion.div>
                 ))}

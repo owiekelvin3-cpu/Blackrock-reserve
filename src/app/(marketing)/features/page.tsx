@@ -89,9 +89,9 @@ export default function FeaturesPage() {
                 </Card>
               </div>
               <div className={feature.reverse ? "lg:order-1" : ""}>
-                <h2 className="font-display text-3xl font-bold text-text-primary">{feature.title}</h2>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-text-primary">{feature.title}</h2>
                 <p className="mt-4 text-text-secondary leading-relaxed">{feature.description}</p>
-                <ul className="mt-6 grid grid-cols-2 gap-3">
+                <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {feature.highlights.map((h) => (
                     <li key={h} className="text-sm text-text-secondary flex items-center gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-accent-gold" />

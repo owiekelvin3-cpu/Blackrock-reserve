@@ -11,7 +11,7 @@ export default function DashboardClientLayout({ children }: { children: React.Re
       <div className="min-h-screen bg-bg-primary">
         <DashboardSidebar />
         <div className="lg:ml-[260px] min-h-screen">
-          <main className="p-4 sm:p-6 lg:p-8 max-w-[1400px]">
+          <main className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 max-w-[1400px]">
             <DashboardTopBar />
             {children}
           </main>

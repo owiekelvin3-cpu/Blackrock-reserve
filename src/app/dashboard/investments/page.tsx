@@ -41,10 +41,10 @@ export default function InvestmentsPage() {
       emptyActionHref="/investments"
     >
       <>
-        <div className="grid sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <Card>
             <p className="text-sm text-text-secondary">Total Value</p>
-            <p className="font-mono text-2xl font-bold text-text-primary mt-1">{formatCurrency(totalValue)}</p>
+            <p className="font-mono text-xl sm:text-2xl font-bold text-text-primary mt-1">{formatCurrency(totalValue)}</p>
           </Card>
           <Card>
             <p className="text-sm text-text-secondary">Holdings</p>

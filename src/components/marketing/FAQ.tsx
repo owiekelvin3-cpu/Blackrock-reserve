@@ -34,7 +34,7 @@ export default function FAQ() {
 
   return (
     <section className="section-padding">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6">
+      <div className="mx-auto max-w-3xl">
         <motion.div
           className="text-center mb-10"
           initial={{ opacity: 0, y: 20 }}

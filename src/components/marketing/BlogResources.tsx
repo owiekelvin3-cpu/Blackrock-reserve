@@ -27,7 +27,7 @@ const articles = [
 export default function BlogResources() {
   return (
     <section id="blog" className="section-padding">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
         <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: 20 }}

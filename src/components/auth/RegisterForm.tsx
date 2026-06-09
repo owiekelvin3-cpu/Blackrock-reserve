@@ -157,7 +157,7 @@ export default function RegisterForm() {
         <h1 className="font-display text-2xl font-bold text-text-primary text-center">Verify Your Email</h1>
         <p className="text-sm text-text-secondary text-center mt-2">
           Your account is saved. Enter the 6-digit code sent to{" "}
-          <span className="text-white font-medium">{step1Data?.email}</span>
+          <span className="text-white font-medium break-all">{step1Data?.email}</span>
         </p>
         <p className="text-xs text-text-muted text-center mt-1">Check your inbox and spam folder</p>
         {devOtp && (

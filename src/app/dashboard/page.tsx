@@ -101,7 +101,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-white/80">My balance</p>
-                <p className="text-3xl font-bold text-white mt-1">{formatCurrency(data.totalBalance)}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white mt-1">{formatCurrency(data.totalBalance)}</p>
               </div>
               <Link href="/dashboard/deposit" className="text-xs text-white/70 hover:text-white transition-colors mt-2">
                 Deposit funds →
@@ -128,7 +128,7 @@ export default function DashboardPage() {
               {data.wallets.length === 0 ? (
                 <p className="text-sm text-text-secondary">No accounts linked yet.</p>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {data.wallets.map((w) => (
                     <div key={w.id} className="p-4 rounded-xl bg-bg-primary border border-white/10">
                       <div className="flex items-center justify-between mb-3">
@@ -175,7 +175,38 @@ export default function DashboardPage() {
             {data.activities.length === 0 ? (
               <p className="text-sm text-text-secondary py-8 text-center">No recent transactions.</p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="md:hidden space-y-3">
+                {data.activities.map((a) => {
+                  const Icon = activityIcons[a.type] ?? Wallet;
+                  return (
+                    <div key={a.id} className="p-4 rounded-xl bg-bg-primary border border-white/10">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-8 rounded-lg bg-bg-secondary border border-white/10 flex items-center justify-center shrink-0">
+                            <Icon size={14} className="text-accent-brand" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm text-white font-medium truncate">{a.name}</p>
+                            <p className="text-xs text-text-muted mt-0.5">{a.orderId}</p>
+                          </div>
+                        </div>
+                        <p className={`text-sm font-mono font-medium shrink-0 ${a.price >= 0 ? "text-accent-green" : "text-white"}`}>
+                          {a.price >= 0 ? "+" : ""}{formatCurrency(a.price)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5 text-xs text-text-secondary">
+                        <span>{a.date} · {a.time}</span>
+                        <span className="inline-flex items-center gap-1.5 text-white">
+                          <span className={`h-1.5 w-1.5 rounded-full ${a.status === "Completed" ? "bg-accent-green" : a.status === "Failed" ? "bg-accent-red" : "bg-accent-gold"}`} />
+                          {a.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-text-secondary text-xs border-b border-white/10">
@@ -218,6 +249,7 @@ export default function DashboardPage() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         </div>
