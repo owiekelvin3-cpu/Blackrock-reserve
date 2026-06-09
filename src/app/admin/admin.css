@@ -1,13 +1,13 @@
-/* Admin portal — Blackrock Reserve brand (orange/red glassmorphism) */
+/* Admin portal — theme-aware (inherits global tokens + admin overrides) */
 .admin-root {
-  --admin-bg: #050507;
-  --admin-sidebar: rgba(18, 18, 22, 0.85);
-  --admin-card: rgba(18, 18, 22, 0.55);
-  --admin-border: rgba(255, 255, 255, 0.08);
+  --admin-bg: var(--bg-primary);
+  --admin-sidebar: var(--bg-tertiary);
+  --admin-card: var(--glass-bg);
+  --admin-border: var(--border);
   --admin-accent: #ff5f05;
   --admin-accent-red: #ff0000;
-  --admin-text: #ffffff;
-  --admin-muted: #a1a1aa;
+  --admin-text: var(--text-primary);
+  --admin-muted: var(--text-secondary);
   --admin-brand-gradient: linear-gradient(135deg, #ff5f05 0%, #ff4500 50%, #ff0000 100%);
   min-height: 100vh;
   background: var(--admin-bg);
@@ -22,19 +22,20 @@
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 60% 40% at 15% 10%, rgba(255, 95, 5, 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 30% at 85% 70%, rgba(255, 0, 0, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 95, 5, 0.08) 0%, transparent 60%);
+    radial-gradient(ellipse 60% 40% at 15% 10%, var(--page-glow-1) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 30% at 85% 70%, var(--page-glow-2) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 50% at 50% -10%, var(--page-glow-3) 0%, transparent 60%);
 }
 
 .admin-card {
   position: relative;
-  background: rgba(18, 18, 22, 0.55);
+  background: var(--admin-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--admin-border);
   border-radius: 1rem;
   overflow: hidden;
+  box-shadow: var(--glass-shadow);
 }
 
 .admin-card-glow::before {
@@ -43,7 +44,7 @@
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255, 95, 5, 0.35), rgba(255, 255, 255, 0.04) 40%, rgba(255, 0, 0, 0.25));
+  background: var(--glow-card-gradient);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -52,7 +53,7 @@
 }
 
 .admin-sidebar {
-  background: rgba(18, 18, 22, 0.75);
+  background: var(--admin-sidebar);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-right: 1px solid var(--admin-border);
@@ -87,7 +88,7 @@
 }
 
 .admin-input {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-overlay);
   border: 1px solid var(--admin-border);
   border-radius: 0.75rem;
   color: var(--admin-text);
@@ -126,7 +127,7 @@
 }
 
 .admin-btn-ghost {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-overlay);
   border: 1px solid var(--admin-border);
   color: var(--admin-text);
   border-radius: 0.75rem;
@@ -187,7 +188,7 @@
 .admin-badge-verified { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
 .admin-badge-rejected { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 .admin-badge-submitted { background: rgba(255, 95, 5, 0.15); color: #ff5f05; }
-.admin-badge-default { background: rgba(255, 255, 255, 0.08); color: #a1a1aa; }
+.admin-badge-default { background: var(--surface-overlay); color: var(--admin-muted); }
 
 .admin-amount {
   font-family: ui-monospace, monospace;
@@ -200,6 +201,17 @@
   transform: translateX(-50%);
   width: 120%;
   height: 400px;
-  background: radial-gradient(ellipse at center bottom, rgba(255, 95, 5, 0.2) 0%, rgba(255, 0, 0, 0.05) 40%, transparent 70%);
+  background: radial-gradient(ellipse at center bottom, var(--horizon-glow) 0%, var(--horizon-glow-2) 40%, transparent 70%);
   pointer-events: none;
+}
+
+[data-theme="light"] .admin-root .text-white {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .admin-btn-primary,
+[data-theme="light"] .admin-btn-primary .text-white,
+[data-theme="light"] .admin-root .brand-gradient-bg,
+[data-theme="light"] .admin-root .brand-gradient-bg .text-white {
+  color: #ffffff;
 }

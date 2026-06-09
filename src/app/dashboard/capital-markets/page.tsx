@@ -11,7 +11,8 @@ import DashboardGate from "@/components/dashboard/DashboardGate";
 import ChartContainer from "@/components/ui/ChartContainer";
 import { formatCurrency, cn } from "@/lib/utils";
 import { fetchDashboardJson } from "@/lib/fetch-json";
-import { CHART_BRAND, CHART_TOOLTIP_STYLE } from "@/lib/chart-theme";
+import { CHART_BRAND } from "@/lib/chart-theme";
+import { useChartTheme } from "@/hooks/use-chart-theme";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -69,6 +70,7 @@ function ChangeBadge({ value, percent }: { value?: number; percent: number }) {
 }
 
 export default function CapitalMarketsPage() {
+  const chartTheme = useChartTheme();
   const [data, setData] = useState<CapitalMarketsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"holdings" | "markets">("holdings");
@@ -176,7 +178,7 @@ export default function CapitalMarketsPage() {
                         axisLine={false}
                         tickFormatter={(v) => `$${v}`}
                       />
-                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => [formatCurrency(Number(v ?? 0)), "Value"]} />
+                      <Tooltip contentStyle={chartTheme.tooltip} formatter={(v) => [formatCurrency(Number(v ?? 0)), "Value"]} />
                       <Area
                         type="monotone"
                         dataKey="value"

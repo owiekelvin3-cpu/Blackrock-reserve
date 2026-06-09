@@ -12,6 +12,7 @@ import {
   ensureBrowserNotificationPermission,
   unlockNotificationAudio,
 } from "@/lib/notification-sound";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function AdminTopBar() {
   const { data, lastUpdated } = useAdminNotifications();
@@ -74,7 +75,8 @@ export default function AdminTopBar() {
         <span className="text-xs text-[var(--admin-muted)] sm:hidden">Live</span>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <ThemeToggle size="sm" />
         {lastUpdated && (
           <span className="text-[10px] text-[var(--admin-muted)] hidden sm:inline">
             Last sync {lastUpdated.toLocaleTimeString()}

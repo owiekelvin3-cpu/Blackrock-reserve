@@ -27,7 +27,7 @@ export default function Hero() {
 
         <motion.h1
           variants={fadeUp}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-white leading-[1.1] tracking-tight text-balance max-w-4xl mx-auto"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-text-primary leading-[1.1] tracking-tight text-balance max-w-4xl mx-auto"
         >
           Elevate Your Business Using{" "}
           <span className="gold-gradient-text">AI-Driven Automation</span>

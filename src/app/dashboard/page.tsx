@@ -7,7 +7,8 @@ import {
   ArrowDownLeft, Receipt, RefreshCw,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { CHART_BRAND, CHART_MUTED, CHART_TOOLTIP_STYLE } from "@/lib/chart-theme";
+import { CHART_BRAND } from "@/lib/chart-theme";
+import { useChartTheme } from "@/hooks/use-chart-theme";
 import { formatCurrency } from "@/lib/utils";
 import { fetchJson } from "@/lib/fetch-json";
 import DashboardGate from "@/components/dashboard/DashboardGate";
@@ -43,6 +44,7 @@ const activityIcons: Record<string, typeof Wallet> = {
 };
 
 export default function DashboardPage() {
+  const chartTheme = useChartTheme();
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeMonth, setActiveMonth] = useState("");
@@ -154,11 +156,11 @@ export default function DashboardPage() {
                 <ChartContainer className="h-52 min-h-[208px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.cashFlowData} barCategoryGap="18%">
-                      <XAxis dataKey="month" stroke="#6b6b6b" fontSize={11} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} cursor={{ fill: "rgba(255,95,5,0.08)" }} formatter={(v) => [formatCurrency(Number(v ?? 0)), "Cashflow"]} />
+                      <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={chartTheme.tooltip} cursor={{ fill: "rgba(255,95,5,0.08)" }} formatter={(v) => [formatCurrency(Number(v ?? 0)), "Cashflow"]} />
                       <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                         {data.cashFlowData.map((entry) => (
-                          <Cell key={entry.month} fill={entry.month === activeMonth ? CHART_BRAND : CHART_MUTED} onClick={() => setActiveMonth(entry.month)} style={{ cursor: "pointer" }} />
+                          <Cell key={entry.month} fill={entry.month === activeMonth ? CHART_BRAND : chartTheme.muted} onClick={() => setActiveMonth(entry.month)} style={{ cursor: "pointer" }} />
                         ))}
                       </Bar>
                     </BarChart>

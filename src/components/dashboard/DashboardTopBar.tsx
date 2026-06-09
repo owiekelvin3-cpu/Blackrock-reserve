@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ChevronLeft, ChevronRight, HelpCircle, Mail } from "lucide-react";
 import DashboardNotifications from "@/components/dashboard/DashboardNotifications";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const titles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -43,10 +44,11 @@ export default function DashboardTopBar() {
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <button className="hidden sm:block p-2 rounded-xl text-text-secondary hover:text-white hover:bg-bg-tertiary transition-colors" aria-label="Help">
+        <ThemeToggle size="sm" />
+        <button className="hidden sm:block p-2 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors" aria-label="Help">
           <HelpCircle size={18} />
         </button>
-        <button className="hidden sm:block p-2 rounded-xl text-text-secondary hover:text-white hover:bg-bg-tertiary transition-colors" aria-label="Messages">
+        <button className="hidden sm:block p-2 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors" aria-label="Messages">
           <Mail size={18} />
         </button>
         <DashboardNotifications />

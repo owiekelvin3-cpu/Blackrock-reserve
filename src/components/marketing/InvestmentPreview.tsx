@@ -7,7 +7,8 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import Button from "@/components/ui/Button";
 import ChartContainer from "@/components/ui/ChartContainer";
 import GlowIcon from "@/components/ui/GlowIcon";
-import { CHART_BRAND, CHART_TOOLTIP_STYLE } from "@/lib/chart-theme";
+import { CHART_BRAND } from "@/lib/chart-theme";
+import { useChartTheme } from "@/hooks/use-chart-theme";
 
 const chartData = [
   { month: "Jan", value: 4200 }, { month: "Feb", value: 4350 }, { month: "Mar", value: 4100 },
@@ -19,6 +20,7 @@ const chartData = [
 const tickers = ["AAPL", "MSFT", "TSLA", "BTC", "ETH"];
 
 export default function InvestmentPreview() {
+  const chartTheme = useChartTheme();
   return (
     <section className="section-padding relative overflow-hidden">
       <div className="neon-streak top-1/3 right-[-15%] w-[70%] h-20 opacity-20 rotate-12" />
@@ -45,9 +47,9 @@ export default function InvestmentPreview() {
                         <stop offset="100%" stopColor={CHART_BRAND} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="month" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                    <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
+                    <Tooltip contentStyle={chartTheme.tooltip} />
                     <Area type="monotone" dataKey="value" stroke={CHART_BRAND} fill="url(#brandArea)" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>

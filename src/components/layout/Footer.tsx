@@ -35,7 +35,7 @@ const legal = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-black/50 relative overflow-hidden">
+    <footer className="theme-footer relative overflow-hidden">
       <div className="mx-auto max-w-7xl section-padding">
         <motion.div
           className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5"

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
 import Logo from "./Logo";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -115,8 +116,9 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="relative z-20 flex shrink-0 items-center justify-end gap-2">
-          <Link href="/login" className="hidden md:inline-flex text-sm font-medium text-text-secondary hover:text-white transition-colors px-3 py-2">
+        <div className="relative z-20 flex shrink-0 items-center justify-end gap-2 sm:gap-3">
+          <ThemeToggle size="sm" className="hidden sm:inline-flex" />
+          <Link href="/login" className="hidden md:inline-flex text-sm font-medium text-text-secondary hover:text-text-primary transition-colors px-3 py-2">
             Sign in
           </Link>
           <Link href="/register" className={cn(primaryLinkClass, "hidden md:inline-flex")}>
@@ -158,10 +160,14 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <div className="pt-3 mt-2 border-t border-white/10 flex flex-col gap-2">
+              <div className="pt-3 mt-2 border-t border-white/10 flex flex-col gap-3">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-medium text-text-secondary">Appearance</span>
+                  <ThemeToggle size="sm" />
+                </div>
                 <Link
                   href="/login"
-                  className="w-full text-center px-5 py-2.5 text-sm font-medium text-text-secondary hover:text-white rounded-full border border-white/10 transition-colors"
+                  className="w-full text-center px-5 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary rounded-full border border-white/10 transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
                   Sign in

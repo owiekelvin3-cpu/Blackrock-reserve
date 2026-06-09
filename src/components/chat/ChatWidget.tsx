@@ -146,7 +146,7 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-24 right-4 sm:right-6 z-[9999] flex flex-col w-[min(100vw-2rem,380px)] h-[min(70vh,520px)] rounded-2xl border border-white/10 bg-[#0a0a0c]/95 backdrop-blur-xl shadow-2xl shadow-black/50 overflow-hidden"
+            className="fixed bottom-24 right-4 sm:right-6 z-[9999] flex flex-col w-[min(100vw-2rem,380px)] h-[min(70vh,520px)] rounded-2xl border border-border bg-bg-elevated/95 backdrop-blur-xl shadow-2xl shadow-black/20 overflow-hidden"
             role="dialog"
             aria-label="Blackrock Reserve support chat"
           >
@@ -187,7 +187,7 @@ export default function ChatWidget() {
                   <div
                     className={cn(
                       "h-7 w-7 rounded-full shrink-0 flex items-center justify-center",
-                      msg.role === "user" ? "bg-accent-brand/20" : "bg-white/10"
+                      msg.role === "user" ? "bg-accent-brand/20" : "bg-surface-overlay"
                     )}
                   >
                     {msg.role === "user" ? (
@@ -201,7 +201,7 @@ export default function ChatWidget() {
                       "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
                       msg.role === "user"
                         ? "bg-accent-brand text-white rounded-tr-sm"
-                        : "bg-white/5 text-text-secondary border border-white/10 rounded-tl-sm"
+                        : "bg-surface-overlay text-text-secondary border border-border rounded-tl-sm"
                     )}
                   >
                     {msg.content}
@@ -211,10 +211,10 @@ export default function ChatWidget() {
 
               {typing && (
                 <div className="flex gap-2">
-                  <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center">
-                    <Bot size={14} className="text-white/80" />
+                  <div className="h-7 w-7 rounded-full bg-surface-overlay flex items-center justify-center">
+                    <Bot size={14} className="text-text-secondary" />
                   </div>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1">
+                  <div className="bg-surface-overlay border border-border rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1">
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
@@ -245,7 +245,7 @@ export default function ChatWidget() {
 
             {/* Input */}
             <form
-              className="p-3 border-t border-white/10 flex gap-2 shrink-0"
+              className="p-3 border-t border-border flex gap-2 shrink-0"
               onSubmit={(e) => {
                 e.preventDefault();
                 sendMessage(input);
@@ -257,7 +257,7 @@ export default function ChatWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about accounts, deposits, KYC..."
-                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-text-muted focus:border-accent-brand/50 focus:outline-none focus:ring-1 focus:ring-accent-brand/30"
+                className="flex-1 rounded-xl border border-border bg-surface-overlay px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-brand/50 focus:outline-none focus:ring-1 focus:ring-accent-brand/30"
                 maxLength={1000}
                 disabled={typing}
               />

@@ -5,7 +5,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveCo
 import Card from "@/components/ui/Card";
 import DashboardGate from "@/components/dashboard/DashboardGate";
 import EmptyState from "@/components/dashboard/EmptyState";
-import { CHART_TOOLTIP_STYLE } from "@/lib/chart-theme";
+import { useChartTheme } from "@/hooks/use-chart-theme";
 import { fetchJson } from "@/lib/fetch-json";
 import ChartContainer from "@/components/ui/ChartContainer";
 
@@ -15,6 +15,7 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
+  const chartTheme = useChartTheme();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,9 +44,9 @@ export default function AnalyticsPage() {
               <ChartContainer className="h-72 min-h-[288px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.monthlySpending}>
-                    <XAxis dataKey="category" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                    <XAxis dataKey="category" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                    <Tooltip contentStyle={chartTheme.tooltip} />
                     <Bar dataKey="amount" fill="#FF5F05" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -67,7 +68,7 @@ export default function AnalyticsPage() {
                           <Cell key={entry.name} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v) => [`${Number(v ?? 0)}%`, "Allocation"]} />
+                      <Tooltip contentStyle={chartTheme.tooltip} formatter={(v) => [`${Number(v ?? 0)}%`, "Allocation"]} />
                     </PieChart>
                   </ResponsiveContainer>
                 </ChartContainer>

@@ -14,6 +14,9 @@ const config: Config = {
           secondary: "var(--bg-secondary)",
           tertiary: "var(--bg-tertiary)",
           card: "var(--bg-card)",
+          elevated: "var(--bg-elevated)",
+          "surface-overlay": "var(--surface-overlay)",
+          "surface-hover": "var(--surface-hover)",
         },
         accent: {
           gold: "var(--accent-gold)",
