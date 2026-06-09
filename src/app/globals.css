@@ -181,7 +181,7 @@ body {
     left: 50%;
     top: 18%;
     transform: translateX(-50%);
-    width: min(900px, 120vw);
+    width: min(900px, 100vw);
     height: min(500px, 70vw);
     border-radius: 50%;
     background: radial-gradient(
@@ -201,7 +201,7 @@ body {
     left: 50%;
     top: 42%;
     transform: translateX(-50%);
-    width: min(1100px, 140vw);
+    width: min(1100px, 100vw);
     height: min(600px, 80vw);
     border-radius: 50%;
     border: 1px solid transparent;

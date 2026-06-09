@@ -62,7 +62,7 @@ export default function Pricing() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
               className={`glow-card hover-lift p-6 sm:p-8 relative ${
-                plan.popular ? "border-accent-brand/40 shadow-brand scale-[1.02]" : ""
+                plan.popular ? "border-accent-brand/40 shadow-brand md:scale-[1.02]" : ""
               }`}
             >
               {plan.popular && (

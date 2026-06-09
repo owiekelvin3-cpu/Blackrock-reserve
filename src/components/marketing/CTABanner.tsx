@@ -28,10 +28,11 @@ export default function CTABanner() {
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/register">
-              <Button size="lg" className="rounded-full px-8 bg-white text-accent-brand hover:bg-white/90 shadow-none min-w-[180px]">
-                Get Started <ArrowRight size={18} />
-              </Button>
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center gap-2 font-semibold rounded-full px-8 py-4 text-base bg-white text-accent-brand hover:bg-white/90 min-w-[180px] transition-colors"
+            >
+              Get Started <ArrowRight size={18} />
             </Link>
             <Link href="/contact">
               <Button

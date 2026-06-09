@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChartContainerProps {
@@ -9,19 +9,31 @@ interface ChartContainerProps {
 }
 
 export default function ChartContainer({ className, children }: ChartContainerProps) {
-  const [mounted, setMounted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const el = ref.current;
+    if (!el) return;
+
+    const check = () => {
+      const { width, height } = el.getBoundingClientRect();
+      setReady(width > 0 && height > 0);
+    };
+
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
-  if (!mounted) {
-    return <div className={cn("min-h-[120px] min-w-0 w-full", className)} aria-hidden />;
-  }
-
   return (
-    <div className={cn("min-h-0 min-w-0 w-full", className)} style={{ minWidth: 0 }}>
-      {children}
+    <div
+      ref={ref}
+      className={cn("min-h-0 min-w-0 w-full", className)}
+      style={{ minWidth: 0 }}
+    >
+      {ready ? children : <div className="h-full w-full" aria-hidden />}
     </div>
   );
 }

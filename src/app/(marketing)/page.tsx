@@ -10,7 +10,7 @@ function SectionLoader() {
 }
 
 const TrustBar = dynamic(() => import("@/components/marketing/TrustBar"), { loading: SectionLoader });
-const Features = dynamic(() => import("@/components/marketing/Features"), { loading: SectionLoader });
+const Features = dynamic(() => import("@/components/marketing/Features"), { loading: SectionLoader, ssr: false });
 const SolutionsGrid = dynamic(() => import("@/components/marketing/SolutionsGrid"), { loading: SectionLoader });
 const Pricing = dynamic(() => import("@/components/marketing/Pricing"), { loading: SectionLoader });
 const Testimonials = dynamic(() => import("@/components/marketing/Testimonials"), { loading: SectionLoader });

@@ -29,8 +29,8 @@ const featureDetails = [
     reverse: true,
   },
   {
-    id: "transfers",
-    title: "Global Transfers",
+    id: "integration",
+    title: "Global Transfers & Integration",
     description: "Send money to 50+ countries with competitive exchange rates and transparent fees. Track every transfer in real-time from initiation to delivery.",
     highlights: ["50+ countries", "Live exchange rates", "Transfer tracking", "Scheduled payments"],
     reverse: false,

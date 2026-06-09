@@ -4,19 +4,8 @@ import { motion } from "framer-motion";
 import {
   Brain, Bot, LineChart, Mic, BarChart3, Sparkles,
 } from "lucide-react";
-import { BarChart, Bar, LineChart as ReLineChart, Line, ResponsiveContainer } from "recharts";
-import { CHART_BRAND, CHART_MUTED } from "@/lib/chart-theme";
-import ChartContainer from "@/components/ui/ChartContainer";
 import GlowIcon from "@/components/ui/GlowIcon";
-
-const lineData = [
-  { x: 0, y: 20 }, { x: 1, y: 35 }, { x: 2, y: 28 }, { x: 3, y: 50 },
-  { x: 4, y: 42 }, { x: 5, y: 65 }, { x: 6, y: 58 }, { x: 7, y: 80 },
-];
-
-const barData = [
-  { v: 30 }, { v: 45 }, { v: 38 }, { v: 62 }, { v: 55 }, { v: 90 }, { v: 72 },
-];
+import { MiniBarChart, MiniLineChart } from "@/components/marketing/MiniCharts";
 
 const avatars = ["SC", "MW", "ER", "JO", "PS"];
 
@@ -158,20 +147,9 @@ export default function Features() {
                 <GlowIcon icon={LineChart} size={18} className="mb-4" />
                 <h3 className="text-sm font-semibold text-white mb-1">Data Integration Made Easy</h3>
                 <p className="text-xs text-text-secondary mb-4">Connect accounts and sync data seamlessly.</p>
-                <ChartContainer className="h-20">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ReLineChart data={lineData}>
-                      <Line
-                        type="monotone"
-                        dataKey="y"
-                        stroke={CHART_BRAND}
-                        strokeWidth={2}
-                        dot={false}
-                        animationDuration={1500}
-                      />
-                    </ReLineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                <div className="h-20 w-full">
+                  <MiniLineChart />
+                </div>
               </div>
             </motion.div>
 
@@ -210,13 +188,9 @@ export default function Features() {
                 <GlowIcon icon={BarChart3} size={18} className="mb-4" />
                 <h3 className="text-sm font-semibold text-white mb-1">Data Visualization</h3>
                 <p className="text-xs text-text-secondary mb-4">Real-time portfolio analytics and insights.</p>
-                <ChartContainer className="h-20">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={barData} barCategoryGap="30%">
-                      <Bar dataKey="v" fill={CHART_MUTED} radius={[3, 3, 0, 0]} activeBar={{ fill: CHART_BRAND }} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                <div className="h-20 w-full">
+                  <MiniBarChart />
+                </div>
               </div>
             </motion.div>
           </div>
