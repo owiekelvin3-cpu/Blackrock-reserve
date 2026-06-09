@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Disclosures | Blackrock Reserve",
+  title: "Disclosures",
   description: "Regulatory disclosures and important information about Blackrock Reserve.",
 };
 

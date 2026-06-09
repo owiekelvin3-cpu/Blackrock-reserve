@@ -20,6 +20,17 @@ const navLinks = [
 const primaryLinkClass =
   "inline-flex items-center justify-center gap-2 font-semibold transition-all btn-gold px-5 py-2.5 text-sm rounded-full";
 
+function scrollToHash(href: string) {
+  const hashIndex = href.indexOf("#");
+  if (hashIndex === -1) return;
+
+  const id = href.slice(hashIndex + 1);
+  const target = document.getElementById(id);
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hash, setHash] = useState("");
@@ -40,6 +51,17 @@ export default function Navbar() {
     return () => window.removeEventListener("hashchange", syncHash);
   }, [syncHash]);
 
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.replace("#", "");
+    requestAnimationFrame(() => {
+      const target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }, [pathname, hash]);
+
   const isActive = (href: string) => {
     if (href.startsWith("/#")) {
       return pathname === "/" && hash === href.slice(1);
@@ -51,22 +73,37 @@ export default function Navbar() {
       const [path, h] = href.split("#");
       return pathname === path && hash === `#${h}`;
     }
-    return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const handleNavClick = (href: string) => {
+    setMobileOpen(false);
+
+    const hashIndex = href.indexOf("#");
+    if (hashIndex === -1) return;
+
+    const path = href.slice(0, hashIndex) || "/";
+    if (pathname === path || (path === "/" && pathname === "/")) {
+      window.setTimeout(() => scrollToHash(href), 0);
+    }
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-5 sm:px-6">
-      <nav className="relative mx-auto flex max-w-7xl items-center justify-between">
-        <Logo />
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-5 sm:px-6 pointer-events-none">
+      <nav className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6 pointer-events-auto">
+        <div className="relative z-20 shrink-0">
+          <Logo />
+        </div>
 
-        <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2">
-          <div className="glass-dock flex items-center gap-0.5 px-2 py-1.5">
+        <div className="hidden lg:flex min-w-0 justify-center">
+          <div className="glass-dock flex max-w-full items-center gap-0.5 overflow-x-auto px-2 py-1.5">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={() => handleNavClick(link.href)}
                 className={cn(
-                  "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                  "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all",
                   isActive(link.href)
                     ? "bg-accent-brand/15 text-white border border-accent-brand/30 shadow-[0_0_20px_rgba(255,95,5,0.2)]"
                     : "text-text-secondary hover:text-white hover:bg-white/5"
@@ -78,21 +115,20 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="hidden lg:flex items-center">
-          <Link href="/contact" className={primaryLinkClass}>
-            Contact <ArrowRight size={16} />
+        <div className="relative z-20 flex shrink-0 items-center justify-end">
+          <Link href="/register" className={cn(primaryLinkClass, "hidden lg:inline-flex")}>
+            Sign up <ArrowRight size={16} />
           </Link>
+          <button
+            type="button"
+            className="lg:hidden p-2 text-text-primary"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="lg:hidden p-2 text-text-primary"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-          aria-expanded={mobileOpen}
-        >
-          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
       </nav>
 
       <AnimatePresence>
@@ -101,13 +137,14 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="lg:hidden mt-4 mx-auto max-w-7xl glass-card p-4"
+            className="lg:hidden mt-4 mx-auto max-w-7xl glass-card p-4 pointer-events-auto"
           >
             <div className="flex flex-col gap-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
+                  onClick={() => handleNavClick(link.href)}
                   className={cn(
                     "px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                     isActive(link.href)
@@ -119,8 +156,8 @@ export default function Navbar() {
                 </Link>
               ))}
               <div className="pt-3 mt-2 border-t border-white/10">
-                <Link href="/contact" className={cn(primaryLinkClass, "w-full")}>
-                  Contact <ArrowRight size={16} />
+                <Link href="/register" className={cn(primaryLinkClass, "w-full")} onClick={() => setMobileOpen(false)}>
+                  Sign up <ArrowRight size={16} />
                 </Link>
               </div>
             </div>

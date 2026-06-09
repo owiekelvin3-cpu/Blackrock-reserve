@@ -1,7 +1,7 @@
 import "./admin.css";
 
 export const metadata = {
-  title: "Blackrock Reserve Admin Console",
+  title: "Admin | BlackrockReserve",
   description: "Internal administration portal for Blackrock Reserve",
 };
 

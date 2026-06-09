@@ -8,8 +8,8 @@ const siteUrl = getSiteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Blackrock Reserve | Premium Digital Banking & Investments",
-    template: "%s | Blackrock Reserve",
+    default: "BlackrockReserve",
+    template: "%s | BlackrockReserve",
   },
   description:
     "Premium digital banking, smart investments, and wealth management for high-net-worth individuals and modern investors.",
@@ -18,14 +18,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "Blackrock Reserve",
-    title: "Blackrock Reserve | Premium Digital Banking & Investments",
+    siteName: "BlackrockReserve",
+    title: "BlackrockReserve",
     description:
       "Premium digital banking, smart investments, and wealth management for high-net-worth individuals and modern investors.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Blackrock Reserve",
+    title: "BlackrockReserve",
     description: "Premium digital banking, smart investments, and wealth management.",
   },
   robots: {

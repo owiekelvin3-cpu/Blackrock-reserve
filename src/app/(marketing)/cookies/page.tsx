@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy | Blackrock Reserve",
+  title: "Cookie Policy",
   description: "How Blackrock Reserve uses cookies and similar technologies.",
 };
 

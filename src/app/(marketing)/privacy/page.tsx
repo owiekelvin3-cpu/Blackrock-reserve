@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Blackrock Reserve",
+  title: "Privacy Policy",
   description: "How Blackrock Reserve collects, uses, and protects your personal information.",
 };
 
