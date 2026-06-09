@@ -16,5 +16,9 @@ export async function GET() {
       configured: isEmailConfigured(),
       provider: getEmailProvider(),
     },
+    admin: {
+      emailConfigured: Boolean(process.env.ADMIN_EMAIL?.trim()),
+      passwordless: process.env.ADMIN_PASSWORDLESS === "true",
+    },
   });
 }

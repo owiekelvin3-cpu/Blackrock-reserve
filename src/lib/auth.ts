@@ -25,17 +25,18 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        const adminPasswordless =
-          process.env.NODE_ENV !== "production" &&
-          process.env.ADMIN_PASSWORDLESS === "true" &&
-          user.role === "ADMIN";
+        if (!credentials.password) {
+          throw new Error("Invalid credentials");
+        }
 
-        if (!adminPasswordless) {
-          if (!credentials.password) {
-            throw new Error("Invalid credentials");
-          }
-          const isValid = await bcrypt.compare(credentials.password, user.password);
-          if (!isValid) {
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
+          throw new Error("Invalid credentials");
+        }
+
+        if (user.role === "ADMIN" && process.env.NODE_ENV === "production") {
+          const allowedAdmin = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+          if (allowedAdmin && user.email.toLowerCase() !== allowedAdmin) {
             throw new Error("Invalid credentials");
           }
         }

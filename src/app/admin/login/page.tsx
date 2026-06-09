@@ -1,60 +1,69 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { signIn, signOut, getSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Shield, AlertCircle } from "lucide-react";
 
-async function waitForAdminSession(maxAttempts = 8) {
+async function waitForAdminSession(maxAttempts = 12) {
   for (let i = 0; i < maxAttempts; i++) {
     const session = await getSession();
     if (session?.user?.role === "ADMIN") return session;
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
   return getSession();
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
-  const [email, setEmail] = useState("admin@blackrockreserve.com");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState("");
+  const [authReady, setAuthReady] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((data) => setAuthReady(Boolean(data?.auth?.configured)))
+      .catch(() => setAuthReady(false));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!authReady) return;
+
     setLoading(true);
     setFormError("");
 
     try {
-      const existing = await getSession();
-      if (existing?.user?.role !== "ADMIN") {
-        await signOut({ redirect: false });
-      }
+      await signOut({ redirect: false });
 
       const result = await signIn("credentials", {
         email: email.trim().toLowerCase(),
-        password: "admin-passwordless",
+        password,
         redirect: false,
       });
 
       if (result?.error) {
-        setFormError("Could not sign in. Check the admin email.");
+        setFormError(
+          result.error === "Configuration"
+            ? "Sign-in is unavailable. Set NEXTAUTH_SECRET and NEXTAUTH_URL in Vercel, then redeploy."
+            : "Invalid email or password."
+        );
         return;
       }
 
       const session = await waitForAdminSession();
-
       if (session?.user?.role !== "ADMIN") {
         await signOut({ redirect: false });
         setFormError("Access denied. Admin account required.");
         return;
       }
 
-      router.push("/admin");
-      router.refresh();
+      window.location.href = "/admin";
     } catch {
       setFormError("Something went wrong. Please try again.");
     } finally {
@@ -75,9 +84,19 @@ function LoginForm() {
             <h1 className="text-lg font-bold text-white">
               Admin <span className="gold-gradient-text">Console</span>
             </h1>
-            <p className="text-xs text-[var(--admin-muted)]">Blackrock Reserve — Internal Access</p>
+            <p className="text-xs text-[var(--admin-muted)]">Blackrock Reserve — Authorized access only</p>
           </div>
         </div>
+
+        {!authReady && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-accent-red/10 border border-accent-red/20 text-accent-red text-sm mb-6">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <p>
+              Sign-in is unavailable. Add <strong>NEXTAUTH_SECRET</strong> (32+ chars) and{" "}
+              <strong>NEXTAUTH_URL=https://www.blackrockreserve.site</strong> in Vercel, then redeploy.
+            </p>
+          </div>
+        )}
 
         {(error === "not_admin" || formError) && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-accent-red/10 border border-accent-red/20 text-accent-red text-sm mb-6">
@@ -94,13 +113,32 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="admin-input"
-              placeholder="admin@blackrockreserve.com"
-              autoComplete="email"
+              placeholder="admin@blackrockreserve.site"
+              autoComplete="username"
               required
+              disabled={!authReady || loading}
             />
           </div>
-          <button type="submit" disabled={loading} className="admin-btn-primary w-full mt-2 disabled:opacity-50">
-            {loading ? "Signing in..." : "Enter Admin Console"}
+          <div>
+            <label className="block text-xs font-medium text-[var(--admin-muted)] mb-1.5">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="admin-input"
+              placeholder="••••••••••••"
+              autoComplete="current-password"
+              required
+              minLength={8}
+              disabled={!authReady || loading}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!authReady || loading}
+            className="admin-btn-primary w-full mt-2 disabled:opacity-50"
+          >
+            {loading ? "Signing in…" : "Sign in to Admin"}
           </button>
         </form>
 
