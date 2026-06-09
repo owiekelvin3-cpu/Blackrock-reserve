@@ -28,16 +28,21 @@ function withPoolSettings(url: string | undefined) {
   return result;
 }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient() {
+  const dbUrl = withPoolSettings(process.env.DATABASE_URL);
+  const options: ConstructorParameters<typeof PrismaClient>[0] = {
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    datasources: {
-      db: {
-        url: withPoolSettings(process.env.DATABASE_URL),
-      },
-    },
-  });
+  };
+
+  // Only override the datasource when a URL exists — passing `undefined` breaks `next build`
+  if (dbUrl) {
+    options.datasources = { db: { url: dbUrl } };
+  }
+
+  return new PrismaClient(options);
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
