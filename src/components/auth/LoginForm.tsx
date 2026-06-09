@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +17,8 @@ import { loginSchema, type LoginInput } from "@/lib/validations";
 
 const AUTH_MESSAGES: Record<string, string> = {
   sign_in_required: "Please sign in to access your dashboard.",
-  verify_email: "Verify your email before accessing the dashboard. Check your inbox for the verification link.",
+  verify_email: "Verify your email before accessing the dashboard. Check your inbox for the verification code.",
+  Configuration: "Sign-in is temporarily unavailable. The site administrator must set NEXTAUTH_SECRET and NEXTAUTH_URL in Vercel.",
 };
 
 function LoginFormInner() {
@@ -26,6 +27,15 @@ function LoginFormInner() {
   const authError = searchParams.get("error");
   const bannerMessage = authError ? AUTH_MESSAGES[authError] : null;
   const [redirecting, setRedirecting] = useState(false);
+  const [authReady, setAuthReady] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((data) => setAuthReady(Boolean(data?.auth?.configured)))
+      .catch(() => setAuthReady(false));
+  }, []);
+
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
@@ -54,6 +64,13 @@ function LoginFormInner() {
       <h1 className="font-display text-2xl font-bold text-text-primary text-center">Welcome Back</h1>
       <p className="text-sm text-text-secondary text-center mt-2">Sign in to your Blackrock Reserve account</p>
 
+      {!authReady && (
+        <div className="mt-6 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <p>{AUTH_MESSAGES.Configuration}</p>
+        </div>
+      )}
+
       {bannerMessage && (
         <div className="mt-6 flex items-start gap-2 rounded-xl border border-accent-gold/30 bg-accent-gold/10 p-3 text-sm text-accent-gold">
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
@@ -75,7 +92,7 @@ function LoginFormInner() {
           </Link>
         </div>
 
-        <Button type="submit" isLoading={isSubmitting || redirecting} className="w-full">
+        <Button type="submit" isLoading={isSubmitting || redirecting} disabled={!authReady} className="w-full">
           {redirecting ? "Opening dashboard…" : "Sign In"}
         </Button>
       </form>
