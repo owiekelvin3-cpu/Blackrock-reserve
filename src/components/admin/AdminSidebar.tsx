@@ -5,62 +5,63 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Mail, Building2, LogOut, ChevronRight, Bitcoin, Wallet,
-  Settings, ArrowUpFromLine, Menu, X, LineChart, TrendingUp, DollarSign,   Landmark, FileCheck, Receipt,
+  Settings, ArrowUpFromLine, Menu, X, LineChart, TrendingUp, DollarSign, Landmark, FileCheck, Receipt,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAdminNotifications } from "@/components/admin/AdminNotificationsProvider";
+import { useI18n } from "@/components/providers/I18nProvider";
 
 type NavItem = {
   href: string;
-  label: string;
-  shortLabel?: string;
+  labelKey: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
   countKey?: "pendingDeposits" | "pendingWithdrawals" | "pendingTransactions" | "pendingKyc" | "contactMessages" | "pendingTaxVerifications" | "pendingLoans" | null;
 };
 
-const navGroups: { title: string; items: NavItem[] }[] = [
+const navGroups: { titleKey: string; items: NavItem[] }[] = [
   {
-    title: "Overview",
+    titleKey: "admin.overview",
     items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, countKey: null },
-      { href: "/admin/users", label: "Users", icon: Users, countKey: null },
+      { href: "/admin", labelKey: "admin.dashboard", icon: LayoutDashboard, exact: true, countKey: null },
+      { href: "/admin/users", labelKey: "admin.users", icon: Users, countKey: null },
     ],
   },
   {
-    title: "Money",
+    titleKey: "admin.money",
     items: [
-      { href: "/admin/deposits", label: "Deposits", shortLabel: "Deposits", icon: Bitcoin, countKey: "pendingDeposits" },
-      { href: "/admin/withdrawals", label: "Withdrawals", icon: ArrowUpFromLine, countKey: "pendingWithdrawals" },
-      { href: "/admin/withdrawal-charges", label: "Withdrawal Charges", shortLabel: "W. Charges", icon: Receipt, countKey: null },
-      { href: "/admin/accounts", label: "Accounts", icon: Building2, countKey: null },
-      { href: "/admin/transactions", label: "Transactions", icon: ArrowLeftRight, countKey: "pendingTransactions" },
-      { href: "/admin/balance-adjustments", label: "Adjustments", icon: Wallet, countKey: null },
-      { href: "/admin/profit-management", label: "Profit", shortLabel: "Profit", icon: DollarSign, countKey: null },
+      { href: "/admin/deposits", labelKey: "admin.deposits", icon: Bitcoin, countKey: "pendingDeposits" },
+      { href: "/admin/withdrawals", labelKey: "admin.withdrawals", icon: ArrowUpFromLine, countKey: "pendingWithdrawals" },
+      { href: "/admin/withdrawal-charges", labelKey: "admin.withdrawalCharges", icon: Receipt, countKey: null },
+      { href: "/admin/accounts", labelKey: "admin.accounts", icon: Building2, countKey: null },
+      { href: "/admin/transactions", labelKey: "admin.transactions", icon: ArrowLeftRight, countKey: "pendingTransactions" },
+      { href: "/admin/balance-adjustments", labelKey: "admin.adjustments", icon: Wallet, countKey: null },
+      { href: "/admin/profit-management", labelKey: "admin.profit", icon: DollarSign, countKey: null },
     ],
   },
   {
-    title: "Markets",
+    titleKey: "admin.markets",
     items: [
-      { href: "/admin/market-assets", label: "Market Assets", shortLabel: "Assets", icon: LineChart, countKey: null },
-      { href: "/admin/investments", label: "Investments", icon: TrendingUp, countKey: null },
+      { href: "/admin/market-assets", labelKey: "admin.marketAssets", icon: LineChart, countKey: null },
+      { href: "/admin/investments", labelKey: "admin.investments", icon: TrendingUp, countKey: null },
     ],
   },
   {
-    title: "Review",
+    titleKey: "admin.review",
     items: [
-      { href: "/admin/kyc", label: "KYC Review", shortLabel: "KYC", icon: ShieldCheck, countKey: "pendingKyc" },
-      { href: "/admin/tax-verifications", label: "Tax Verification", shortLabel: "Tax", icon: FileCheck, countKey: "pendingTaxVerifications" },
-      { href: "/admin/loans", label: "Loan Management", shortLabel: "Loans", icon: Landmark, countKey: "pendingLoans" },
-      { href: "/admin/messages", label: "Messages", icon: Mail, countKey: "contactMessages" },
-      { href: "/admin/settings", label: "Settings", icon: Settings, countKey: null },
+      { href: "/admin/kyc", labelKey: "admin.kycReview", icon: ShieldCheck, countKey: "pendingKyc" },
+      { href: "/admin/tax-verifications", labelKey: "admin.taxVerification", icon: FileCheck, countKey: "pendingTaxVerifications" },
+      { href: "/admin/loans", labelKey: "admin.loanManagement", icon: Landmark, countKey: "pendingLoans" },
+      { href: "/admin/messages", labelKey: "admin.messages", icon: Mail, countKey: "contactMessages" },
+      { href: "/admin/settings", labelKey: "admin.settings", icon: Settings, countKey: null },
     ],
   },
 ];
 
 export default function AdminSidebar() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const { data: session } = useSession();
   const { data: notificationData } = useAdminNotifications();
@@ -75,17 +76,17 @@ export default function AdminSidebar() {
             BR
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white leading-tight truncate">Blackrock Reserve</p>
-            <span className="admin-pill mt-0.5">Admin · Live</span>
+            <p className="text-sm font-semibold text-white leading-tight truncate">{t("admin.brand")}</p>
+            <span className="admin-pill mt-0.5">{t("admin.badge")}</span>
           </div>
         </Link>
       </div>
 
       <nav className="flex-1 p-2 sm:p-3 overflow-y-auto admin-sidebar-nav">
         {navGroups.map((group) => (
-          <div key={group.title} className="mb-3 last:mb-0">
+          <div key={group.titleKey} className="mb-3 last:mb-0">
             <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--admin-muted)]">
-              {group.title}
+              {t(group.titleKey)}
             </p>
             <div className="space-y-0.5">
               {group.items.map((item) => {
@@ -102,7 +103,7 @@ export default function AdminSidebar() {
                     )}
                   >
                     <item.icon size={17} strokeWidth={1.75} className="shrink-0" />
-                    <span className="flex-1 truncate">{item.label}</span>
+                    <span className="flex-1 truncate">{t(item.labelKey)}</span>
                     {badge > 0 && (
                       <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-accent-brand text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                         {badge > 99 ? "99+" : badge}
@@ -127,13 +128,13 @@ export default function AdminSidebar() {
           </div>
         </div>
         <Link href="/" className="admin-btn-ghost w-full flex items-center justify-center gap-2 mb-2 text-xs">
-          Customer Site <ChevronRight size={12} />
+          {t("admin.customerSite")} <ChevronRight size={12} />
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/admin/login" })}
           className="admin-btn-ghost w-full flex items-center justify-center gap-2 text-xs text-[var(--admin-muted)]"
         >
-          <LogOut size={14} /> Sign Out
+          <LogOut size={14} /> {t("admin.signOut")}
         </button>
       </div>
     </>
@@ -145,7 +146,7 @@ export default function AdminSidebar() {
         type="button"
         className="lg:hidden fixed top-4 left-4 z-50 p-2.5 rounded-xl bg-[var(--admin-card)] border border-white/10 text-white shadow-lg"
         onClick={() => setOpen(!open)}
-        aria-label="Toggle admin menu"
+        aria-label={t("admin.toggleMenu")}
       >
         {open ? <X size={20} /> : <Menu size={20} />}
       </button>

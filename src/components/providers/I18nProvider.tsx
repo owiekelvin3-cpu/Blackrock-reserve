@@ -16,6 +16,7 @@ import {
   LOCALE_STORAGE_KEY,
   detectBrowserLocale,
   getLocaleDefinition,
+  parseLocaleCode,
   type LocaleCode,
 } from "@/lib/i18n/locales";
 import { allMessages, buildMessages } from "@/lib/i18n/messages/overrides";
@@ -36,21 +37,29 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
+function readCookieLocale(): LocaleCode | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`));
+  return parseLocaleCode(match?.[1] ? decodeURIComponent(match[1]) : null);
+}
+
 function readStoredLocale(): LocaleCode | null {
   if (typeof window === "undefined") return null;
   try {
     const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (stored && stored in allMessages) return stored as LocaleCode;
+    return parseLocaleCode(stored);
   } catch {
-    /* ignore */
+    return null;
   }
-  return null;
+}
+
+function resolveClientLocale(serverLocale?: LocaleCode): LocaleCode {
+  return readStoredLocale() ?? readCookieLocale() ?? serverLocale ?? detectBrowserLocale();
 }
 
 function persistLocale(code: LocaleCode) {
   try {
     localStorage.setItem(LOCALE_STORAGE_KEY, code);
-    // Locale cookie is 2 chars only — never store large payloads in cookies
     document.cookie = `${LOCALE_COOKIE}=${code};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
   } catch {
     /* ignore */
@@ -63,33 +72,59 @@ function applyDocumentLocale(code: LocaleCode) {
   document.documentElement.dir = def.dir;
 }
 
-export function I18nProvider({ children }: { children: ReactNode }) {
+function createTranslator(locale: LocaleCode): I18nContextValue {
+  const messages = buildMessages(locale);
+  const def = getLocaleDefinition(locale);
+  const english = allMessages.en;
+
+  return {
+    locale,
+    messages,
+    dir: def.dir,
+    setLocale: () => {},
+    t: (key, vars) => {
+      const raw = resolveMessage(messages, key) ?? resolveMessage(english, key) ?? key;
+      return formatMessage(raw, vars);
+    },
+    formatCurrency: (amount, currency) => formatCurrencyLocale(amount, locale, currency),
+    formatDate: (date, options) => formatDateLocale(date, locale, options),
+    formatTime: (date) => formatTimeLocale(date, locale),
+  };
+}
+
+export function I18nProvider({
+  children,
+  initialLocale = DEFAULT_LOCALE,
+}: {
+  children: ReactNode;
+  initialLocale?: LocaleCode;
+}) {
   const { data: session, status } = useSession();
-  const [locale, setLocaleState] = useState<LocaleCode>(DEFAULT_LOCALE);
-  const [hydrated, setHydrated] = useState(false);
+  const [locale, setLocaleState] = useState<LocaleCode>(() => {
+    if (typeof window === "undefined") return initialLocale;
+    return resolveClientLocale(initialLocale);
+  });
 
   useEffect(() => {
-    const stored = readStoredLocale();
-    const detected = stored ?? detectBrowserLocale();
-    setLocaleState(detected);
-    applyDocumentLocale(detected);
-    setHydrated(true);
-  }, []);
+    const resolved = resolveClientLocale(initialLocale);
+    setLocaleState(resolved);
+    persistLocale(resolved);
+    applyDocumentLocale(resolved);
+  }, [initialLocale]);
 
   useEffect(() => {
-    if (!hydrated || status !== "authenticated") return;
+    if (status !== "authenticated") return;
     fetch("/api/dashboard/preferences")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { preferredLocale?: string } | null) => {
-        if (data?.preferredLocale && data.preferredLocale in allMessages) {
-          const code = data.preferredLocale as LocaleCode;
-          setLocaleState(code);
-          persistLocale(code);
-          applyDocumentLocale(code);
-        }
+        const code = parseLocaleCode(data?.preferredLocale ?? null);
+        if (!code) return;
+        setLocaleState(code);
+        persistLocale(code);
+        applyDocumentLocale(code);
       })
       .catch(() => {});
-  }, [hydrated, status]);
+  }, [status]);
 
   const setLocale = useCallback(
     (code: LocaleCode) => {
@@ -117,7 +152,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       dir: def.dir,
       setLocale,
       t: (key, vars) => {
-        const raw = resolveMessage(messages, key) ?? resolveMessage(allMessages.en, key) ?? key;
+        const raw =
+          resolveMessage(messages, key) ?? resolveMessage(allMessages.en, key) ?? key;
         return formatMessage(raw, vars);
       },
       formatCurrency: (amount, currency) => formatCurrencyLocale(amount, locale, currency),
@@ -127,32 +163,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     [locale, messages, def.dir, setLocale]
   );
 
-  if (!hydrated) {
-    return <>{children}</>;
-  }
-
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) {
-    const fallback = buildMessages(DEFAULT_LOCALE);
-    return {
-      locale: DEFAULT_LOCALE as LocaleCode,
-      messages: fallback,
-      dir: "ltr" as const,
-      setLocale: () => {},
-      t: (key: string, vars?: Record<string, string | number>) => {
-        const raw = resolveMessage(fallback, key) ?? key;
-        return formatMessage(raw, vars);
-      },
-      formatCurrency: (amount: number, currency?: string) =>
-        formatCurrencyLocale(amount, DEFAULT_LOCALE, currency),
-      formatDate: (date: Date | string, options?: Intl.DateTimeFormatOptions) =>
-        formatDateLocale(date, DEFAULT_LOCALE, options),
-      formatTime: (date: Date | string) => formatTimeLocale(date, DEFAULT_LOCALE),
-    };
+    return createTranslator(DEFAULT_LOCALE);
   }
   return ctx;
 }

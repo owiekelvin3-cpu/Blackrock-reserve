@@ -53,6 +53,11 @@ export function getLocaleDefinition(code: string): LocaleDefinition {
   return LOCALES.find((l) => l.code === code) ?? LOCALES[0];
 }
 
+export function parseLocaleCode(value: string | undefined | null): LocaleCode | null {
+  if (!value) return null;
+  return LOCALE_CODES.includes(value as LocaleCode) ? (value as LocaleCode) : null;
+}
+
 /** Map browser language to supported locale */
 export function detectBrowserLocale(): LocaleCode {
   if (typeof navigator === "undefined") return DEFAULT_LOCALE;

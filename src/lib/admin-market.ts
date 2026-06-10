@@ -1,31 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { ensureMarketAssetsSeeded } from "@/lib/market-assets";
+import { mapMarketAsset } from "@/lib/market-asset-mapper";
 
 export async function getAdminMarketAssets() {
   await ensureMarketAssetsSeeded();
 
   const assets = await prisma.marketAsset.findMany({
-    orderBy: [{ enabled: "desc" }, { marketCapRank: "asc" }],
+    orderBy: [
+      { isPinned: "desc" },
+      { sortOrder: "asc" },
+      { enabled: "desc" },
+      { marketCapRank: "asc" },
+    ],
   });
 
-  return assets.map((a) => ({
-    id: a.id,
-    symbol: a.symbol,
-    name: a.name,
-    sector: a.sector,
-    description: a.description,
-    logoDomain: a.logoDomain,
-    price: Number(a.price),
-    changePercent: Number(a.changePercent),
-    minInvestment: Number(a.minInvestment),
-    riskRating: a.riskRating,
-    expectedReturnPercent: Number(a.expectedReturnPercent),
-    marketCapRank: a.marketCapRank,
-    popularity: a.popularity,
-    enabled: a.enabled,
-    createdAt: a.createdAt.toISOString(),
-    updatedAt: a.updatedAt.toISOString(),
-  }));
+  return assets.map(mapMarketAsset);
+}
+
+export async function getNextMarketAssetSortOrder(): Promise<number> {
+  const max = await prisma.marketAsset.aggregate({ _max: { sortOrder: true } });
+  return (max._max.sortOrder ?? 0) + 1;
 }
 
 export async function getAdminInvestments(limit = 100) {

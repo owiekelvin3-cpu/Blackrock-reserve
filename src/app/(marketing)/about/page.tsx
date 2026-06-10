@@ -7,6 +7,7 @@ import { Linkedin } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { marketingImages } from "@/lib/marketing-images";
+import { useI18n } from "@/components/providers/I18nProvider";
 
 const milestones = [
   { year: "2019", title: "Founded", description: "Blackrock Reserve launched with a vision to democratize premium banking." },
@@ -35,6 +36,8 @@ const leadership = [
 const press = ["Forbes", "TechCrunch", "Bloomberg", "Financial Times", "Wall Street Journal", "CNBC"];
 
 export default function AboutPage() {
+  const { t } = useI18n();
+
   return (
     <>
       <section className="section-padding pt-32 grain-overlay relative">
@@ -44,13 +47,12 @@ export default function AboutPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Badge variant="gold" className="mb-6">Our Story</Badge>
+            <Badge variant="gold" className="mb-6">{t("pages.about.badge")}</Badge>
             <h1 className="font-display text-4xl sm:text-5xl font-bold text-text-primary">
-              Redefining <span className="gold-gradient-text">Premium Banking</span>
+              {t("pages.about.title")} <span className="gold-gradient-text">{t("pages.about.titleHighlight")}</span>
             </h1>
             <p className="mt-6 text-lg text-text-secondary leading-relaxed">
-              Founded in 2019, Blackrock Reserve was built on a simple belief: everyone deserves access to
-              institutional-grade financial tools, wrapped in an experience worthy of their ambitions.
+              {t("pages.about.heroDesc")}
             </p>
           </motion.div>
 

@@ -65,11 +65,18 @@ export async function getTransactions(userId: string, type?: string, limit = 20)
 import { getPublicDepositSettings } from "@/lib/platform-settings";
 
 export async function getDashboardOverview(userId: string) {
-  const [accounts, investments, transactions, depositSettings, investedBalance, profitBalance, savings] =
+  const now = new Date();
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+
+  const [accounts, investments, recentTransactions, yearTransactions, depositSettings, investedBalance, profitBalance, savings] =
     await Promise.all([
       getAccounts(userId),
       getInvestments(userId),
       getTransactions(userId, undefined, 10),
+      prisma.transaction.findMany({
+        where: { userId, createdAt: { gte: yearStart } },
+        orderBy: { createdAt: "desc" },
+      }),
       getPublicDepositSettings(),
       getInvestedBalance(userId),
       getProfitBalance(userId),
@@ -78,27 +85,31 @@ export async function getDashboardOverview(userId: string) {
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
-  const now = new Date();
+  const CREDIT_TYPES = new Set(["DEPOSIT", "PROFIT_CREDIT"]);
+
   const cashFlowData = MONTHS.map((month, index) => {
-    const monthTx = transactions.filter((t) => {
+    const monthTx = yearTransactions.filter((t) => {
       const d = new Date(t.createdAt);
       return d.getFullYear() === now.getFullYear() && d.getMonth() === index;
     });
     const monthTotal = monthTx.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
     const inflow = monthTx.reduce((sum, t) => {
-      const amt = Number(t.amount);
-      if (t.type === "DEPOSIT" || t.type === "PROFIT_CREDIT") return sum + amt;
-      return sum - Math.abs(amt);
+      if (CREDIT_TYPES.has(t.type)) return sum + Number(t.amount);
+      return sum;
+    }, 0);
+    const outflow = monthTx.reduce((sum, t) => {
+      if (!CREDIT_TYPES.has(t.type)) return sum + Math.abs(Number(t.amount));
+      return sum;
     }, 0);
     const tooltipDate = new Date(now.getFullYear(), index, 23).toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
       year: "numeric",
     });
-    return { month, value: monthTotal, inflow, tooltipDate };
+    return { month, value: monthTotal, inflow, outflow, tooltipDate };
   });
 
-  const activities = transactions.map((t) => ({
+  const activities = recentTransactions.map((t) => ({
     id: t.id,
     name: t.description,
     orderId: `#${t.id.slice(-8).toUpperCase()}`,

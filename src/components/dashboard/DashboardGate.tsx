@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import EmptyState from "@/components/dashboard/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
+import { useI18n } from "@/components/providers/I18nProvider";
 
 interface DashboardGateProps {
   children: React.ReactNode;
@@ -18,12 +19,15 @@ export default function DashboardGate({
   children,
   isLoading,
   isEmpty,
-  emptyTitle = "No data yet",
-  emptyDescription = "Your account activity will appear here once you start using the platform.",
+  emptyTitle,
+  emptyDescription,
   emptyActionLabel,
   emptyActionHref,
 }: DashboardGateProps) {
+  const { t } = useI18n();
   const { status } = useSession();
+  const resolvedTitle = emptyTitle ?? t("dashboardExtra.noDataYet");
+  const resolvedDescription = emptyDescription ?? t("dashboardExtra.noDataDesc");
 
   if (status === "loading" || isLoading) {
     return (
@@ -41,8 +45,8 @@ export default function DashboardGate({
   if (isEmpty) {
     return (
       <EmptyState
-        title={emptyTitle}
-        description={emptyDescription}
+        title={resolvedTitle}
+        description={resolvedDescription}
         actionLabel={emptyActionLabel}
         actionHref={emptyActionHref}
       />

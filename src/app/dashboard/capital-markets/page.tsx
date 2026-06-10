@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   TrendingUp, TrendingDown, BarChart3, Wallet, PieChart, Search,
-  SlidersHorizontal, LineChart, History, LayoutGrid,
+  SlidersHorizontal, LineChart, History, LayoutGrid, Star, RefreshCw,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -21,6 +21,7 @@ import { fetchDashboardJson } from "@/lib/fetch-json";
 import { CHART_BRAND, CHART_COLORS } from "@/lib/chart-theme";
 import { useChartTheme } from "@/hooks/use-chart-theme";
 import { SECTOR_FILTERS } from "@/lib/market-assets";
+import { getReturnForPeriod, type ReturnPeriodKey } from "@/lib/market-asset-mapper";
 import { toast } from "sonner";
 import { useI18n } from "@/components/providers/I18nProvider";
 
@@ -79,7 +80,72 @@ interface CapitalMarketsData {
 }
 
 type Tab = "marketplace" | "portfolio" | "analytics";
-type SortKey = "popular" | "return" | "return-asc" | "alpha" | "marketcap";
+type SortKey = "admin" | "popular" | "return" | "return-asc" | "alpha" | "marketcap";
+
+const RETURN_PERIOD_OPTIONS: { id: ReturnPeriodKey; labelKey: string }[] = [
+  { id: "7d", labelKey: "capitalMarkets.return7d" },
+  { id: "14d", labelKey: "capitalMarkets.return14d" },
+  { id: "30d", labelKey: "capitalMarkets.return30d" },
+  { id: "90d", labelKey: "capitalMarkets.return90d" },
+  { id: "1y", labelKey: "capitalMarkets.return1y" },
+  { id: "weekly", labelKey: "capitalMarkets.returnWeekly" },
+  { id: "monthly", labelKey: "capitalMarkets.returnMonthly" },
+  { id: "yearly", labelKey: "capitalMarkets.returnYearly" },
+  { id: "custom", labelKey: "capitalMarkets.returnCustom" },
+  { id: "expected", labelKey: "capitalMarkets.returnExpected" },
+];
+
+function sortAssetList(
+  list: MarketAssetCardData[],
+  sort: SortKey,
+  returnPeriod: ReturnPeriodKey
+) {
+  const pinned = list.filter((a) => a.isPinned);
+  const rest = list.filter((a) => !a.isPinned);
+
+  const sorter = (items: MarketAssetCardData[]) => {
+    const copy = [...items];
+    switch (sort) {
+      case "popular":
+        copy.sort(
+          (a, b) =>
+            (b.popularity ?? 0) - (a.popularity ?? 0) ||
+            b.expectedReturnPercent - a.expectedReturnPercent
+        );
+        break;
+      case "return":
+        copy.sort(
+          (a, b) => getReturnForPeriod(b, returnPeriod) - getReturnForPeriod(a, returnPeriod)
+        );
+        break;
+      case "return-asc":
+        copy.sort(
+          (a, b) => getReturnForPeriod(a, returnPeriod) - getReturnForPeriod(b, returnPeriod)
+        );
+        break;
+      case "alpha":
+        copy.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "marketcap":
+        copy.sort(
+          (a, b) =>
+            (a.marketCapRank ?? 999) - (b.marketCapRank ?? 999) ||
+            a.symbol.localeCompare(b.symbol)
+        );
+        break;
+      default:
+        copy.sort(
+          (a, b) =>
+            (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+            (a.marketCapRank ?? 999) - (b.marketCapRank ?? 999) ||
+            a.symbol.localeCompare(b.symbol)
+        );
+    }
+    return copy;
+  };
+
+  return [...sorter(pinned), ...sorter(rest)];
+}
 
 function ChangeBadge({ value, percent }: { value?: number; percent: number }) {
   const positive = percent >= 0;
@@ -114,6 +180,7 @@ export default function CapitalMarketsPage() {
   };
 
   const SORT_OPTIONS: { id: SortKey; label: string }[] = [
+    { id: "admin", label: t("capitalMarkets.sortAdminOrder") },
     { id: "popular", label: t("capitalMarkets.sortPopular") },
     { id: "return", label: t("capitalMarkets.sortReturnHigh") },
     { id: "return-asc", label: t("capitalMarkets.sortReturnLow") },
@@ -122,61 +189,71 @@ export default function CapitalMarketsPage() {
   ];
   const [data, setData] = useState<CapitalMarketsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("marketplace");
   const [search, setSearch] = useState("");
   const [sector, setSector] = useState("all");
-  const [sort, setSort] = useState<SortKey>("marketcap");
+  const [sort, setSort] = useState<SortKey>("admin");
+  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriodKey>("30d");
   const [investAsset, setInvestAsset] = useState<MarketAssetCardData | null>(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
+    else setSyncing(true);
+
     fetchDashboardJson<CapitalMarketsData>("/api/dashboard/capital-markets")
       .then(({ data: json }) => setData(json))
-      .catch(() => toast.error(t("capitalMarkets.loadError")))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!silent) toast.error(t("capitalMarkets.loadError"));
+      })
+      .finally(() => {
+        if (!silent) setLoading(false);
+        else setSyncing(false);
+      });
   }, [t]);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  useEffect(() => {
+    const interval = setInterval(() => load(true), 25000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  const filterAssets = useCallback(
+    (assets: MarketAssetCardData[]) => {
+      let list = [...assets];
+
+      if (sector !== "all") {
+        list = list.filter((a) => a.sector === sector);
+      }
+
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        list = list.filter(
+          (a) =>
+            a.symbol.toLowerCase().includes(q) ||
+            a.name.toLowerCase().includes(q) ||
+            a.sector.toLowerCase().includes(q)
+        );
+      }
+
+      return list;
+    },
+    [sector, search]
+  );
+
   const filteredAssets = useMemo(() => {
     if (!data?.assets) return [];
-    let list = [...data.assets];
+    return sortAssetList(filterAssets(data.assets), sort, returnPeriod);
+  }, [data?.assets, filterAssets, sort, returnPeriod]);
 
-    if (sector !== "all") {
-      list = list.filter((a) => a.sector === sector);
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (a) =>
-          a.symbol.toLowerCase().includes(q) ||
-          a.name.toLowerCase().includes(q) ||
-          a.sector.toLowerCase().includes(q)
-      );
-    }
-
-    switch (sort) {
-      case "popular":
-        list.sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0) || b.expectedReturnPercent - a.expectedReturnPercent);
-        break;
-      case "return":
-        list.sort((a, b) => b.expectedReturnPercent - a.expectedReturnPercent);
-        break;
-      case "return-asc":
-        list.sort((a, b) => a.expectedReturnPercent - b.expectedReturnPercent);
-        break;
-      case "alpha":
-        list.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      default:
-        list.sort((a, b) => (a.marketCapRank ?? 999) - (b.marketCapRank ?? 999));
-    }
-
-    return list;
-  }, [data?.assets, sector, search, sort]);
+  const featuredAssets = useMemo(() => {
+    if (!data?.assets) return [];
+    const featured = filterAssets(data.assets).filter((a) => a.isFeatured);
+    return sortAssetList(featured, "admin", returnPeriod);
+  }, [data?.assets, filterAssets, returnPeriod]);
 
   const marketLabel = data?.marketStatus?.label ?? t("capitalMarkets.marketClosed");
 
@@ -209,6 +286,12 @@ export default function CapitalMarketsPage() {
             <span className="text-xs text-[var(--text-muted)] sm:border-l sm:border-[var(--border-subtle)] sm:pl-2">
               {data?.marketStatus?.exchanges?.join(" · ")}
             </span>
+            {syncing && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-accent-brand sm:ml-1">
+                <RefreshCw size={10} className="animate-spin" />
+                Syncing
+              </span>
+            )}
           </div>
         </div>
 
@@ -306,8 +389,20 @@ export default function CapitalMarketsPage() {
                       className="marketplace-field w-full pl-10 pr-4 py-2.5 text-sm"
                     />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <SlidersHorizontal size={16} className="text-[var(--text-muted)] shrink-0" />
+                    <select
+                      value={returnPeriod}
+                      onChange={(e) => setReturnPeriod(e.target.value as ReturnPeriodKey)}
+                      className="marketplace-field px-3 py-2.5 text-sm"
+                      aria-label={t("capitalMarkets.returnPeriod")}
+                    >
+                      {RETURN_PERIOD_OPTIONS.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {t(o.labelKey)}
+                        </option>
+                      ))}
+                    </select>
                     <select
                       value={sort}
                       onChange={(e) => setSort(e.target.value as SortKey)}
@@ -338,6 +433,30 @@ export default function CapitalMarketsPage() {
                   ))}
                 </div>
 
+                {featuredAssets.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Star size={18} className="text-amber-400" />
+                      <div>
+                        <h2 className="font-semibold text-[var(--text-primary)]">{t("capitalMarkets.featuredTitle")}</h2>
+                        <p className="text-xs text-[var(--text-muted)]">{t("capitalMarkets.featuredSubtitle")}</p>
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {featuredAssets.map((asset, i) => (
+                        <MarketAssetCard
+                          key={`featured-${asset.symbol}`}
+                          asset={asset}
+                          marketStatus={marketLabel}
+                          returnPeriod={returnPeriod}
+                          onInvest={setInvestAsset}
+                          index={i}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {filteredAssets.length === 0 ? (
                   <Card className="text-center py-16">
                     <LayoutGrid size={40} className="mx-auto text-[var(--text-muted)] mb-4" />
@@ -346,15 +465,18 @@ export default function CapitalMarketsPage() {
                   </Card>
                 ) : (
                   <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filteredAssets.map((asset, i) => (
-                      <MarketAssetCard
-                        key={asset.symbol}
-                        asset={asset}
-                        marketStatus={marketLabel}
-                        onInvest={setInvestAsset}
-                        index={i}
-                      />
-                    ))}
+                    {filteredAssets
+                      .filter((a) => !a.isFeatured || featuredAssets.length === 0)
+                      .map((asset, i) => (
+                        <MarketAssetCard
+                          key={asset.symbol}
+                          asset={asset}
+                          marketStatus={marketLabel}
+                          returnPeriod={returnPeriod}
+                          onInvest={setInvestAsset}
+                          index={i}
+                        />
+                      ))}
                   </div>
                 )}
               </div>
@@ -423,7 +545,13 @@ export default function CapitalMarketsPage() {
                             >
                               <td className="py-4">
                                 <div className="flex items-center gap-2">
-                                  <StockIcon symbol={h.symbol} name={h.name} logoDomain={data.assets.find((a) => a.symbol === h.symbol)?.logoDomain} size="sm" />
+                                  <StockIcon
+                                    symbol={h.symbol}
+                                    name={h.name}
+                                    logoDomain={data.assets.find((a) => a.symbol === h.symbol)?.logoDomain}
+                                    logoUrl={data.assets.find((a) => a.symbol === h.symbol)?.logoUrl}
+                                    size="sm"
+                                  />
                                   <div>
                                     <p className="text-[var(--text-primary)] font-medium">{h.name}</p>
                                     <p className="text-xs font-mono text-accent-brand">{h.symbol}</p>
@@ -600,7 +728,7 @@ export default function CapitalMarketsPage() {
         walletBalance={data?.availableCash ?? 0}
         open={!!investAsset}
         onClose={() => setInvestAsset(null)}
-        onSuccess={load}
+        onSuccess={() => load()}
       />
     </DashboardGate>
   );

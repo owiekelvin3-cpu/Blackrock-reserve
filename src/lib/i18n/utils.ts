@@ -2,18 +2,18 @@ import type { Messages } from "@/lib/i18n/messages/en";
 
 export type MessagePatch = Record<string, unknown>;
 
-export function deepMerge(base: Messages, patch: MessagePatch): Messages {
+export function deepMerge<T extends Record<string, unknown>>(base: T, patch: MessagePatch): T {
   const out = { ...base } as Record<string, unknown>;
   for (const key of Object.keys(patch)) {
     const pv = patch[key];
     const bv = out[key];
     if (pv && typeof pv === "object" && !Array.isArray(pv) && bv && typeof bv === "object") {
-      out[key] = deepMerge(bv as Messages, pv as MessagePatch);
+      out[key] = deepMerge(bv as Record<string, unknown>, pv as MessagePatch);
     } else if (pv !== undefined) {
       out[key] = pv;
     }
   }
-  return out as Messages;
+  return out as T;
 }
 
 /** Resolve dot-notation key e.g. "dashboard.savings" */

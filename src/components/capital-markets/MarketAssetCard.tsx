@@ -1,33 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Shield, Clock } from "lucide-react";
+import { TrendingUp, TrendingDown, Shield, Clock, Pin, Star } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import StockIcon from "@/components/capital-markets/StockIcon";
+import type { MarketAssetRecord, ReturnPeriodKey } from "@/lib/market-asset-mapper";
+import { getReturnForPeriod } from "@/lib/market-asset-mapper";
 
-export interface MarketAssetCardData {
-  id: string;
-  symbol: string;
-  name: string;
-  sector: string;
-  description: string;
-  logoUrl: string | null;
-  logoDomain?: string | null;
-  price: number;
-  change: number;
-  changePercent: number;
-  minInvestment: number;
-  riskRating: string;
-  expectedReturnPercent: number;
-  marketCapRank?: number;
-  popularity?: number;
-}
+export type MarketAssetCardData = MarketAssetRecord;
 
 interface MarketAssetCardProps {
   asset: MarketAssetCardData;
   marketStatus: string;
+  returnPeriod?: ReturnPeriodKey;
   onInvest: (asset: MarketAssetCardData) => void;
   index?: number;
 }
@@ -38,8 +25,33 @@ function riskColor(risk: string) {
   return "market-risk-medium";
 }
 
-export default function MarketAssetCard({ asset, marketStatus, onInvest, index = 0 }: MarketAssetCardProps) {
+function periodLabel(period: ReturnPeriodKey, asset: MarketAssetCardData): string {
+  if (period === "custom" && asset.customReturnLabel) return asset.customReturnLabel;
+  const labels: Record<ReturnPeriodKey, string> = {
+    "7d": "7D",
+    "14d": "14D",
+    "30d": "30D",
+    "90d": "90D",
+    "1y": "1Y",
+    weekly: "Weekly",
+    monthly: "Monthly",
+    yearly: "Yearly",
+    custom: "Custom",
+    expected: "Expected",
+  };
+  return labels[period];
+}
+
+export default function MarketAssetCard({
+  asset,
+  marketStatus,
+  returnPeriod = "30d",
+  onInvest,
+  index = 0,
+}: MarketAssetCardProps) {
   const positive = asset.changePercent >= 0;
+  const periodReturn = getReturnForPeriod(asset, returnPeriod);
+  const periodPositive = periodReturn >= 0;
 
   return (
     <motion.article
@@ -47,13 +59,32 @@ export default function MarketAssetCard({ asset, marketStatus, onInvest, index =
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.4) }}
       whileHover={{ y: -4 }}
-      className="market-asset-card group relative rounded-2xl p-5 hover:border-accent-brand/25 transition-all duration-300 overflow-hidden"
+      className={cn(
+        "market-asset-card group relative rounded-2xl p-5 hover:border-accent-brand/25 transition-all duration-300 overflow-hidden",
+        asset.isPinned && "ring-1 ring-accent-brand/40",
+        asset.isFeatured && "border-amber-500/20"
+      )}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-accent-brand/0 via-transparent to-accent-brand/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
+      {(asset.isPinned || asset.isFeatured) && (
+        <div className="absolute top-3 right-3 flex gap-1 z-10">
+          {asset.isPinned && (
+            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-accent-brand/20 text-accent-brand border border-accent-brand/30">
+              <Pin size={9} /> Pinned
+            </span>
+          )}
+          {asset.isFeatured && (
+            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
+              <Star size={9} /> Featured
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="relative flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <StockIcon symbol={asset.symbol} name={asset.name} logoDomain={asset.logoDomain} size="md" />
+          <StockIcon symbol={asset.symbol} name={asset.name} logoDomain={asset.logoDomain} logoUrl={asset.logoUrl} size="md" />
           <div className="min-w-0">
             <h3 className="font-semibold text-[var(--text-primary)] truncate">{asset.name}</h3>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -80,10 +111,10 @@ export default function MarketAssetCard({ asset, marketStatus, onInvest, index =
           <p className="font-mono text-lg font-bold text-[var(--text-primary)]">{formatCurrency(asset.price)}</p>
         </div>
         <div>
-          <p className="text-xs text-[var(--text-muted)] mb-0.5">Day Change</p>
-          <p className={cn("font-mono text-sm font-semibold", positive ? "text-accent-green" : "text-accent-red")}>
-            {positive ? "+" : ""}
-            {formatCurrency(asset.change)}
+          <p className="text-xs text-[var(--text-muted)] mb-0.5">{periodLabel(returnPeriod, asset)} Return</p>
+          <p className={cn("font-mono text-sm font-semibold", periodPositive ? "text-accent-green" : "text-accent-red")}>
+            {periodPositive ? "+" : ""}
+            {periodReturn.toFixed(2)}%
           </p>
         </div>
       </div>

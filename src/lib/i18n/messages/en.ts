@@ -1,5 +1,8 @@
+import extensions from "./extensions";
+import { deepMerge, type MessagePatch } from "../utils";
+
 /** English — source of truth for all translation keys */
-const en = {
+const enBase = {
   brand: {
     name: "Blackrock Reserve",
   },
@@ -110,6 +113,8 @@ const en = {
     seeDetails: "See details",
     viewPortfolio: "View portfolio",
     cashFlow: "Cash Flow",
+    inflow: "Inflow",
+    outflow: "Outflow",
     monthly: "Monthly",
     yearly: "Yearly",
     fundAccount: "Fund your account",
@@ -238,6 +243,20 @@ const en = {
     sortReturnLow: "Lowest Return",
     sortAlpha: "Alphabetical",
     sortMarketCap: "Market Cap",
+    sortAdminOrder: "Display Order",
+    featuredTitle: "Featured Assets",
+    featuredSubtitle: "Curated picks highlighted by our investment desk",
+    returnPeriod: "Return Period",
+    return7d: "7 Days",
+    return14d: "14 Days",
+    return30d: "30 Days",
+    return90d: "90 Days",
+    return1y: "1 Year",
+    returnWeekly: "Weekly",
+    returnMonthly: "Monthly",
+    returnYearly: "Yearly",
+    returnCustom: "Custom",
+    returnExpected: "Expected",
     sectorAll: "All Sectors",
     sectorTechnology: "Technology",
     sectorFinance: "Finance",
@@ -504,6 +523,7 @@ const en = {
     sendMessage: "Send message",
     minimizeChat: "Minimize chat",
     closeChat: "Close chat",
+    dismissChat: "Dismiss chat",
     openChat: "Open support chat",
     ariaLabel: "Blackrock Reserve support chat",
     connectionError: "Sorry, I'm having trouble connecting. Please try again or visit our Contact page.",
@@ -592,6 +612,7 @@ const en = {
   },
 };
 
+const en = deepMerge(enBase, extensions as MessagePatch);
 export type Messages = typeof en;
 export type MessageKey = string;
 export default en;

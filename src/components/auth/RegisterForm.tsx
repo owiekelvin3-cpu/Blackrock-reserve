@@ -10,11 +10,9 @@ import { Upload, Check, Mail, RefreshCw } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import {
-  registerStep1Schema, registerStep2Schema,
-  type RegisterStep1Input, type RegisterStep2Input,
-} from "@/lib/validations";
+import type { RegisterStep1Input, RegisterStep2Input } from "@/lib/validations";
 import { useI18n } from "@/components/providers/I18nProvider";
+import { useValidationSchemas } from "@/lib/i18n/use-validation-schemas";
 
 type Step1Data = RegisterStep1Input;
 type Step2Data = RegisterStep2Input;
@@ -23,6 +21,7 @@ const RESEND_COOLDOWN = 60;
 
 export default function RegisterForm() {
   const { t } = useI18n();
+  const schemas = useValidationSchemas();
   const [step, setStep] = useState(1);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
@@ -33,9 +32,9 @@ export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const step1Form = useForm<Step1Data>({ resolver: zodResolver(registerStep1Schema) });
+  const step1Form = useForm<Step1Data>({ resolver: zodResolver(schemas.registerStep1Schema) });
   const step2Form = useForm<Step2Data>({
-    resolver: zodResolver(registerStep2Schema),
+    resolver: zodResolver(schemas.registerStep2Schema),
     defaultValues: { accountType: "PERSONAL" },
   });
 

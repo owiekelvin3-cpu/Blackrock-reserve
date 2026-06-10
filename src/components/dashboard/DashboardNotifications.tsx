@@ -13,6 +13,7 @@ import {
   ensureBrowserNotificationPermission,
   unlockNotificationAudio,
 } from "@/lib/notification-sound";
+import { useI18n } from "@/components/providers/I18nProvider";
 
 type Notification = {
   id: string;
@@ -24,11 +25,11 @@ type Notification = {
   createdAt: string;
 };
 
-function notificationTypeLabel(type: string) {
-  if (isIncomingPaymentNotification(type)) return "Credit posted";
-  if (type === "DEPOSIT_SUBMITTED") return "Pending review";
-  if (type.includes("REJECTED")) return "Action required";
-  if (type === "WITHDRAWAL_APPROVED") return "Withdrawal sent";
+function notificationTypeLabel(type: string, t: (key: string) => string) {
+  if (isIncomingPaymentNotification(type)) return t("notifications.creditPosted");
+  if (type === "DEPOSIT_SUBMITTED") return t("notifications.pendingReview");
+  if (type.includes("REJECTED")) return t("notifications.actionRequired");
+  if (type === "WITHDRAWAL_APPROVED") return t("notifications.withdrawalSent");
   return null;
 }
 
@@ -47,6 +48,7 @@ function showNotificationToast(n: Notification) {
 }
 
 export default function DashboardNotifications() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -141,7 +143,7 @@ export default function DashboardNotifications() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative p-2 rounded-xl text-text-secondary hover:text-white hover:bg-bg-tertiary transition-colors"
-        aria-label="Notifications"
+        aria-label={t("notifications.title")}
       >
         <Bell size={18} />
         {unreadCount > 0 && (
@@ -154,28 +156,28 @@ export default function DashboardNotifications() {
       {open && (
         <div className="fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+3.5rem)] sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 w-auto sm:w-80 max-h-[min(70vh,24rem)] overflow-y-auto rounded-xl border border-white/10 bg-bg-secondary shadow-2xl z-50">
           <div className="p-3 border-b border-white/10 flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-white">Notifications</p>
+            <p className="text-sm font-semibold text-white">{t("notifications.title")}</p>
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={() => markRead()}
                 className="text-[10px] text-accent-brand hover:text-white transition-colors"
               >
-                Mark all read
+                {t("notifications.markAllRead")}
               </button>
             )}
           </div>
           {loading ? (
-            <p className="p-4 text-sm text-text-muted">Loading…</p>
+            <p className="p-4 text-sm text-text-muted">{t("common.loading")}</p>
           ) : error ? (
             <div className="p-4">
-              <p className="text-sm text-accent-red">Could not load notifications</p>
+              <p className="text-sm text-accent-red">{t("notifications.loadError")}</p>
               <button type="button" onClick={() => load()} className="text-xs text-accent-brand mt-2">
-                Retry
+                {t("withdrawals.retry")}
               </button>
             </div>
           ) : notifications.length === 0 ? (
-            <p className="p-4 text-sm text-text-muted">No notifications yet</p>
+            <p className="p-4 text-sm text-text-muted">{t("notifications.empty")}</p>
           ) : (
             <ul className="divide-y divide-white/5">
               {notifications.map((n) => (
@@ -188,7 +190,7 @@ export default function DashboardNotifications() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium text-white">{n.title}</p>
-                    {notificationTypeLabel(n.type) && (
+                    {notificationTypeLabel(n.type, t) && (
                       <span
                         className={cn(
                           "shrink-0 text-[9px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full",
@@ -197,7 +199,7 @@ export default function DashboardNotifications() {
                             : "bg-white/5 text-text-muted border border-white/10"
                         )}
                       >
-                        {notificationTypeLabel(n.type)}
+                        {notificationTypeLabel(n.type, t)}
                       </span>
                     )}
                   </div>

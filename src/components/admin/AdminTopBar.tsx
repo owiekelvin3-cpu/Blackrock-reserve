@@ -13,8 +13,11 @@ import {
   unlockNotificationAudio,
 } from "@/lib/notification-sound";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import LanguageSelector from "@/components/ui/LanguageSelector";
+import { useI18n } from "@/components/providers/I18nProvider";
 
 export default function AdminTopBar() {
+  const { t } = useI18n();
   const { data, lastUpdated } = useAdminNotifications();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -76,6 +79,7 @@ export default function AdminTopBar() {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
+        <LanguageSelector variant="compact" />
         <ThemeToggle size="sm" />
         {lastUpdated && (
           <span className="text-[10px] text-[var(--admin-muted)] hidden sm:inline">

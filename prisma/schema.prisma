@@ -155,13 +155,28 @@ model MarketAsset {
   sector                String
   description           String   @db.Text
   logoDomain            String?
+  logoUrl               String?  @db.Text
   price                 Decimal  @db.Decimal(15, 2)
   changePercent         Decimal  @default(0) @db.Decimal(8, 4)
   minInvestment         Decimal  @default(100) @db.Decimal(15, 2)
   riskRating            String   @default("Medium")
   expectedReturnPercent Decimal  @default(8) @db.Decimal(6, 2)
+  growthRate            Decimal  @default(0) @db.Decimal(8, 4)
+  return7d              Decimal  @default(0) @db.Decimal(8, 4)
+  return14d             Decimal  @default(0) @db.Decimal(8, 4)
+  return30d             Decimal  @default(0) @db.Decimal(8, 4)
+  return90d             Decimal  @default(0) @db.Decimal(8, 4)
+  return1y              Decimal  @default(0) @db.Decimal(8, 4)
+  returnWeekly          Decimal  @default(0) @db.Decimal(8, 4)
+  returnMonthly         Decimal  @default(0) @db.Decimal(8, 4)
+  returnYearly          Decimal  @default(0) @db.Decimal(8, 4)
+  customReturnLabel     String?
+  customReturnPercent   Decimal? @db.Decimal(8, 4)
   marketCapRank         Int      @default(999)
   popularity            Int      @default(0)
+  sortOrder             Int      @default(0)
+  isFeatured            Boolean  @default(false)
+  isPinned              Boolean  @default(false)
   enabled               Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt

@@ -10,21 +10,25 @@ import { toast } from "sonner";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { forgotPasswordSchema, resetPasswordSchema } from "@/lib/validations";
+import { useValidationSchemas } from "@/lib/i18n/use-validation-schemas";
+import { useI18n } from "@/components/providers/I18nProvider";
 import type { z } from "zod";
 
-type ResetForm = z.infer<typeof resetPasswordSchema>;
 const RESEND_COOLDOWN = 60;
 
 export default function ForgotPasswordPage() {
+  const { t } = useI18n();
   const router = useRouter();
+  const schemas = useValidationSchemas();
   const [step, setStep] = useState<"email" | "reset" | "done">("email");
   const [email, setEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const emailForm = useForm({ resolver: zodResolver(forgotPasswordSchema) });
+  type ResetForm = z.infer<typeof schemas.resetPasswordSchema>;
+
+  const emailForm = useForm({ resolver: zodResolver(schemas.forgotPasswordSchema) });
   const resetForm = useForm<ResetForm>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(schemas.resetPasswordSchema),
     defaultValues: { email: "", otp: "", password: "", confirmPassword: "" },
   });
 
@@ -41,7 +45,7 @@ export default function ForgotPasswordPage() {
       body: JSON.stringify({ email: targetEmail }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to send code");
+    if (!res.ok) throw new Error(data.error || t("forgotPassword.sendFailed"));
   };
 
   const onEmailSubmit = async (data: { email: string }) => {
@@ -51,9 +55,9 @@ export default function ForgotPasswordPage() {
       resetForm.setValue("email", data.email);
       setStep("reset");
       setResendCooldown(RESEND_COOLDOWN);
-      toast.success("Check your email for a reset code.");
+      toast.success(t("forgotPassword.checkEmail"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   };
 
@@ -66,13 +70,13 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email, purpose: "reset" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to resend");
+      if (!res.ok) throw new Error(data.error || t("forgotPassword.resendFailed"));
       setResendCooldown(RESEND_COOLDOWN);
-      toast.success("New code sent!");
+      toast.success(t("forgotPassword.newCodeSent"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to resend");
+      toast.error(err instanceof Error ? err.message : t("forgotPassword.resendFailed"));
     }
-  }, [email, resendCooldown]);
+  }, [email, resendCooldown, t]);
 
   const onResetSubmit = async (data: ResetForm) => {
     try {
@@ -82,12 +86,12 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify(data),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Reset failed");
+      if (!res.ok) throw new Error(json.error || t("forgotPassword.resetFailed"));
       setStep("done");
-      toast.success("Password updated!");
+      toast.success(t("forgotPassword.passwordUpdated"));
       setTimeout(() => router.push("/login"), 2000);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Reset failed");
+      toast.error(err instanceof Error ? err.message : t("forgotPassword.resetFailed"));
     }
   };
 
@@ -96,8 +100,8 @@ export default function ForgotPasswordPage() {
       <Card>
         <div className="text-center">
           <CheckCircle size={48} className="mx-auto text-accent-green mb-4" />
-          <h1 className="font-display text-2xl font-bold text-text-primary">Password Updated</h1>
-          <p className="text-sm text-text-secondary mt-2">Redirecting you to sign in...</p>
+          <h1 className="font-display text-2xl font-bold text-text-primary">{t("forgotPassword.doneTitle")}</h1>
+          <p className="text-sm text-text-secondary mt-2">{t("forgotPassword.doneSubtitle")}</p>
         </div>
       </Card>
     );
@@ -111,14 +115,14 @@ export default function ForgotPasswordPage() {
             <Mail size={28} className="text-accent-brand" />
           </div>
         </div>
-        <h1 className="font-display text-2xl font-bold text-text-primary text-center">Reset Password</h1>
+        <h1 className="font-display text-2xl font-bold text-text-primary text-center">{t("forgotPassword.resetTitle")}</h1>
         <p className="text-sm text-text-secondary text-center mt-2">
-          Enter the code sent to <span className="text-white font-medium">{email}</span>
+          {t("forgotPassword.resetSubtitle", { email })}
         </p>
         <form onSubmit={resetForm.handleSubmit(onResetSubmit)} className="mt-8 space-y-4">
           <input type="hidden" {...resetForm.register("email")} />
           <Input
-            label="Verification Code"
+            label={t("forgotPassword.verificationCode")}
             {...resetForm.register("otp")}
             error={resetForm.formState.errors.otp?.message}
             placeholder="000000"
@@ -127,21 +131,21 @@ export default function ForgotPasswordPage() {
             autoComplete="one-time-code"
           />
           <Input
-            label="New Password"
+            label={t("forgotPassword.newPassword")}
             type="password"
             {...resetForm.register("password")}
             error={resetForm.formState.errors.password?.message}
             placeholder="••••••••"
           />
           <Input
-            label="Confirm Password"
+            label={t("forgotPassword.confirmPassword")}
             type="password"
             {...resetForm.register("confirmPassword")}
             error={resetForm.formState.errors.confirmPassword?.message}
             placeholder="••••••••"
           />
           <Button type="submit" isLoading={resetForm.formState.isSubmitting} className="w-full">
-            Update Password
+            {t("forgotPassword.updatePassword")}
           </Button>
           <button
             type="button"
@@ -150,12 +154,14 @@ export default function ForgotPasswordPage() {
             className="w-full flex items-center justify-center gap-2 text-sm text-text-secondary hover:text-accent-gold transition-colors disabled:opacity-50 py-2"
           >
             <RefreshCw size={14} />
-            {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
+            {resendCooldown > 0
+              ? t("forgotPassword.resendCodeIn", { seconds: resendCooldown })
+              : t("forgotPassword.resendCode")}
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-text-secondary">
           <button type="button" onClick={() => setStep("email")} className="text-accent-gold hover:text-accent-gold-light">
-            Use a different email
+            {t("forgotPassword.useDifferentEmail")}
           </button>
         </p>
       </Card>
@@ -164,16 +170,24 @@ export default function ForgotPasswordPage() {
 
   return (
     <Card>
-      <h1 className="font-display text-2xl font-bold text-text-primary text-center">Forgot Password</h1>
-      <p className="text-sm text-text-secondary text-center mt-2">
-        Enter your email and we&apos;ll send a verification code
-      </p>
+      <h1 className="font-display text-2xl font-bold text-text-primary text-center">{t("forgotPassword.title")}</h1>
+      <p className="text-sm text-text-secondary text-center mt-2">{t("forgotPassword.subtitle")}</p>
       <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="mt-8 space-y-4">
-        <Input label="Email" type="email" {...emailForm.register("email")} error={emailForm.formState.errors.email?.message} placeholder="you@example.com" />
-        <Button type="submit" isLoading={emailForm.formState.isSubmitting} className="w-full">Send Reset Code</Button>
+        <Input
+          label={t("auth.email")}
+          type="email"
+          {...emailForm.register("email")}
+          error={emailForm.formState.errors.email?.message}
+          placeholder="you@example.com"
+        />
+        <Button type="submit" isLoading={emailForm.formState.isSubmitting} className="w-full">
+          {t("forgotPassword.sendCode")}
+        </Button>
       </form>
       <p className="mt-6 text-center text-sm text-text-secondary">
-        <Link href="/login" className="text-accent-gold hover:text-accent-gold-light transition-colors">Back to Sign In</Link>
+        <Link href="/login" className="text-accent-gold hover:text-accent-gold-light transition-colors">
+          {t("forgotPassword.backToSignIn")}
+        </Link>
       </p>
     </Card>
   );

@@ -16,12 +16,13 @@ interface StockIconProps {
   symbol: string;
   name?: string;
   logoDomain?: string | null;
+  logoUrl?: string | null;
   size?: Size;
   className?: string;
 }
 
-export default function StockIcon({ symbol, name, logoDomain, size = "md", className }: StockIconProps) {
-  const sources = getStockLogoSources(symbol, logoDomain);
+export default function StockIcon({ symbol, name, logoDomain, logoUrl, size = "md", className }: StockIconProps) {
+  const sources = getStockLogoSources(symbol, logoDomain, logoUrl);
   const [sourceIndex, setSourceIndex] = useState(0);
   const initials = symbol.slice(0, 2).toUpperCase();
   const box = SIZE_CLASS[size];

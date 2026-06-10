@@ -7,10 +7,17 @@ import { Toaster } from "sonner";
 import NotificationAudioUnlock from "@/components/providers/NotificationAudioUnlock";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/components/providers/I18nProvider";
+import type { LocaleCode } from "@/lib/i18n/locales";
 
 const ChatWidget = dynamic(() => import("@/components/chat/ChatWidget"), { ssr: false });
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: LocaleCode;
+}) {
   const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
@@ -21,7 +28,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
-        <I18nProvider>
+        <I18nProvider initialLocale={initialLocale}>
         <NotificationAudioUnlock />
         {children}
         {showChat && <ChatWidget />}

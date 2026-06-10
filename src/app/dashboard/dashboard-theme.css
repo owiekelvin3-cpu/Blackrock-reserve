@@ -360,36 +360,77 @@
   border-color: rgba(15, 20, 25, 0.08);
 }
 
-/* Cash Flow — Fintrixity-style panel */
+/* Cash Flow — premium Fintrixity-style panel */
 .cash-flow-card {
-  background: #121212;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(155deg, rgba(20, 20, 22, 0.96) 0%, rgba(12, 12, 14, 0.94) 55%, rgba(16, 16, 18, 0.98) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 1.5rem;
   padding: 1.5rem;
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.42),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   min-height: 100%;
   display: flex;
   flex-direction: column;
 }
 
+.cash-flow-card-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 45% at 85% 0%, rgba(255, 95, 5, 0.1), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 10% 100%, rgba(255, 95, 5, 0.04), transparent 50%);
+}
+
 @media (min-width: 640px) {
   .cash-flow-card {
-    padding: 2rem;
+    padding: 1.75rem 2rem 2rem;
+    border-radius: 1.625rem;
   }
 }
 
 [data-theme="light"] .cash-flow-card {
-  background: #f8f9fb;
+  background: linear-gradient(155deg, #ffffff 0%, #f6f7f9 55%, #f0f2f5 100%);
   border-color: rgba(15, 20, 25, 0.08);
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  box-shadow:
+    0 8px 32px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .cash-flow-card-glow {
+  background:
+    radial-gradient(ellipse 70% 45% at 85% 0%, rgba(255, 95, 5, 0.06), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 10% 100%, rgba(255, 95, 5, 0.03), transparent 50%);
 }
 
 .cash-flow-header {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 479px) {
+  .cash-flow-header {
+    flex-wrap: wrap;
+  }
+
+  .cash-flow-toggle {
+    margin-left: auto;
+  }
+}
+
+.cash-flow-header-main {
+  min-width: 0;
 }
 
 .cash-flow-label {
@@ -397,15 +438,17 @@
   color: #9ca3af;
   font-weight: 400;
   line-height: 1.25;
+  letter-spacing: 0.01em;
 }
 
 .cash-flow-total {
-  margin-top: 0.35rem;
-  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  margin-top: 0.4rem;
+  font-size: clamp(1.875rem, 4.5vw, 2.375rem);
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
 }
 
 [data-theme="light"] .cash-flow-total {
@@ -415,91 +458,169 @@
 .cash-flow-toggle {
   display: inline-flex;
   flex-shrink: 0;
-  padding: 0.2rem;
+  padding: 0.25rem;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .cash-flow-toggle {
-  background: rgba(15, 20, 25, 0.05);
+  background: rgba(15, 20, 25, 0.04);
   border-color: rgba(15, 20, 25, 0.1);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .cash-flow-toggle-btn {
-  padding: 0.4rem 1rem;
+  padding: 0.45rem 1.05rem;
   border-radius: 9999px;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.62);
   background: transparent;
-  transition: all 0.2s ease;
+  transition: color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease, transform 0.15s ease;
   white-space: nowrap;
 }
 
-.cash-flow-toggle-btn:not(.cash-flow-toggle-btn-active) {
-  background: rgba(255, 255, 255, 0.92);
-  color: #1a1a1a;
+.cash-flow-toggle-btn:not(.cash-flow-toggle-btn-active):hover {
+  color: rgba(255, 255, 255, 0.88);
 }
 
 [data-theme="light"] .cash-flow-toggle-btn:not(.cash-flow-toggle-btn-active) {
-  background: #ffffff;
+  color: #6b7280;
+  background: transparent;
+}
+
+[data-theme="light"] .cash-flow-toggle-btn:not(.cash-flow-toggle-btn-active):hover {
   color: #374151;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 .cash-flow-toggle-btn-active {
-  background: linear-gradient(135deg, #ff5f2e, #e84e00) !important;
+  background: linear-gradient(135deg, #ff6b2e 0%, #ff5f05 48%, #e84e00 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 14px rgba(255, 95, 46, 0.45);
+  box-shadow: 0 2px 16px rgba(255, 95, 46, 0.5);
 }
 
 .cash-flow-chart {
+  position: relative;
+  z-index: 1;
   flex: 1;
-  min-height: 280px;
-  height: 280px;
+  min-height: 260px;
+  height: 260px;
+}
+
+.cash-flow-empty-hint {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+[data-theme="light"] .cash-flow-empty-hint {
+  color: #9ca3af;
+}
+
+.cash-flow-chart::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  left: 2.5rem;
+  right: 0;
+  bottom: 1.75rem;
+  height: 45%;
+  background: linear-gradient(to top, rgba(255, 95, 5, 0.04), transparent);
+  border-radius: 0 0 1rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .cash-flow-chart {
+    min-height: 290px;
+    height: 290px;
+  }
 }
 
 @media (min-width: 1024px) {
   .cash-flow-chart {
-    min-height: 300px;
-    height: 300px;
+    min-height: 310px;
+    height: 310px;
+  }
+}
+
+.cash-flow-bar-active path {
+  filter: url(#cf-bar-shadow);
+}
+
+.cash-flow-bar-glow {
+  animation: cash-flow-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes cash-flow-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.95;
   }
 }
 
 .cash-flow-tooltip {
   position: relative;
-  background: #1e1e22;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  min-width: 10.5rem;
+  background: rgba(28, 28, 32, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem;
+  padding: 0.8rem 1rem 0.85rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  min-width: 11.5rem;
+}
+
+[data-theme="light"] .cash-flow-tooltip {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(15, 20, 25, 0.1);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
 }
 
 .cash-flow-tooltip-date {
   font-size: 0.6875rem;
   color: #9ca3af;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.55rem;
+  letter-spacing: 0.01em;
 }
 
 .cash-flow-tooltip-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
+  gap: 1.75rem;
   font-size: 0.8125rem;
   color: #9ca3af;
 }
 
 .cash-flow-tooltip-row + .cash-flow-tooltip-row {
-  margin-top: 0.35rem;
+  margin-top: 0.4rem;
 }
 
 .cash-flow-tooltip-value {
   color: #ffffff;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+[data-theme="light"] .cash-flow-tooltip-value {
+  color: #0f1419;
+}
+
+.cash-flow-tooltip-outflow {
+  color: #f3f4f6;
+}
+
+[data-theme="light"] .cash-flow-tooltip-outflow {
+  color: #374151;
 }
 
 .cash-flow-tooltip-tail {
@@ -509,9 +630,14 @@
   transform: translateX(-50%) rotate(45deg);
   width: 10px;
   height: 10px;
-  background: #1e1e22;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(28, 28, 32, 0.96);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .cash-flow-tooltip-tail {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(15, 20, 25, 0.1);
 }
 
 /* Withdrawal charge modals — institutional bank style */

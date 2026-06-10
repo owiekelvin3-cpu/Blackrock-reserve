@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Providers from "@/components/providers/Providers";
 import { getSiteUrl } from "@/lib/site-url";
+import { getLocaleDir, getServerLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 const siteUrl = getSiteUrl();
@@ -20,9 +21,13 @@ const themeInitScript = `
   }
   try {
     var loc = localStorage.getItem('br-locale');
+    if (!loc) {
+      var m = document.cookie.match(/(?:^|; )br-locale=([^;]*)/);
+      if (m) loc = decodeURIComponent(m[1]);
+    }
     if (loc) {
       document.documentElement.lang = loc;
-      if (loc === 'ar') document.documentElement.dir = 'rtl';
+      document.documentElement.dir = loc === 'ar' ? 'rtl' : 'ltr';
     }
   } catch (e) {}
 })();
@@ -61,19 +66,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialLocale = await getServerLocale();
+  const dir = getLocaleDir(initialLocale);
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={initialLocale} dir={dir} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="antialiased bg-bg-primary font-sans">
         <div className="page-glow" />
-        <Providers>{children}</Providers>
+        <Providers initialLocale={initialLocale}>{children}</Providers>
       </body>
     </html>
   );

@@ -13,11 +13,13 @@ import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
-import { loginSchema, type LoginInput } from "@/lib/validations";
+import type { LoginInput } from "@/lib/validations";
 import { useI18n } from "@/components/providers/I18nProvider";
+import { useValidationSchemas } from "@/lib/i18n/use-validation-schemas";
 
 function LoginFormInner() {
   const { t } = useI18n();
+  const schemas = useValidationSchemas();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const authError = searchParams.get("error");
@@ -38,7 +40,7 @@ function LoginFormInner() {
   }, []);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schemas.loginSchema),
   });
 
   const onSubmit = async (data: LoginInput) => {

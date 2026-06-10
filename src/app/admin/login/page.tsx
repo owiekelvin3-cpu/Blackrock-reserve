@@ -5,6 +5,8 @@ import { signIn, signOut, getSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Shield, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { useI18n } from "@/components/providers/I18nProvider";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 
 async function waitForAdminSession(maxAttempts = 12) {
   for (let i = 0; i < maxAttempts; i++) {
@@ -16,6 +18,7 @@ async function waitForAdminSession(maxAttempts = 12) {
 }
 
 function LoginForm() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const [email, setEmail] = useState("");
@@ -51,8 +54,8 @@ function LoginForm() {
       if (result?.error) {
         setFormError(
           result.error === "Configuration"
-            ? "Sign-in is unavailable. Set NEXTAUTH_SECRET and NEXTAUTH_URL in Vercel, then redeploy."
-            : "Invalid email or password."
+            ? t("admin.configError")
+            : t("admin.invalidCredentials")
         );
         return;
       }
@@ -60,13 +63,13 @@ function LoginForm() {
       const session = await waitForAdminSession();
       if (session?.user?.role !== "ADMIN") {
         await signOut({ redirect: false });
-        setFormError("Access denied. Admin account required.");
+        setFormError(t("admin.accessDenied"));
         return;
       }
 
       window.location.href = "/admin";
     } catch {
-      setFormError("Something went wrong. Please try again.");
+      setFormError(t("admin.loginError"));
     } finally {
       setLoading(false);
     }
@@ -74,6 +77,9 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-5 right-4 z-20">
+        <LanguageSelector variant="compact" />
+      </div>
       <div className="admin-horizon top-[20%]" />
 
       <div className="admin-card admin-card-glow w-full max-w-md p-8 relative z-10">
@@ -83,9 +89,9 @@ function LoginForm() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">
-              Admin <span className="gold-gradient-text">Console</span>
+              {t("admin.consoleTitle")} <span className="gold-gradient-text">{t("admin.consoleHighlight")}</span>
             </h1>
-            <p className="text-xs text-[var(--admin-muted)]">Blackrock Reserve — Authorized access only</p>
+            <p className="text-xs text-[var(--admin-muted)]">{t("admin.consoleSubtitle")}</p>
           </div>
         </div>
 
@@ -102,13 +108,13 @@ function LoginForm() {
         {(error === "not_admin" || formError) && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-accent-red/10 border border-accent-red/20 text-accent-red text-sm mb-6">
             <AlertCircle size={16} />
-            {formError || "You do not have admin access."}
+            {formError || t("admin.notAdminAccess")}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[var(--admin-muted)] mb-1.5">Admin email</label>
+            <label className="block text-xs font-medium text-[var(--admin-muted)] mb-1.5">{t("admin.adminEmailLabel")}</label>
             <input
               type="email"
               value={email}
@@ -121,7 +127,7 @@ function LoginForm() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--admin-muted)] mb-1.5">Password</label>
+            <label className="block text-xs font-medium text-[var(--admin-muted)] mb-1.5">{t("admin.loginPassword")}</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -139,7 +145,7 @@ function LoginForm() {
                 tabIndex={-1}
                 onClick={() => setShowPassword((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--admin-muted)] hover:text-white transition-colors"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("admin.hidePassword") : t("admin.showPassword")}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -150,12 +156,12 @@ function LoginForm() {
             disabled={!authReady || loading}
             className="admin-btn-primary w-full mt-2 disabled:opacity-50"
           >
-            {loading ? "Signing in…" : "Sign in to Admin"}
+            {loading ? t("admin.signingIn") : t("admin.loginSubmit")}
           </button>
         </form>
 
         <p className="text-center text-xs text-[var(--admin-muted)] mt-6">
-          <Link href="/" className="admin-link">← Back to customer website</Link>
+          <Link href="/" className="admin-link">← {t("admin.loginBack")}</Link>
         </p>
       </div>
     </div>
@@ -164,7 +170,7 @@ function LoginForm() {
 
 export default function AdminLoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-[var(--admin-muted)]">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-[var(--admin-muted)]">…</div>}>
       <LoginForm />
     </Suspense>
   );

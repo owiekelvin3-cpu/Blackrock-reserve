@@ -16,6 +16,7 @@ type ChatMessage = {
 };
 
 const STORAGE_KEY = "pcb-chat-messages";
+const DISMISS_KEY = "pcb-chat-dismissed";
 
 function loadMessages(): ChatMessage[] {
   if (typeof window === "undefined") return [];
@@ -37,7 +38,9 @@ export default function ChatWidget() {
   const pathname = usePathname();
   const router = useRouter();
   const welcome = getLocalizedWelcome(t);
+  const isDashboard = pathname.startsWith("/dashboard");
   const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = useState<ChatSuggestion[]>(welcome.suggestions ?? []);
   const [input, setInput] = useState("");
@@ -47,6 +50,30 @@ export default function ChatWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const hidden = pathname.startsWith("/admin");
+
+  useEffect(() => {
+    if (!isDashboard) {
+      setDismissed(false);
+      return;
+    }
+    try {
+      setDismissed(sessionStorage.getItem(DISMISS_KEY) === "1");
+    } catch {
+      setDismissed(false);
+    }
+  }, [isDashboard, pathname]);
+
+  const dismissChat = useCallback(() => {
+    setOpen(false);
+    if (isDashboard) {
+      setDismissed(true);
+      try {
+        sessionStorage.setItem(DISMISS_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [isDashboard]);
 
   useEffect(() => {
     const stored = loadMessages();
@@ -135,7 +162,14 @@ export default function ChatWidget() {
     [addBotReply, typing, router, t]
   );
 
-  if (hidden) return null;
+  if (hidden || (isDashboard && dismissed)) return null;
+
+  const launcherBottom = isDashboard
+    ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:bottom-6"
+    : "bottom-6";
+  const panelBottom = isDashboard
+    ? "bottom-[calc(9.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-24"
+    : "bottom-24";
 
   return (
     <>
@@ -146,7 +180,10 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-24 right-4 sm:right-6 z-[9999] flex flex-col w-[min(100vw-2rem,380px)] h-[min(70vh,520px)] rounded-2xl border border-border bg-bg-elevated/95 backdrop-blur-xl shadow-2xl shadow-black/20 overflow-hidden"
+            className={cn(
+              "fixed right-4 sm:right-6 z-[9999] flex flex-col w-[min(100vw-2rem,380px)] h-[min(70vh,520px)] rounded-2xl border border-border bg-bg-elevated/95 backdrop-blur-xl shadow-2xl shadow-black/20 overflow-hidden",
+              panelBottom
+            )}
             role="dialog"
             aria-label={t("chat.ariaLabel")}
           >
@@ -169,9 +206,9 @@ export default function ChatWidget() {
               </button>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={dismissChat}
                 className="p-1.5 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
-                aria-label={t("chat.closeChat")}
+                aria-label={isDashboard ? t("chat.dismissChat") : t("chat.closeChat")}
               >
                 <X size={16} />
               </button>
@@ -279,10 +316,11 @@ export default function ChatWidget() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "fixed bottom-6 right-4 sm:right-6 z-[9999] h-14 w-14 rounded-full brand-gradient-bg shadow-brand flex items-center justify-center text-white transition-transform hover:scale-105",
+          "fixed right-4 sm:right-6 z-[9999] h-14 w-14 rounded-full brand-gradient-bg shadow-brand flex items-center justify-center text-white transition-transform hover:scale-105",
+          launcherBottom,
           open && "scale-0 pointer-events-none"
         )}
-        aria-label={open ? t("chat.closeChat") : t("chat.openChat")}
+        aria-label={open ? t("chat.minimizeChat") : t("chat.openChat")}
         whileTap={{ scale: 0.95 }}
       >
         {open ? <X size={22} /> : <MessageCircle size={22} />}

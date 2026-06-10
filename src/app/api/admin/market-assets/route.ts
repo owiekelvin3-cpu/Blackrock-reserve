@@ -1,24 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { getAdminSession, forbiddenResponse } from "@/lib/api-auth";
-import { getAdminMarketAssets } from "@/lib/admin-market";
+import { getAdminMarketAssets, getNextMarketAssetSortOrder } from "@/lib/admin-market";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction, getClientIp } from "@/lib/admin-audit";
-
-const createSchema = z.object({
-  symbol: z.string().min(1).max(12),
-  name: z.string().min(1).max(120),
-  sector: z.string().min(1).max(60),
-  description: z.string().min(1).max(2000),
-  logoDomain: z.string().max(120).optional(),
-  price: z.coerce.number().positive(),
-  changePercent: z.coerce.number().optional(),
-  minInvestment: z.coerce.number().positive().optional(),
-  riskRating: z.enum(["Low", "Medium", "High"]).optional(),
-  expectedReturnPercent: z.coerce.number().optional(),
-  marketCapRank: z.coerce.number().int().positive().optional(),
-  enabled: z.boolean().optional(),
-});
+import { createMarketAssetSchema } from "@/lib/market-asset-schema";
+import { mapMarketAsset } from "@/lib/market-asset-mapper";
 
 export async function GET() {
   const session = await getAdminSession();
@@ -39,43 +25,62 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const parsed = createSchema.safeParse(body);
+    const parsed = createMarketAssetSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
     }
 
-    const symbol = parsed.data.symbol.toUpperCase();
+    const data = parsed.data;
+    const symbol = data.symbol.toUpperCase();
     const existing = await prisma.marketAsset.findUnique({ where: { symbol } });
     if (existing) {
       return NextResponse.json({ error: "Symbol already exists" }, { status: 409 });
     }
 
+    const sortOrder = data.sortOrder ?? (await getNextMarketAssetSortOrder());
+
     const asset = await prisma.marketAsset.create({
       data: {
         symbol,
-        name: parsed.data.name,
-        sector: parsed.data.sector,
-        description: parsed.data.description,
-        logoDomain: parsed.data.logoDomain ?? null,
-        price: parsed.data.price,
-        changePercent: parsed.data.changePercent ?? 0,
-        minInvestment: parsed.data.minInvestment ?? 100,
-        riskRating: parsed.data.riskRating ?? "Medium",
-        expectedReturnPercent: parsed.data.expectedReturnPercent ?? 8,
-        marketCapRank: parsed.data.marketCapRank ?? 999,
-        enabled: parsed.data.enabled ?? true,
+        name: data.name,
+        sector: data.sector,
+        description: data.description,
+        logoDomain: data.logoDomain ?? null,
+        logoUrl: data.logoUrl ?? null,
+        price: data.price,
+        changePercent: data.changePercent ?? 0,
+        minInvestment: data.minInvestment ?? 100,
+        riskRating: data.riskRating ?? "Medium",
+        expectedReturnPercent: data.expectedReturnPercent ?? 8,
+        growthRate: data.growthRate ?? 0,
+        return7d: data.return7d ?? 0,
+        return14d: data.return14d ?? 0,
+        return30d: data.return30d ?? 0,
+        return90d: data.return90d ?? 0,
+        return1y: data.return1y ?? 0,
+        returnWeekly: data.returnWeekly ?? 0,
+        returnMonthly: data.returnMonthly ?? 0,
+        returnYearly: data.returnYearly ?? 0,
+        customReturnLabel: data.customReturnLabel ?? null,
+        customReturnPercent: data.customReturnPercent ?? null,
+        marketCapRank: data.marketCapRank ?? 999,
+        popularity: data.popularity ?? 0,
+        sortOrder,
+        isFeatured: data.isFeatured ?? false,
+        isPinned: data.isPinned ?? false,
+        enabled: data.enabled ?? true,
       },
     });
 
     await logAdminAction(
       session.user.id,
       "MARKET_ASSET_CREATE",
-      { symbol, name: parsed.data.name },
+      { symbol, name: data.name },
       undefined,
       getClientIp(req)
     );
 
-    return NextResponse.json({ asset: { id: asset.id, symbol: asset.symbol } }, { status: 201 });
+    return NextResponse.json({ asset: mapMarketAsset(asset) }, { status: 201 });
   } catch (error) {
     console.error("Admin market assets POST error:", error);
     return NextResponse.json({ error: "Failed to create market asset" }, { status: 500 });

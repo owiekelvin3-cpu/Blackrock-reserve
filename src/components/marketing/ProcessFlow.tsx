@@ -3,19 +3,22 @@
 import { motion } from "framer-motion";
 import { User, ShieldCheck, Network, Check } from "lucide-react";
 import GlowIcon from "@/components/ui/GlowIcon";
-
-const nodes = [
-  { id: "holder", label: "Account Holder", icon: User, center: false },
-  { id: "proof", label: "Verified Identity", icon: ShieldCheck, center: true },
-  { id: "apps", label: "Smart Banking", icon: Network, center: false },
-];
-
-const connections = [
-  { from: 0, to: 1, label: "Secure Protocol", action: "Authenticate" },
-  { from: 1, to: 2, label: "Verified Access", action: "Unlock features" },
-];
+import { useI18n } from "@/components/providers/I18nProvider";
 
 export default function ProcessFlow() {
+  const { t } = useI18n();
+
+  const nodes = [
+    { id: "holder", label: t("processFlow.accountHolder"), icon: User, center: false },
+    { id: "proof", label: t("processFlow.verifiedIdentity"), icon: ShieldCheck, center: true },
+    { id: "apps", label: t("processFlow.smartBanking"), icon: Network, center: false },
+  ];
+
+  const connections = [
+    { from: 0, to: 1, label: t("processFlow.secureProtocol"), action: t("processFlow.authenticate") },
+    { from: 1, to: 2, label: t("processFlow.verifiedAccess"), action: t("processFlow.unlockFeatures") },
+  ];
+
   return (
     <section className="section-padding relative overflow-hidden">
       <div className="neon-streak top-1/2 left-[-10%] w-[120%] h-32 opacity-30" />
@@ -27,13 +30,12 @@ export default function ProcessFlow() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <span className="pill-label mb-4">How It Works</span>
+          <span className="pill-label mb-4">{t("processFlow.badge")}</span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight mt-4">
-            From Sign-Up to <span className="gold-gradient-text">Secure Banking</span>
+            {t("processFlow.title")}{" "}
+            <span className="gold-gradient-text">{t("processFlow.titleHighlight")}</span>
           </h2>
-          <p className="mt-4 text-text-secondary max-w-2xl mx-auto">
-            A seamless, encrypted flow that protects your identity while unlocking premium financial tools.
-          </p>
+          <p className="mt-4 text-text-secondary max-w-2xl mx-auto">{t("processFlow.subtitle")}</p>
         </motion.div>
 
         <div className="hidden lg:flex items-center justify-center gap-0 px-8">
@@ -48,53 +50,41 @@ export default function ProcessFlow() {
               >
                 <div className="relative mb-6">
                   {node.center && (
-                    <div className="absolute inset-[-24px] rounded-full bg-gradient-to-br from-accent-brand/30 via-accent-brand-red/20 to-transparent blur-3xl" />
+                    <div className="absolute inset-0 rounded-full bg-accent-brand/20 blur-2xl scale-150" />
                   )}
-                  {!node.center && (
-                    <div className={`absolute inset-[-16px] rounded-full blur-2xl ${i === 0 ? "bg-accent-brand/25" : "bg-accent-brand-red/20"}`} />
+                  <GlowIcon icon={node.icon} size={28} />
+                  {node.center && (
+                    <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-accent-green flex items-center justify-center">
+                      <Check size={12} className="text-white" />
+                    </div>
                   )}
-                  <GlowIcon
-                    icon={node.icon}
-                    variant={node.center ? "hex" : "circle"}
-                    size={node.center ? 26 : 22}
-                  />
                 </div>
-                <span className="pill-label">{node.label}</span>
+                <p className="text-sm font-semibold text-white text-center">{node.label}</p>
               </motion.div>
 
-              {i < nodes.length - 1 && (
-                <div className="flex flex-col items-center flex-1 px-4 min-w-[120px]">
-                  <div className="flex items-center gap-2 text-[10px] text-text-muted mb-2 whitespace-nowrap">
-                    <Check size={10} className="text-accent-brand" />
-                    {connections[i].label}
-                  </div>
-                  <div className="flow-line w-full mb-2" />
-                  <span className="text-xs text-accent-brand font-medium">{connections[i].action}</span>
+              {i < connections.length && (
+                <div className="flex flex-col items-center px-4 min-w-[140px]">
+                  <div className="h-px w-full bg-gradient-to-r from-transparent via-accent-brand/40 to-transparent mb-2" />
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted text-center">{connections[i].label}</p>
+                  <span className="mt-1 text-[10px] text-accent-brand font-medium">{connections[i].action}</span>
                 </div>
               )}
             </div>
           ))}
         </div>
 
-        <div className="lg:hidden space-y-6">
+        <div className="lg:hidden grid gap-6 sm:grid-cols-3">
           {nodes.map((node, i) => (
             <motion.div
               key={node.id}
-              className="glow-card p-6"
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              className="glass-card p-6 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
             >
-              <div className="glow-card-inner flex items-center gap-4">
-                <GlowIcon icon={node.icon} variant={node.center ? "hex" : "circle"} />
-                <div>
-                  <p className="font-semibold text-white">{node.label}</p>
-                  {i < connections.length && (
-                    <p className="text-xs text-accent-brand mt-1">{connections[i].action}</p>
-                  )}
-                </div>
-              </div>
+              <GlowIcon icon={node.icon} size={22} className="mx-auto mb-4" />
+              <p className="text-sm font-semibold text-white">{node.label}</p>
             </motion.div>
           ))}
         </div>

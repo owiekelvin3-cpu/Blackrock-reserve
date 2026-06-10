@@ -1,23 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { mapMarketAsset, type MarketAssetRecord } from "@/lib/market-asset-mapper";
 
-export interface MarketAssetDto {
-  id: string;
-  symbol: string;
-  name: string;
-  sector: string;
-  description: string;
-  logoUrl: string | null;
-  logoDomain: string | null;
-  price: number;
-  change: number;
-  changePercent: number;
-  minInvestment: number;
-  riskRating: string;
-  expectedReturnPercent: number;
-  marketCapRank: number;
-  popularity: number;
-  enabled: boolean;
-}
+export type MarketAssetDto = MarketAssetRecord;
 
 type AssetSeed = {
   symbol: string;
@@ -96,50 +80,12 @@ const MARKET_ASSET_SEEDS: AssetSeed[] = [
 
 let seedPromise: Promise<void> | null = null;
 
-function logoUrl(domain: string | null | undefined): string | null {
-  if (!domain) return null;
-  return `https://logo.clearbit.com/${domain}`;
-}
-
-function toDto(asset: {
-  id: string;
-  symbol: string;
-  name: string;
-  sector: string;
-  description: string;
-  logoDomain: string | null;
-  price: { toString(): string };
-  changePercent: { toString(): string };
-  minInvestment: { toString(): string };
-  riskRating: string;
-  expectedReturnPercent: { toString(): string };
-  marketCapRank: number;
-  popularity: number;
-  enabled: boolean;
-}): MarketAssetDto {
-  const price = Number(asset.price);
-  const changePercent = Number(asset.changePercent);
-  const change = Math.round(price * (changePercent / 100) * 100) / 100;
-
-  return {
-    id: asset.id,
-    symbol: asset.symbol,
-    name: asset.name,
-    sector: asset.sector,
-    description: asset.description,
-    logoUrl: logoUrl(asset.logoDomain),
-    logoDomain: asset.logoDomain,
-    price,
-    change,
-    changePercent,
-    minInvestment: Number(asset.minInvestment),
-    riskRating: asset.riskRating,
-    expectedReturnPercent: Number(asset.expectedReturnPercent),
-    marketCapRank: asset.marketCapRank,
-    popularity: asset.popularity,
-    enabled: asset.enabled,
-  };
-}
+const MARKET_ASSET_ORDER = [
+  { isPinned: "desc" as const },
+  { sortOrder: "asc" as const },
+  { marketCapRank: "asc" as const },
+  { symbol: "asc" as const },
+];
 
 export async function ensureMarketAssetsSeeded(): Promise<void> {
   if (!seedPromise) {
@@ -190,10 +136,10 @@ export async function getMarketAssets(includeDisabled = false): Promise<MarketAs
 
   const assets = await prisma.marketAsset.findMany({
     where: includeDisabled ? undefined : { enabled: true },
-    orderBy: [{ marketCapRank: "asc" }, { symbol: "asc" }],
+    orderBy: MARKET_ASSET_ORDER,
   });
 
-  return assets.map(toDto);
+  return assets.map(mapMarketAsset);
 }
 
 export async function getMarketAssetBySymbol(symbol: string): Promise<MarketAssetDto | null> {
@@ -201,7 +147,7 @@ export async function getMarketAssetBySymbol(symbol: string): Promise<MarketAsse
 
   const asset = await prisma.marketAsset.findUnique({ where: { symbol: symbol.toUpperCase() } });
   if (!asset || !asset.enabled) return null;
-  return toDto(asset);
+  return mapMarketAsset(asset);
 }
 
 export type MarketStatus = "OPEN" | "CLOSED" | "PRE_MARKET" | "AFTER_HOURS";

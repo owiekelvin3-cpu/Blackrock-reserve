@@ -10,8 +10,14 @@ export function domainFaviconUrl(domain: string | null | undefined): string | nu
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
 }
 
-export function getStockLogoSources(symbol: string, logoDomain?: string | null): string[] {
-  const sources = [fmpStockImageUrl(symbol)];
+export function getStockLogoSources(
+  symbol: string,
+  logoDomain?: string | null,
+  customLogoUrl?: string | null
+): string[] {
+  const sources: string[] = [];
+  if (customLogoUrl) sources.push(customLogoUrl);
+  sources.push(fmpStockImageUrl(symbol));
   const favicon = domainFaviconUrl(logoDomain);
   if (favicon) sources.push(favicon);
   return sources;
