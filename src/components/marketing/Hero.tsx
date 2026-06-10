@@ -22,23 +22,23 @@ export default function Hero() {
       >
         <motion.div variants={fadeUp} className="pill-label mb-6 mx-auto">
           <span className="h-1.5 w-1.5 rounded-full bg-accent-brand animate-pulseGlow mr-2 inline-block" />
-          Optimize Your Workflow
+          Premium Banking & Investments
         </motion.div>
 
         <motion.h1
           variants={fadeUp}
           className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-text-primary leading-[1.1] tracking-tight text-balance max-w-4xl mx-auto"
         >
-          Elevate Your Business Using{" "}
-          <span className="gold-gradient-text">AI-Driven Automation</span>
+          Bank Smarter. Invest Confidently.{" "}
+          <span className="gold-gradient-text">Grow Your Wealth.</span>
         </motion.h1>
 
         <motion.p
           variants={fadeUp}
           className="mt-5 text-sm sm:text-base text-text-secondary max-w-xl mx-auto leading-relaxed"
         >
-          Premium digital banking, smart investments, and wealth management — powered by intelligent
-          automation in one secure platform.
+          Checking, savings, capital markets, and portfolio tools — everything you need to manage money
+          and build long-term wealth in one secure platform.
         </motion.p>
 
         <motion.div
@@ -47,7 +47,7 @@ export default function Hero() {
         >
           <Link href="/register">
             <Button size="lg" className="rounded-full px-8 min-w-[180px]">
-              Start Free Trial <ArrowRight size={18} />
+              Open Account <ArrowRight size={18} />
             </Button>
           </Link>
           <Link href="/contact">
