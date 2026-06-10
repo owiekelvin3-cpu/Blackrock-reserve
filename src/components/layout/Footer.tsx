@@ -21,7 +21,7 @@ const company = [
 ];
 
 const resources = [
-  { label: "Blog", href: "/#blog" },
+  { label: "Blog", href: "/blog" },
   { label: "Features", href: "/features" },
   { label: "FAQ", href: "/#faq" },
 ];
