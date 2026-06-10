@@ -8,6 +8,7 @@ import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-no
 import { formatCurrency } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { invalidateAdminCaches } from "@/lib/admin-cache";
+import { assertWithdrawalCanBeApproved } from "@/lib/withdrawal-charge";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getAdminSession();
@@ -27,13 +28,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (!withdrawal) return NextResponse.json({ error: "Withdrawal not found" }, { status: 404 });
     if (withdrawal.status !== "PENDING") {
-      return NextResponse.json({ error: "Withdrawal already reviewed" }, { status: 400 });
+      return NextResponse.json({ error: "Withdrawal already reviewed or awaiting charge payment" }, { status: 400 });
     }
 
     const amount = Number(withdrawal.amountUsd);
     let emailPayload: { userId: string; title: string; message: string } | null = null;
 
     if (parsed.data.status === "APPROVED") {
+      try {
+        await assertWithdrawalCanBeApproved(params.id);
+      } catch (err) {
+        return NextResponse.json(
+          { error: err instanceof Error ? err.message : "Withdrawal charge must be paid before approval" },
+          { status: 400 }
+        );
+      }
       const available = await getAvailableBalance(withdrawal.userId, withdrawal.accountId, withdrawal.id);
       if (available === null) {
         return NextResponse.json({ error: "Account not found" }, { status: 400 });

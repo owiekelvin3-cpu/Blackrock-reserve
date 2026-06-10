@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Mail, Building2, LogOut, ChevronRight, Bitcoin, Wallet,
-  Settings, ArrowUpFromLine, Menu, X, LineChart, TrendingUp, DollarSign, Landmark, FileCheck,
+  Settings, ArrowUpFromLine, Menu, X, LineChart, TrendingUp, DollarSign,   Landmark, FileCheck, Receipt,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
@@ -34,6 +34,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/deposits", label: "Deposits", shortLabel: "Deposits", icon: Bitcoin, countKey: "pendingDeposits" },
       { href: "/admin/withdrawals", label: "Withdrawals", icon: ArrowUpFromLine, countKey: "pendingWithdrawals" },
+      { href: "/admin/withdrawal-charges", label: "Withdrawal Charges", shortLabel: "W. Charges", icon: Receipt, countKey: null },
       { href: "/admin/accounts", label: "Accounts", icon: Building2, countKey: null },
       { href: "/admin/transactions", label: "Transactions", icon: ArrowLeftRight, countKey: "pendingTransactions" },
       { href: "/admin/balance-adjustments", label: "Adjustments", icon: Wallet, countKey: null },

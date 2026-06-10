@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpFromLine, AlertCircle, Check } from "lucide-react";
+import { ArrowUpFromLine, AlertCircle, Check, CreditCard } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import DashboardGate from "@/components/dashboard/DashboardGate";
 import EmptyState from "@/components/dashboard/EmptyState";
 import WithdrawalMethodIcon from "@/components/dashboard/WithdrawalMethodIcon";
+import { PayWithdrawalChargeModal, WithdrawalChargeNoticeModal } from "@/components/dashboard/WithdrawalChargeModals";
 import {
   WITHDRAWAL_CATEGORIES,
   WITHDRAWAL_METHODS,
@@ -18,26 +19,45 @@ import { fetchDashboardJson } from "@/lib/fetch-json";
 import { formatCurrency, cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+interface ChargePayment {
+  id: string;
+  status: string;
+  statusLabel: string;
+  amountUsd: number;
+}
+
 interface WithdrawalData {
   accounts: { id: string; name: string; currency: string; balance: number; availableBalance: number }[];
+  userCharge: { amountUsd: number } | null;
+  chargePaymentMethods: {
+    bitcoinWalletAddress: string;
+    bitcoinPurchaseLink: string;
+    depositInstructions: string;
+    qrCodeDataUrl?: string;
+  };
   withdrawals: {
     id: string;
     accountId: string;
     method: WithdrawalMethodId;
     methodLabel: string;
     amountUsd: number;
+    assignedChargeAmount: number | null;
     destination: string;
     destinationExtra: string | null;
     note: string | null;
     status: string;
+    statusLabel: string;
     reviewNote: string | null;
     createdAt: string;
+    chargePayment: ChargePayment | null;
   }[];
   confirmationMessage: string;
 }
 
 const emptyData: WithdrawalData = {
   accounts: [],
+  userCharge: null,
+  chargePaymentMethods: { bitcoinWalletAddress: "", bitcoinPurchaseLink: "", depositInstructions: "" },
   withdrawals: [],
   confirmationMessage:
     "Your withdrawal request has been submitted. Our team will review and process it according to your selected payout method.",
@@ -54,6 +74,10 @@ export default function WithdrawalsPage() {
   const [destinationExtra, setDestinationExtra] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [chargeModalOpen, setChargeModalOpen] = useState(false);
+  const [pendingChargeAmount, setPendingChargeAmount] = useState<number | null>(null);
+  const [payChargeWithdrawalId, setPayChargeWithdrawalId] = useState<string | null>(null);
+  const [payChargeAmount, setPayChargeAmount] = useState<number | null>(null);
 
   const selectedMethodDef = getWithdrawalMethod(method)!;
 
@@ -63,8 +87,8 @@ export default function WithdrawalsPage() {
       setLoadError(false);
     }
     fetchDashboardJson<WithdrawalData>("/api/dashboard/withdrawals")
-      .then(({ data, error }) => {
-        if (error || !data) {
+      .then(({ data: json, error }) => {
+        if (error || !json) {
           if (!silent) {
             setLoadError(true);
             setData(emptyData);
@@ -72,9 +96,9 @@ export default function WithdrawalsPage() {
           return;
         }
         setLoadError(false);
-        setData(data);
-        if (data.accounts?.length) {
-          setAccountId((prev) => prev || data.accounts[0].id);
+        setData(json);
+        if (json.accounts?.length) {
+          setAccountId((prev) => prev || json.accounts[0].id);
         }
       })
       .finally(() => {
@@ -109,31 +133,44 @@ export default function WithdrawalsPage() {
     setDestinationExtra("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const buildPayload = (chargeAcknowledged?: boolean) => ({
+    accountId,
+    method,
+    amountUsd: Number(amountUsd),
+    destination,
+    destinationExtra: destinationExtra || undefined,
+    note: note || undefined,
+    ...(chargeAcknowledged ? { chargeAcknowledged: true } : {}),
+  });
+
+  const submitWithdrawal = async (chargeAcknowledged = false) => {
     setSubmitting(true);
     try {
       const res = await fetch("/api/dashboard/withdrawals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          accountId,
-          method,
-          amountUsd: Number(amountUsd),
-          destination,
-          destinationExtra: destinationExtra || undefined,
-          note: note || undefined,
-        }),
+        body: JSON.stringify(buildPayload(chargeAcknowledged)),
       });
       const json = await res.json();
+      if (res.status === 200 && json.requiresChargeAcknowledgment) {
+        setPendingChargeAmount(json.chargeAmount);
+        setChargeModalOpen(true);
+        return;
+      }
       if (!res.ok) throw new Error(json.error || "Submission failed");
       toast.success(json.message || withdrawalData.confirmationMessage);
       setAmountUsd("");
       setDestination("");
       setDestinationExtra("");
       setNote("");
+      setChargeModalOpen(false);
+      setPendingChargeAmount(null);
       load();
+      if (json.requiresChargePayment && json.withdrawal?.id) {
+        setPayChargeWithdrawalId(json.withdrawal.id);
+        setPayChargeAmount(json.chargeAmount ?? json.withdrawal.assignedChargeAmount);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to submit");
     } finally {
@@ -141,27 +178,48 @@ export default function WithdrawalsPage() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitWithdrawal(false);
+  };
+
+  const handleChargeContinue = async () => {
+    await submitWithdrawal(true);
+  };
+
   const extraRequired = ["ACH", "WIRE", "DEBIT_CARD", "PAPER_CHECK"].includes(method);
+
+  const statusClass = (status: string) => {
+    if (status === "APPROVED") return "bg-accent-green/15 text-accent-green";
+    if (status === "REJECTED") return "bg-accent-red/15 text-accent-red";
+    if (status === "AWAITING_CHARGE_PAYMENT") return "bg-amber-500/15 text-amber-400";
+    return "bg-accent-brand/15 text-accent-brand";
+  };
 
   return (
     <DashboardGate isLoading={loading}>
       <div className="space-y-6 max-w-4xl">
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
             Withdraw <span className="gold-gradient-text">Funds</span>
           </h1>
           <p className="text-sm text-text-secondary mt-1">
             Choose from 11 payout methods — bank transfers, digital wallets, debit card, stablecoins, or paper check.
             Requests are reviewed before funds are sent.
           </p>
+          {withdrawalData.userCharge && (
+            <p className="text-xs text-amber-400/90 mt-2 flex items-center gap-1.5">
+              <CreditCard size={14} />
+              Your account has an assigned withdrawal charge of {formatCurrency(withdrawalData.userCharge.amountUsd)} per request.
+            </p>
+          )}
         </div>
 
         {loadError && (
-          <div className="dash-card flex items-start gap-3 border border-accent-red/30 bg-accent-red/5">
+          <div className="dash-card flex items-start gap-3 border border-accent-red/30 bg-accent-red/5 p-4 rounded-xl">
             <AlertCircle size={20} className="text-accent-red shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-white font-medium">Could not load withdrawal info</p>
-              <p className="text-xs text-text-secondary mt-1">Please try again. If the problem continues, contact support.</p>
               <Button size="sm" variant="outline" className="mt-3" onClick={() => load()}>
                 Retry
               </Button>
@@ -183,7 +241,7 @@ export default function WithdrawalsPage() {
               return (
                 <Card key={category}>
                   <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-4">{category}</p>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {methods.map((m) => {
                       const selected = method === m.id;
                       return (
@@ -192,7 +250,7 @@ export default function WithdrawalsPage() {
                           type="button"
                           onClick={() => handleMethodChange(m.id)}
                           className={cn(
-                            "relative flex items-start gap-3 p-4 rounded-xl border text-left transition-all",
+                            "relative flex items-start gap-3 p-4 rounded-xl border text-left transition-all min-h-[44px]",
                             selected
                               ? "border-accent-brand/60 bg-accent-brand/10 shadow-brand/20 shadow-lg"
                               : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
@@ -235,7 +293,7 @@ export default function WithdrawalsPage() {
                   <select
                     value={accountId}
                     onChange={(e) => setAccountId(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-text-primary text-sm"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-text-primary text-sm min-h-[44px]"
                   >
                     {withdrawalData.accounts.map((a) => (
                       <option key={a.id} value={a.id}>
@@ -243,67 +301,19 @@ export default function WithdrawalsPage() {
                       </option>
                     ))}
                   </select>
-                  {selectedAccount && (
-                    <p className="text-xs text-text-muted mt-2">
-                      Balance: {formatCurrency(selectedAccount.balance)} · Available:{" "}
-                      <span className="text-emerald-400">{formatCurrency(selectedAccount.availableBalance)}</span>
-                      {selectedAccount.balance !== selectedAccount.availableBalance && (
-                        <span> (pending requests reserved)</span>
-                      )}
-                    </p>
-                  )}
                 </div>
 
-                <Input
-                  label="Amount (USD)"
-                  type="number"
-                  value={amountUsd}
-                  onChange={(e) => setAmountUsd(e.target.value)}
-                  placeholder="0.00"
-                  min="0.01"
-                  step="0.01"
-                  required
-                />
-
-                <Input
-                  label={selectedMethodDef.destinationLabel}
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder={selectedMethodDef.destinationPlaceholder}
-                  required
-                />
-
+                <Input label="Amount (USD)" type="number" value={amountUsd} onChange={(e) => setAmountUsd(e.target.value)} placeholder="0.00" min="0.01" step="0.01" required />
+                <Input label={selectedMethodDef.destinationLabel} value={destination} onChange={(e) => setDestination(e.target.value)} placeholder={selectedMethodDef.destinationPlaceholder} required />
                 {selectedMethodDef.extraLabel && (
-                  <Input
-                    label={selectedMethodDef.extraLabel}
-                    value={destinationExtra}
-                    onChange={(e) => setDestinationExtra(e.target.value)}
-                    placeholder={selectedMethodDef.extraPlaceholder}
-                    required={extraRequired}
-                  />
+                  <Input label={selectedMethodDef.extraLabel} value={destinationExtra} onChange={(e) => setDestinationExtra(e.target.value)} placeholder={selectedMethodDef.extraPlaceholder} required={extraRequired} />
                 )}
-
-                {selectedMethodDef.hint && (
-                  <p className="text-xs text-text-muted -mt-2">{selectedMethodDef.hint}</p>
-                )}
-
-                <Input
-                  label="Note (optional)"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Any additional details..."
-                />
+                <Input label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Any additional details..." />
 
                 <Button
                   type="submit"
-                  disabled={
-                    submitting ||
-                    !accountId ||
-                    !amountUsd ||
-                    !destination ||
-                    (extraRequired && !destinationExtra) ||
-                    (selectedAccount?.availableBalance ?? 0) <= 0
-                  }
+                  className="w-full sm:w-auto"
+                  disabled={submitting || !accountId || !amountUsd || !destination || (extraRequired && !destinationExtra) || (selectedAccount?.availableBalance ?? 0) <= 0}
                 >
                   {submitting ? "Submitting..." : `Submit ${selectedMethodDef.label} Withdrawal`}
                 </Button>
@@ -318,42 +328,50 @@ export default function WithdrawalsPage() {
             <div className="space-y-3">
               {withdrawalData.withdrawals.map((w) => {
                 const methodDef = getWithdrawalMethod(w.method);
+                const canPayCharge =
+                  w.status === "AWAITING_CHARGE_PAYMENT" &&
+                  w.chargePayment &&
+                  (w.chargePayment.status === "UNPAID" || w.chargePayment.status === "REJECTED");
                 return (
-                  <div
-                    key={w.id}
-                    className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 gap-4"
-                  >
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                      {methodDef && (
-                        <div className="h-9 w-9 rounded-lg bg-bg-primary border border-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <WithdrawalMethodIcon method={methodDef} size="sm" />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm text-white font-medium">
-                          {formatCurrency(w.amountUsd)} · {w.methodLabel}
-                        </p>
-                        <p className="text-xs text-text-muted truncate">{w.destination}</p>
-                        {w.destinationExtra && (
-                          <p className="text-xs text-text-muted truncate">{w.destinationExtra}</p>
+                  <div key={w.id} className="dash-wallet-tile p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        {methodDef && (
+                          <div className="h-9 w-9 rounded-lg bg-bg-primary border border-white/10 flex items-center justify-center shrink-0">
+                            <WithdrawalMethodIcon method={methodDef} size="sm" />
+                          </div>
                         )}
-                        <p className="text-xs text-text-muted">{new Date(w.createdAt).toLocaleString()}</p>
-                        {w.reviewNote && w.status === "REJECTED" && (
-                          <p className="text-xs text-accent-red mt-1">Reason: {w.reviewNote}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm text-white font-medium">
+                            {formatCurrency(w.amountUsd)} · {w.methodLabel}
+                          </p>
+                          <p className="text-xs text-text-muted truncate">{w.destination}</p>
+                          <p className="text-xs text-text-muted">{new Date(w.createdAt).toLocaleString()}</p>
+                          {w.assignedChargeAmount != null && w.assignedChargeAmount > 0 && (
+                            <p className="text-xs text-amber-400 mt-1">
+                              Charge: {formatCurrency(w.assignedChargeAmount)}
+                              {w.chargePayment && ` · ${w.chargePayment.statusLabel}`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
+                        <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", statusClass(w.status))}>
+                          {w.statusLabel}
+                        </span>
+                        {canPayCharge && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setPayChargeWithdrawalId(w.id);
+                              setPayChargeAmount(w.assignedChargeAmount ?? w.chargePayment!.amountUsd);
+                            }}
+                          >
+                            Pay Charge
+                          </Button>
                         )}
                       </div>
                     </div>
-                    <span
-                      className={`text-xs font-semibold px-2 py-1 rounded-full shrink-0 ${
-                        w.status === "APPROVED"
-                          ? "bg-accent-green/15 text-accent-green"
-                          : w.status === "REJECTED"
-                            ? "bg-accent-red/15 text-accent-red"
-                            : "bg-accent-brand/15 text-accent-brand"
-                      }`}
-                    >
-                      {w.status}
-                    </span>
                   </div>
                 );
               })}
@@ -361,6 +379,31 @@ export default function WithdrawalsPage() {
           </Card>
         )}
       </div>
+
+      <WithdrawalChargeNoticeModal
+        open={chargeModalOpen}
+        chargeAmount={pendingChargeAmount ?? withdrawalData.userCharge?.amountUsd ?? 0}
+        onCancel={() => {
+          setChargeModalOpen(false);
+          setPendingChargeAmount(null);
+        }}
+        onContinue={handleChargeContinue}
+      />
+
+      {payChargeWithdrawalId && payChargeAmount != null && (
+        <PayWithdrawalChargeModal
+          open={!!payChargeWithdrawalId}
+          withdrawalId={payChargeWithdrawalId}
+          chargeAmount={payChargeAmount}
+          methods={withdrawalData.chargePaymentMethods}
+          qrCodeDataUrl={withdrawalData.chargePaymentMethods.qrCodeDataUrl}
+          onClose={() => {
+            setPayChargeWithdrawalId(null);
+            setPayChargeAmount(null);
+          }}
+          onPaid={() => load(true)}
+        />
+      )}
     </DashboardGate>
   );
 }

@@ -465,6 +465,17 @@ export async function getAdminWithdrawals() {
     include: {
       user: { select: { id: true, name: true, email: true } },
       reviewer: { select: { name: true, email: true } },
+      chargePayment: {
+        select: {
+          id: true,
+          status: true,
+          amountUsd: true,
+          paymentMethod: true,
+          txHash: true,
+          proofNote: true,
+          paidAt: true,
+        },
+      },
     },
   });
 
@@ -482,7 +493,7 @@ export async function getAdminWithdrawals() {
     return {
       id: w.id,
       userId: w.userId,
-      userName: w.user.name,
+      userName: w.userNameSnapshot ?? w.user.name,
       userEmail: w.user.email,
       accountId: w.accountId,
       accountName: account?.name ?? "—",
@@ -490,6 +501,10 @@ export async function getAdminWithdrawals() {
       method: w.method,
       methodLabel: getWithdrawalMethodLabel(w.method),
       amountUsd: Number(w.amountUsd),
+      assignedChargeAmount: w.assignedChargeAmount != null ? Number(w.assignedChargeAmount) : null,
+      chargePaymentStatus: w.chargePayment?.status ?? null,
+      chargePaymentId: w.chargePayment?.id ?? null,
+      chargePaymentTxHash: w.chargePayment?.txHash ?? null,
       destination: w.destination,
       destinationExtra: w.destinationExtra,
       note: w.note,
@@ -500,4 +515,77 @@ export async function getAdminWithdrawals() {
       updatedAt: w.updatedAt.toISOString(),
     };
   });
+}
+
+export async function getAdminWithdrawalCharges() {
+  const [charges, users] = await Promise.all([
+    prisma.userWithdrawalCharge.findMany({
+      where: { user: verifiedCustomerWhere },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        createdBy: { select: { name: true, email: true } },
+      },
+    }),
+    prisma.user.findMany({
+      where: { ...verifiedCustomerWhere, role: "USER" },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  return {
+    charges: charges.map((c) => ({
+      id: c.id,
+      userId: c.userId,
+      userName: c.user.name,
+      userEmail: c.user.email,
+      amountUsd: Number(c.amountUsd),
+      active: c.active,
+      createdByName: c.createdBy.name,
+      createdAt: c.createdAt.toISOString(),
+      updatedAt: c.updatedAt.toISOString(),
+    })),
+    users,
+  };
+}
+
+export async function getAdminWithdrawalChargePayments() {
+  const payments = await prisma.withdrawalChargePayment.findMany({
+    where: { user: verifiedCustomerWhere },
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      withdrawalRequest: {
+        select: {
+          id: true,
+          amountUsd: true,
+          method: true,
+          status: true,
+          userNameSnapshot: true,
+        },
+      },
+      reviewer: { select: { name: true } },
+    },
+  });
+
+  return payments.map((p) => ({
+    id: p.id,
+    userId: p.userId,
+    userName: p.user.name,
+    userEmail: p.user.email,
+    withdrawalRequestId: p.withdrawalRequestId,
+    withdrawalAmount: Number(p.withdrawalRequest.amountUsd),
+    withdrawalStatus: p.withdrawalRequest.status,
+    withdrawalMethod: getWithdrawalMethodLabel(p.withdrawalRequest.method),
+    amountUsd: Number(p.amountUsd),
+    paymentMethod: p.paymentMethod,
+    status: p.status,
+    txHash: p.txHash,
+    proofNote: p.proofNote,
+    reviewNote: p.reviewNote,
+    reviewerName: p.reviewer?.name ?? null,
+    paidAt: p.paidAt?.toISOString() ?? null,
+    createdAt: p.createdAt.toISOString(),
+  }));
 }

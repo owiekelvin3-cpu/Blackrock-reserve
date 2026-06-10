@@ -63,6 +63,10 @@ model User {
   userLoans                UserLoan[]
   reviewedTaxVerifications TaxRefundVerification[] @relation("TaxRefundReviewer")
   reviewedLoanApplications LoanApplication[]       @relation("LoanReviewer")
+  withdrawalCharge         UserWithdrawalCharge?
+  withdrawalChargesCreated UserWithdrawalCharge[]  @relation("WithdrawalChargeCreator")
+  withdrawalChargePayments WithdrawalChargePayment[] @relation("UserChargePayments")
+  reviewedChargePayments   WithdrawalChargePayment[] @relation("ChargePaymentReviewer")
 }
 
 model Session {
@@ -493,22 +497,58 @@ model JointAccountActivityLog {
 }
 
 model WithdrawalRequest {
-  id               String               @id @default(cuid())
-  userId           String
-  accountId        String
-  method           WithdrawalMethod     @default(CRYPTO_STABLECOIN)
-  amountUsd        Decimal              @db.Decimal(15, 2)
-  destination      String               @map("walletAddress")
-  destinationExtra String?
-  note             String?
-  status           DepositRequestStatus @default(PENDING)
-  reviewedBy       String?
-  reviewNote       String?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id                   String                  @id @default(cuid())
+  userId               String
+  userNameSnapshot     String?
+  accountId            String
+  method               WithdrawalMethod        @default(CRYPTO_STABLECOIN)
+  amountUsd            Decimal                 @db.Decimal(15, 2)
+  assignedChargeAmount Decimal?                @db.Decimal(15, 2)
+  destination          String                  @map("walletAddress")
+  destinationExtra     String?
+  note                 String?
+  status               WithdrawalRequestStatus @default(PENDING)
+  reviewedBy           String?
+  reviewNote           String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
 
-  user     User  @relation("UserWithdrawals", fields: [userId], references: [id], onDelete: Cascade)
-  reviewer User? @relation("WithdrawalReviewer", fields: [reviewedBy], references: [id])
+  user          User                     @relation("UserWithdrawals", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer      User?                    @relation("WithdrawalReviewer", fields: [reviewedBy], references: [id])
+  chargePayment WithdrawalChargePayment?
+}
+
+model UserWithdrawalCharge {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  amountUsd   Decimal  @db.Decimal(15, 2)
+  active      Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User @relation("WithdrawalChargeCreator", fields: [createdById], references: [id])
+}
+
+model WithdrawalChargePayment {
+  id                  String                        @id @default(cuid())
+  userId              String
+  withdrawalRequestId String                        @unique
+  amountUsd           Decimal                       @db.Decimal(15, 2)
+  paymentMethod       String                        @default("BITCOIN")
+  status              WithdrawalChargePaymentStatus @default(UNPAID)
+  txHash              String?
+  proofNote           String?
+  reviewedBy          String?
+  reviewNote          String?
+  paidAt              DateTime?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+
+  user              User              @relation("UserChargePayments", fields: [userId], references: [id], onDelete: Cascade)
+  withdrawalRequest WithdrawalRequest @relation(fields: [withdrawalRequestId], references: [id], onDelete: Cascade)
+  reviewer          User?             @relation("ChargePaymentReviewer", fields: [reviewedBy], references: [id])
 }
 
 model AdminActivityLog {
@@ -583,6 +623,20 @@ enum BalanceAdjustmentType {
 enum DepositRequestStatus {
   PENDING
   APPROVED
+  REJECTED
+}
+
+enum WithdrawalRequestStatus {
+  AWAITING_CHARGE_PAYMENT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum WithdrawalChargePaymentStatus {
+  UNPAID
+  PENDING_VERIFICATION
+  PAID
   REJECTED
 }
 

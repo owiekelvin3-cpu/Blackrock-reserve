@@ -140,6 +140,7 @@ export const depositReviewSchema = z
   });
 
 export const withdrawalRequestSchema = z.object({
+  chargeAcknowledged: z.boolean().optional(),
   accountId: z.string().min(1, "Account is required"),
   method: z.enum([
     "ACH",
@@ -164,6 +165,27 @@ export const withdrawalReviewSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
   reviewNote: z.string().optional(),
 });
+
+export const userWithdrawalChargeSchema = z.object({
+  userId: z.string().min(1, "User is required"),
+  amountUsd: z.number().positive("Charge amount must be greater than zero"),
+});
+
+export const withdrawalChargePaymentSubmitSchema = z.object({
+  txHash: z.string().min(10, "Transaction reference must be at least 10 characters"),
+  proofNote: z.string().optional(),
+  paymentMethod: z.string().min(1).default("BITCOIN"),
+});
+
+export const withdrawalChargePaymentReviewSchema = z
+  .object({
+    status: z.enum(["PAID", "REJECTED", "UNPAID"]),
+    reviewNote: z.string().optional(),
+  })
+  .refine((data) => data.status !== "REJECTED" || !!data.reviewNote?.trim(), {
+    message: "Rejection reason is required",
+    path: ["reviewNote"],
+  });
 
 const ssnSchema = z
   .string()

@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { ACTIVE_WITHDRAWAL_STATUSES } from "@/lib/withdrawal-charge";
 
 export async function getPendingWithdrawalTotal(userId: string, accountId: string, excludeId?: string) {
   const agg = await prisma.withdrawalRequest.aggregate({
     where: {
       userId,
       accountId,
-      status: "PENDING",
+      status: { in: [...ACTIVE_WITHDRAWAL_STATUSES] },
       ...(excludeId ? { id: { not: excludeId } } : {}),
     },
     _sum: { amountUsd: true },
@@ -27,7 +28,7 @@ export async function getAvailableBalancesMap(
     where: {
       userId,
       accountId: { in: accountIds },
-      status: "PENDING",
+      status: { in: [...ACTIVE_WITHDRAWAL_STATUSES] },
       ...(excludeWithdrawalId ? { id: { not: excludeWithdrawalId } } : {}),
     },
     _sum: { amountUsd: true },
