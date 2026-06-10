@@ -7,22 +7,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
 import Logo from "./Logo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import LanguageSelector from "@/components/ui/LanguageSelector";
+import { useI18n } from "@/components/providers/I18nProvider";
 import { cn } from "@/lib/utils";
 
 const NAV_OFFSET = 96;
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/features", label: "Features" },
-  { href: "/investments", label: "Investments" },
-  { href: "/contact", label: "Contact" },
-];
+  { href: "/", labelKey: "nav.home" },
+  { href: "/about", labelKey: "nav.about" },
+  { href: "/features", labelKey: "nav.features" },
+  { href: "/investments", labelKey: "nav.investments" },
+  { href: "/contact", labelKey: "nav.contact" },
+] as const;
 
 const primaryLinkClass =
   "inline-flex items-center justify-center gap-2 font-semibold transition-all btn-gold px-5 py-2.5 text-sm rounded-full";
 
 export default function Navbar() {
+  const { t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hash, setHash] = useState("");
   const pathname = usePathname();
@@ -93,22 +96,23 @@ export default function Navbar() {
                     : "text-text-secondary hover:text-white hover:bg-white/5"
                 )}
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             ))}
           </div>
         </div>
 
         <div className="relative z-[60] flex shrink-0 items-center justify-end gap-2 sm:gap-3">
+          <LanguageSelector className="hidden md:block" />
           <ThemeToggle size="sm" className="hidden sm:inline-flex" />
           <Link
             href="/login"
             className="hidden lg:inline-flex text-sm font-medium text-text-secondary hover:text-text-primary transition-colors px-3 py-2"
           >
-            Sign in
+            {t("common.signIn")}
           </Link>
           <Link href="/register" className={cn(primaryLinkClass, "hidden lg:inline-flex")}>
-            Sign up <ArrowRight size={16} />
+            {t("common.signUp")} <ArrowRight size={16} />
           </Link>
           <button
             type="button"
@@ -153,12 +157,13 @@ export default function Navbar() {
                         : "text-text-secondary hover:text-white hover:bg-white/5"
                     )}
                   >
-                    {link.label}
+                    {t(link.labelKey)}
                   </Link>
                 ))}
                 <div className="pt-3 mt-2 border-t border-white/10 flex flex-col gap-3">
+                  <LanguageSelector variant="full" />
                   <div className="flex items-center justify-between px-1">
-                    <span className="text-xs font-medium text-text-secondary">Appearance</span>
+                    <span className="text-xs font-medium text-text-secondary">{t("common.appearance")}</span>
                     <ThemeToggle size="sm" />
                   </div>
                   <Link
@@ -166,10 +171,10 @@ export default function Navbar() {
                     className="w-full text-center px-5 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary rounded-full border border-white/10 transition-colors"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Sign in
+                    {t("common.signIn")}
                   </Link>
                   <Link href="/register" className={cn(primaryLinkClass, "w-full")} onClick={() => setMobileOpen(false)}>
-                    Sign up <ArrowRight size={16} />
+                    {t("common.signUp")} <ArrowRight size={16} />
                   </Link>
                 </div>
               </div>

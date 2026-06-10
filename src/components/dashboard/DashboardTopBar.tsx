@@ -6,29 +6,32 @@ import { useSession } from "next-auth/react";
 import { HelpCircle } from "lucide-react";
 import DashboardNotifications from "@/components/dashboard/DashboardNotifications";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import LanguageSelector from "@/components/ui/LanguageSelector";
+import ProfileAvatar from "@/components/ui/ProfileAvatar";
+import { useI18n } from "@/components/providers/I18nProvider";
 
-const titles: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/dashboard/analytics": "Loans",
-  "/dashboard/deposit": "Deposit",
-  "/dashboard/withdrawals": "Withdraw",
-  "/dashboard/investments": "Investments",
-  "/dashboard/capital-markets": "Capital Markets",
-  "/dashboard/joint-accounts": "Joint Accounts",
-  "/dashboard/settings": "Settings",
+const titleKeys: Record<string, string> = {
+  "/dashboard": "nav.dashboard",
+  "/dashboard/analytics": "nav.loans",
+  "/dashboard/deposit": "nav.deposit",
+  "/dashboard/withdrawals": "nav.withdraw",
+  "/dashboard/investments": "nav.investments",
+  "/dashboard/capital-markets": "nav.markets",
+  "/dashboard/joint-accounts": "nav.jointAccounts",
+  "/dashboard/settings": "common.settings",
 };
 
-function resolveTitle(pathname: string) {
-  if (titles[pathname]) return titles[pathname];
-  if (pathname.startsWith("/dashboard/joint-accounts/")) return "Joint Account";
-  return "Dashboard";
+function resolveTitleKey(pathname: string) {
+  if (titleKeys[pathname]) return titleKeys[pathname];
+  if (pathname.startsWith("/dashboard/joint-accounts/")) return "nav.jointAccounts";
+  return "nav.dashboard";
 }
 
 export default function DashboardTopBar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const title = resolveTitle(pathname);
-  const initial = session?.user?.name?.charAt(0)?.toUpperCase() ?? "?";
+  const { t } = useI18n();
+  const title = t(resolveTitleKey(pathname));
 
   return (
     <header className="dash-sticky-header -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0 mb-4 sm:mb-6 sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
@@ -43,6 +46,7 @@ export default function DashboardTopBar() {
         </div>
 
         <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+          <LanguageSelector className="hidden sm:block" />
           <ThemeToggle size="sm" />
           <Link
             href="/contact"
@@ -52,12 +56,8 @@ export default function DashboardTopBar() {
             <HelpCircle size={18} />
           </Link>
           <DashboardNotifications />
-          <Link
-            href="/dashboard/settings"
-            className="h-10 w-10 sm:h-9 sm:w-9 rounded-full brand-gradient-bg flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/10 shrink-0"
-            aria-label="Account settings"
-          >
-            {initial}
+          <Link href="/dashboard/settings" aria-label={t("common.settings")}>
+            <ProfileAvatar name={session?.user?.name} image={session?.user?.image} size="sm" />
           </Link>
         </div>
       </div>

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { PiggyBank, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/providers/I18nProvider";
 
 export interface SavingsData {
   checking: {
@@ -33,6 +33,7 @@ interface SavingsPanelProps {
 }
 
 export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
+  const { t, formatCurrency } = useI18n();
   const [amount, setAmount] = useState("");
   const [direction, setDirection] = useState<"to-savings" | "to-checking">("to-savings");
   const [loading, setLoading] = useState(false);
@@ -82,14 +83,14 @@ export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
   return (
     <div className="dash-panel p-5">
       <div className="flex items-center justify-between gap-3 mb-5">
-        <h2 className="text-base font-semibold text-text-primary">Savings</h2>
+        <h2 className="text-base font-semibold text-text-primary">{t("dashboard.savings")}</h2>
         <div className="dash-period-toggle">
           <button
             type="button"
             onClick={() => setDirection("to-savings")}
             className={cn("dash-period-btn text-xs", direction === "to-savings" && "dash-period-btn-active")}
           >
-            Save
+            {t("dashboard.save")}
           </button>
           <button
             type="button"
@@ -97,7 +98,7 @@ export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
             className={cn("dash-period-btn text-xs", direction === "to-checking" && "dash-period-btn-active")}
             disabled={data.savingsBalance <= 0}
           >
-            Withdraw
+            {t("dashboard.withdrawSavings")}
           </button>
         </div>
       </div>
@@ -106,7 +107,7 @@ export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
         <div className="flex items-center justify-between mb-3">
           <span className="text-2xl leading-none">{data.savings.flag}</span>
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent-green/15 text-accent-green">
-            Active
+            {t("dashboard.active")}
           </span>
         </div>
         <p className="text-xs text-text-muted font-medium">{data.savings.currency}</p>
@@ -123,7 +124,7 @@ export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-text-muted">
-              {direction === "to-savings" ? "Available from checking" : "Available in savings"}
+              {direction === "to-savings" ? t("dashboard.availableFromChecking") : t("dashboard.availableInSavings")}
             </p>
             <p className="text-sm font-semibold text-text-primary mt-0.5">
               {formatCurrency(maxAmount)}
@@ -170,7 +171,7 @@ export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
               onClick={() => setAmount(String(maxAmount))}
               className="dash-control-btn text-xs py-1.5"
             >
-              Save all
+              {t("dashboard.saveAll")}
             </button>
           </div>
         )}
@@ -183,10 +184,10 @@ export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
         >
           <ArrowRightLeft size={16} />
           {loading
-            ? "Processing…"
+            ? t("common.processing")
             : direction === "to-savings"
-              ? "Save to Savings"
-              : "Move to Checking"}
+              ? t("dashboard.saveToSavings")
+              : t("dashboard.moveToChecking")}
         </button>
       </div>
     </div>

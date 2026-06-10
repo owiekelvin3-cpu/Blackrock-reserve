@@ -6,6 +6,7 @@ declare module "next-auth" {
       id: string;
       email: string;
       name: string;
+      image?: string | null;
       role: "USER" | "ADMIN";
       emailVerified: boolean;
     };
@@ -14,6 +15,7 @@ declare module "next-auth" {
   interface User {
     role?: "USER" | "ADMIN";
     emailVerified?: boolean;
+    image?: string | null;
   }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
     id: string;
     role: "USER" | "ADMIN";
     emailVerified: boolean;
+    image?: string | null;
   }
 }

@@ -1,0 +1,124 @@
+import { prisma } from "@/lib/prisma";
+import type { TransactionStatus, TransactionType } from "@prisma/client";
+
+export type ActivityCategory =
+  | "deposits"
+  | "withdrawals"
+  | "investments"
+  | "profits"
+  | "transfers"
+  | "account_updates"
+  | "security";
+
+const CATEGORY_TYPES: Record<ActivityCategory, TransactionType[]> = {
+  deposits: ["DEPOSIT"],
+  withdrawals: ["WITHDRAWAL"],
+  investments: ["INVESTMENT"],
+  profits: ["PROFIT_CREDIT", "PROFIT_DEBIT"],
+  transfers: ["TRANSFER"],
+  account_updates: ["PAYMENT"],
+  security: [],
+};
+
+export function categoryForType(type: TransactionType): ActivityCategory {
+  if (type === "DEPOSIT") return "deposits";
+  if (type === "WITHDRAWAL") return "withdrawals";
+  if (type === "INVESTMENT") return "investments";
+  if (type === "PROFIT_CREDIT" || type === "PROFIT_DEBIT") return "profits";
+  if (type === "TRANSFER") return "transfers";
+  if (type === "PAYMENT") return "account_updates";
+  return "account_updates";
+}
+
+export interface ActivityQuery {
+  userId: string;
+  page?: number;
+  limit?: number;
+  category?: ActivityCategory | "all";
+  search?: string;
+  status?: TransactionStatus | "all";
+  from?: string;
+  to?: string;
+}
+
+export async function queryActivities(params: ActivityQuery) {
+  const page = Math.max(1, params.page ?? 1);
+  const limit = Math.min(50, Math.max(1, params.limit ?? 5));
+  const skip = (page - 1) * limit;
+
+  const where: {
+    userId: string;
+    type?: { in: TransactionType[] };
+    status?: TransactionStatus;
+    createdAt?: { gte?: Date; lte?: Date };
+    OR?: Array<{ description: { contains: string; mode: "insensitive" } } | { id: { contains: string; mode: "insensitive" } }>;
+  } = { userId: params.userId };
+
+  if (params.category && params.category !== "all") {
+    const types = CATEGORY_TYPES[params.category];
+    if (types.length > 0) where.type = { in: types };
+    else return { items: [], total: 0, page, limit, hasMore: false };
+  }
+
+  if (params.status && params.status !== "all") {
+    where.status = params.status;
+  }
+
+  if (params.from || params.to) {
+    where.createdAt = {};
+    if (params.from) where.createdAt.gte = new Date(params.from);
+    if (params.to) {
+      const end = new Date(params.to);
+      end.setHours(23, 59, 59, 999);
+      where.createdAt.lte = end;
+    }
+  }
+
+  if (params.search?.trim()) {
+    const q = params.search.trim();
+    where.OR = [
+      { description: { contains: q, mode: "insensitive" } },
+      { id: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const [total, rows] = await Promise.all([
+    prisma.transaction.count({ where }),
+    prisma.transaction.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        description: true,
+        status: true,
+        createdAt: true,
+      },
+    }),
+  ]);
+
+  const items = rows.map((t) => ({
+    id: t.id,
+    name: t.description,
+    orderId: `#${t.id.slice(-8).toUpperCase()}`,
+    date: t.createdAt.toISOString(),
+    amount:
+      t.type === "DEPOSIT" || t.type === "PROFIT_CREDIT"
+        ? Number(t.amount)
+        : -Math.abs(Number(t.amount)),
+    status: t.status,
+    type: t.type,
+    category: categoryForType(t.type),
+  }));
+
+  return {
+    items,
+    total,
+    page,
+    limit,
+    hasMore: skip + items.length < total,
+  };
+}

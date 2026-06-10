@@ -18,6 +18,13 @@ const themeInitScript = `
     document.documentElement.setAttribute('data-theme', 'dark');
     document.documentElement.style.colorScheme = 'dark';
   }
+  try {
+    var loc = localStorage.getItem('br-locale');
+    if (loc) {
+      document.documentElement.lang = loc;
+      if (loc === 'ar') document.documentElement.dir = 'rtl';
+    }
+  } catch (e) {}
 })();
 `;
 

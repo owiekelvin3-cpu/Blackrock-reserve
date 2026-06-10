@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import NotificationAudioUnlock from "@/components/providers/NotificationAudioUnlock";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { I18nProvider } from "@/components/providers/I18nProvider";
 
 const ChatWidget = dynamic(() => import("@/components/chat/ChatWidget"), { ssr: false });
 
@@ -20,6 +21,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
+        <I18nProvider>
         <NotificationAudioUnlock />
         {children}
         {showChat && <ChatWidget />}
@@ -33,6 +35,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             },
           }}
         />
+        </I18nProvider>
       </SessionProvider>
     </ThemeProvider>
   );

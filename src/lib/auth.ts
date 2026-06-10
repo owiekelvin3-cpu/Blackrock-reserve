@@ -53,6 +53,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
+          image: user.profileImage,
           role: user.role,
           emailVerified: !!user.emailVerified,
         };
@@ -96,15 +97,17 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role ?? "USER";
         token.emailVerified = Boolean(user.emailVerified);
-      } else if (trigger === "update" && token.email) {
+        token.image = user.image ?? null;
+      } else if (trigger === "update" && token.sub) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: token.email as string },
-          select: { id: true, role: true, emailVerified: true },
+          where: { id: token.sub },
+          select: { id: true, role: true, emailVerified: true, profileImage: true },
         });
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role;
           token.emailVerified = !!dbUser.emailVerified;
+          token.image = dbUser.profileImage;
         }
       }
       return token;
@@ -114,6 +117,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = (token.role as "USER" | "ADMIN") ?? "USER";
         session.user.emailVerified = Boolean(token.emailVerified);
+        session.user.image = (token.image as string | null) ?? null;
       }
       return session;
     },

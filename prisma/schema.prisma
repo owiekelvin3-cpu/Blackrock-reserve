@@ -31,9 +31,11 @@ model User {
   country       String?
   region        String?
   city          String?
-  lastSeenAt    DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  lastSeenAt       DateTime?
+  profileImage     String?
+  preferredLocale  String    @default("en")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   accounts            BankAccount[]
   profitAdjustments   ProfitAdjustment[] @relation("UserProfitAdjustments")

@@ -10,26 +10,29 @@ import {
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useDashboardLayout } from "@/components/dashboard/DashboardLayoutContext";
+import ProfileAvatar from "@/components/ui/ProfileAvatar";
+import LanguageSelector from "@/components/ui/LanguageSelector";
+import { useI18n } from "@/components/providers/I18nProvider";
 
 const mainNav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
-  { href: "/dashboard/deposit", label: "Deposit", icon: Wallet, badge: null },
-  { href: "/dashboard/withdrawals", label: "Withdraw", icon: ArrowUpFromLine, badge: null },
-  { href: "/dashboard/analytics", label: "Loans", icon: Landmark, badge: null },
-  { href: "/dashboard/capital-markets", label: "Capital Markets", icon: LineChart, badge: null },
-  { href: "/dashboard/joint-accounts", label: "Joint Accounts", icon: Users, badge: null },
-];
+  { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard, badge: null },
+  { href: "/dashboard/deposit", labelKey: "nav.deposit", icon: Wallet, badge: null },
+  { href: "/dashboard/withdrawals", labelKey: "nav.withdraw", icon: ArrowUpFromLine, badge: null },
+  { href: "/dashboard/analytics", labelKey: "nav.loans", icon: Landmark, badge: null },
+  { href: "/dashboard/capital-markets", labelKey: "nav.markets", icon: LineChart, badge: null },
+  { href: "/dashboard/joint-accounts", labelKey: "nav.jointAccounts", icon: Users, badge: null },
+] as const;
 
 const featureNav = [
-  { href: "/dashboard/investments", label: "Investments", icon: RefreshCw, badge: null },
-  { href: "/dashboard/settings", label: "Settings", icon: MessageSquare, badge: null },
-];
+  { href: "/dashboard/investments", labelKey: "nav.investments", icon: RefreshCw, badge: null },
+  { href: "/dashboard/settings", labelKey: "common.settings", icon: MessageSquare, badge: null },
+] as const;
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { sidebarOpen, closeSidebar } = useDashboardLayout();
-  const initial = session?.user?.name?.charAt(0)?.toUpperCase() ?? "?";
+  const { t } = useI18n();
 
   useEffect(() => {
     closeSidebar();
@@ -42,7 +45,9 @@ export default function DashboardSidebar() {
     };
   }, [sidebarOpen]);
 
-  const navLink = (item: (typeof mainNav)[number]) => {
+  type NavItem = (typeof mainNav)[number] | (typeof featureNav)[number];
+
+  const navLink = (item: NavItem) => {
     const isActive = pathname === item.href;
     return (
       <Link
@@ -55,7 +60,7 @@ export default function DashboardSidebar() {
         )}
       >
         <item.icon size={18} strokeWidth={isActive ? 2 : 1.75} />
-        <span className="flex-1">{item.label}</span>
+        <span className="flex-1">{t(item.labelKey)}</span>
         {item.badge != null && <span className="dash-nav-badge">{item.badge}</span>}
       </Link>
     );
@@ -115,10 +120,11 @@ export default function DashboardSidebar() {
         </nav>
 
         <div className="p-4 border-t border-white/5 safe-area-pb">
+          <div className="mb-3 lg:hidden">
+            <LanguageSelector variant="full" />
+          </div>
           <div className="flex items-center gap-3 mb-3 px-1">
-            <div className="h-10 w-10 rounded-full brand-gradient-bg flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/10 shrink-0">
-              {initial}
-            </div>
+            <ProfileAvatar name={session?.user?.name} image={session?.user?.image} size="md" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-text-primary truncate">{session?.user?.name ?? "Account"}</p>
               <p className="text-xs text-text-muted truncate">{session?.user?.email}</p>
@@ -130,7 +136,7 @@ export default function DashboardSidebar() {
             className="dash-nav-item flex w-full items-center gap-3 px-3 py-3 text-sm font-medium min-h-[44px] text-text-secondary hover:text-accent-red"
           >
             <LogOut size={18} />
-            Sign out
+            {t("common.signOut")}
           </button>
         </div>
       </aside>
