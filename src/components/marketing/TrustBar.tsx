@@ -2,17 +2,26 @@
 
 import { motion } from "framer-motion";
 
-const logos = [
-  "Logoipsum",
-  "Logoipsum",
-  "Logoipsum",
-  "Logoipsum",
-  "Logoipsum",
-  "Logoipsum",
-  "Logoipsum",
+const usCompanies = [
+  "JPMorgan Chase",
+  "Goldman Sachs",
+  "Morgan Stanley",
+  "Bank of America",
+  "Wells Fargo",
+  "Fidelity",
+  "Charles Schwab",
+  "Vanguard",
+  "Citigroup",
+  "American Express",
+  "Capital One",
+  "Berkshire Hathaway",
+  "PayPal",
+  "Stripe",
 ];
 
 export default function TrustBar() {
+  const slides = [...usCompanies, ...usCompanies];
+
   return (
     <section className="py-12 sm:py-16 border-y border-white/5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -33,12 +42,12 @@ export default function TrustBar() {
           transition={{ duration: 0.6, delay: 0.15 }}
         >
           <div className="stats-marquee-track flex animate-marquee">
-            {[...logos, ...logos].map((logo, i) => (
-              <div key={i} className="stats-marquee-slide flex items-center px-8 sm:px-12">
-                <span className="text-lg sm:text-xl font-bold text-white/25 tracking-tight whitespace-nowrap select-none">
-                  {logo}
+            {slides.map((name, i) => (
+              <div key={`${name}-${i}`} className="stats-marquee-slide flex items-center px-8 sm:px-12">
+                <span className="text-base sm:text-lg font-semibold text-white/30 tracking-tight whitespace-nowrap select-none">
+                  {name}
                 </span>
-                {i < logos.length * 2 - 1 && <div className="stats-marquee-divider" />}
+                {i < slides.length - 1 && <div className="stats-marquee-divider" />}
               </div>
             ))}
           </div>
