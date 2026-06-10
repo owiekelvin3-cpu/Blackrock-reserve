@@ -19,8 +19,10 @@ import { cn } from "@/lib/utils";
 
 interface OverviewData {
   totalBalance: number;
-  savingsBalance: number;
-  investmentValue: number;
+  investedBalance: number;
+  profitBalance: number;
+  savingsBalance?: number;
+  investmentValue?: number;
   bitcoinWalletAddress: string;
   depositsEnabled: boolean;
   wallets: { id: string; flag: string; currency: string; balance: number; active: boolean; name: string }[];
@@ -42,6 +44,9 @@ const activityIcons: Record<string, typeof Wallet> = {
   WITHDRAWAL: TrendingUp,
   TRANSFER: RefreshCw,
   PAYMENT: Receipt,
+  INVESTMENT: TrendingUp,
+  PROFIT_CREDIT: ArrowDownLeft,
+  PROFIT_DEBIT: ArrowUpRight,
 };
 
 const CHART_MUTED_BAR = "#2a2a2e";
@@ -92,8 +97,8 @@ export default function DashboardPage() {
   const hasActivity =
     data &&
     (data.totalBalance > 0 ||
-      data.savingsBalance > 0 ||
-      data.investmentValue > 0 ||
+      data.investedBalance > 0 ||
+      data.profitBalance > 0 ||
       data.wallets.length > 0 ||
       data.activities.length > 0);
 
@@ -151,9 +156,6 @@ export default function DashboardPage() {
                 <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
                   <Wallet size={20} className="text-white" />
                 </div>
-                <span className="dash-stat-pill dash-stat-pill-light">
-                  +1.5% <ArrowUpRight size={10} />
-                </span>
               </div>
               <div>
                 <p className="text-sm text-white/75">My balance</p>
@@ -171,16 +173,15 @@ export default function DashboardPage() {
                 <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
                   <Wallet size={18} className="text-text-muted" />
                 </div>
-                <span className="dash-stat-pill dash-stat-pill-dark">+0.8%</span>
               </div>
               <div>
                 <p className="text-sm text-text-muted">Invested balance</p>
                 <p className="text-2xl font-bold text-text-primary mt-1 tracking-tight">
-                  {formatCurrency(data.savingsBalance)}
+                  {formatCurrency(data.investedBalance)}
                 </p>
               </div>
-              <Link href="/dashboard/accounts" className="text-xs text-text-muted hover:text-text-primary flex items-center gap-1 mt-3 transition-colors">
-                See details <ArrowUpRight size={12} />
+              <Link href="/dashboard/capital-markets" className="text-xs text-text-muted hover:text-text-primary flex items-center gap-1 mt-3 transition-colors">
+                View portfolio <ArrowUpRight size={12} />
               </Link>
             </div>
 
@@ -189,15 +190,14 @@ export default function DashboardPage() {
                 <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
                   <TrendingUp size={18} className="text-text-muted" />
                 </div>
-                <span className="dash-stat-pill dash-stat-pill-dark">+2.1%</span>
               </div>
               <div>
-                <p className="text-sm text-text-muted">Profit</p>
+                <p className="text-sm text-text-muted">Profit balance</p>
                 <p className="text-2xl font-bold text-text-primary mt-1 tracking-tight">
-                  {formatCurrency(data.investmentValue)}
+                  {formatCurrency(data.profitBalance)}
                 </p>
               </div>
-              <Link href="/dashboard/capital-markets" className="text-xs text-text-muted hover:text-text-primary flex items-center gap-1 mt-3 transition-colors">
+              <Link href="/dashboard/investments" className="text-xs text-text-muted hover:text-text-primary flex items-center gap-1 mt-3 transition-colors">
                 See details <ArrowUpRight size={12} />
               </Link>
             </div>

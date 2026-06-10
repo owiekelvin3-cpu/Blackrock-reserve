@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { getInvestedBalance } from "@/lib/user-balances";
 import { getWithdrawalMethodLabel } from "@/lib/withdrawal-methods";
 import { prisma } from "@/lib/prisma";
 import { verifiedCustomerWhere, registeredCustomerWhere } from "@/lib/customer-auth";
@@ -227,8 +228,12 @@ export async function getAdminUser(id: string) {
 
   if (!user || user.role === "ADMIN") return null;
 
+  const investedBalance = await getInvestedBalance(user.id);
+
   return {
     id: user.id,
+    profitBalance: Number(user.profitBalance),
+    investedBalance,
     name: user.name,
     email: user.email,
     phone: user.phone,

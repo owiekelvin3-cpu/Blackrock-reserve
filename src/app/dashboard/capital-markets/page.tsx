@@ -350,19 +350,19 @@ export default function CapitalMarketsPage() {
               <div className="space-y-6">
                 <div className="grid sm:grid-cols-3 gap-4">
                   <Card>
-                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Total Profit</p>
+                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Unrealized Gain</p>
                     <p className="font-mono text-xl font-bold text-accent-green mt-1">
                       +{formatCurrency(data.analytics.totalProfit)}
                     </p>
                   </Card>
                   <Card>
-                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Total Loss</p>
+                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Unrealized Loss</p>
                     <p className="font-mono text-xl font-bold text-accent-red mt-1">
                       -{formatCurrency(data.analytics.totalLoss)}
                     </p>
                   </Card>
                   <Card>
-                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Portfolio ROI</p>
+                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide">Market ROI</p>
                     <p
                       className={cn(
                         "font-mono text-xl font-bold mt-1",

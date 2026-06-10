@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getInvestedBalance, getProfitBalance } from "@/lib/user-balances";
 
 const CURRENCY_FLAGS: Record<string, string> = {
   USD: "🇺🇸",
@@ -70,7 +71,7 @@ export async function getTransactions(userId: string, type?: string, limit = 20)
   return prisma.transaction.findMany({
     where: {
       userId,
-      ...(type ? { type: type as "DEPOSIT" | "WITHDRAWAL" | "TRANSFER" | "PAYMENT" } : {}),
+      ...(type ? { type: type as "DEPOSIT" | "WITHDRAWAL" | "TRANSFER" | "PAYMENT" | "INVESTMENT" | "PROFIT_CREDIT" | "PROFIT_DEBIT" } : {}),
     },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -81,18 +82,17 @@ export async function getTransactions(userId: string, type?: string, limit = 20)
 import { getPublicDepositSettings } from "@/lib/platform-settings";
 
 export async function getDashboardOverview(userId: string) {
-  const [accounts, investments, transactions, depositSettings] = await Promise.all([
-    getAccounts(userId),
-    getInvestments(userId),
-    getTransactions(userId, undefined, 10),
-    getPublicDepositSettings(),
-  ]);
+  const [accounts, investments, transactions, depositSettings, investedBalance, profitBalance] =
+    await Promise.all([
+      getAccounts(userId),
+      getInvestments(userId),
+      getTransactions(userId, undefined, 10),
+      getPublicDepositSettings(),
+      getInvestedBalance(userId),
+      getProfitBalance(userId),
+    ]);
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
-  const savingsBalance = accounts
-    .filter((a) => a.type === "savings")
-    .reduce((sum, a) => sum + a.balance, 0);
-  const investmentValue = investments.reduce((sum, i) => sum + i.value, 0);
 
   const wallets = accounts.map((a) => ({
     id: a.id,
@@ -127,15 +127,22 @@ export async function getDashboardOverview(userId: string) {
       hour: "numeric",
       minute: "2-digit",
     }),
-    price: t.type === "DEPOSIT" ? Number(t.amount) : -Math.abs(Number(t.amount)),
+    price:
+      t.type === "DEPOSIT" || t.type === "PROFIT_CREDIT"
+        ? Number(t.amount)
+        : -Math.abs(Number(t.amount)),
     status: t.status.charAt(0) + t.status.slice(1).toLowerCase(),
     type: t.type,
   }));
 
   return {
     totalBalance,
-    savingsBalance,
-    investmentValue,
+    investedBalance,
+    profitBalance,
+    /** @deprecated use investedBalance */
+    savingsBalance: investedBalance,
+    /** @deprecated use profitBalance */
+    investmentValue: profitBalance,
     wallets,
     cashFlowData,
     activities,

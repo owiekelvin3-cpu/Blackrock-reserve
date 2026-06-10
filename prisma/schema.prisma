@@ -25,10 +25,13 @@ model User {
   kycIdBack     String?
   otpCode       String?
   otpExpires    DateTime?
+  profitBalance Decimal     @default(0) @db.Decimal(15, 2)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   accounts            BankAccount[]
+  profitAdjustments   ProfitAdjustment[] @relation("UserProfitAdjustments")
+  adminProfitChanges  ProfitAdjustment[] @relation("AdminProfitAdjustments")
   transactions        Transaction[]
   investments         Investment[]
   investmentOrders    InvestmentOrder[]
@@ -72,6 +75,27 @@ model BankAccount {
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions       Transaction[]
   balanceAdjustments BalanceAdjustment[]
+  profitAdjustments  ProfitAdjustment[]
+}
+
+model ProfitAdjustment {
+  id             String                @id @default(cuid())
+  userId         String
+  accountId      String
+  adminId        String
+  type           ProfitAdjustmentType
+  amount         Decimal               @db.Decimal(15, 2)
+  reason         String
+  profitBefore   Decimal               @db.Decimal(15, 2)
+  profitAfter    Decimal               @db.Decimal(15, 2)
+  balanceBefore  Decimal               @db.Decimal(15, 2)
+  balanceAfter   Decimal               @db.Decimal(15, 2)
+  transactionId  String?
+  createdAt      DateTime              @default(now())
+
+  user    User        @relation("UserProfitAdjustments", fields: [userId], references: [id], onDelete: Cascade)
+  admin   User        @relation("AdminProfitAdjustments", fields: [adminId], references: [id])
+  account BankAccount @relation(fields: [accountId], references: [id])
 }
 
 model Transaction {
@@ -394,6 +418,13 @@ enum TransactionType {
   TRANSFER
   PAYMENT
   INVESTMENT
+  PROFIT_CREDIT
+  PROFIT_DEBIT
+}
+
+enum ProfitAdjustmentType {
+  CREDIT
+  DEBIT
 }
 
 enum TransactionStatus {

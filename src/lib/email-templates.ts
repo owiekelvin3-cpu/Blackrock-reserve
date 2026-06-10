@@ -215,6 +215,71 @@ export function platformInviteEmail(data: {
   };
 }
 
+export function profitAddedEmail(data: {
+  name: string;
+  amount: string;
+  profitBalance: string;
+  mainBalance: string;
+  reason: string;
+  siteUrl: string;
+}) {
+  const html = layout(
+    `
+      <p style="margin:0 0 8px;color:#ffffff;font-size:18px;font-weight:600;">Investment profit credited</p>
+      <p style="margin:0 0 16px;">Hi ${data.name},</p>
+      <p style="margin:0 0 16px;">An administrator has credited <strong style="color:#fff;">${data.amount}</strong> to your investment profit balance.</p>
+      <div style="padding:16px;background:rgba(255,95,5,0.08);border-radius:12px;border:1px solid rgba(255,95,5,0.25);margin-bottom:16px;">
+        <p style="margin:0 0 8px;color:#9a9aa8;font-size:13px;">Reason</p>
+        <p style="margin:0;color:#fff;">${data.reason}</p>
+      </div>
+      <p style="margin:0 0 8px;"><strong style="color:#fff;">Updated profit balance:</strong> ${data.profitBalance}</p>
+      <p style="margin:0 0 24px;"><strong style="color:#fff;">Updated main balance:</strong> ${data.mainBalance}</p>
+      <p style="margin:0;color:#9a9aa8;font-size:13px;">Credited on ${new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</p>
+      <div style="text-align:center;margin:28px 0 0;">
+        <a href="${data.siteUrl}/dashboard" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,${ACCENT},#ff0000);color:#ffffff;text-decoration:none;font-weight:600;border-radius:999px;font-size:15px;">View Dashboard</a>
+      </div>
+    `,
+    `Profit of ${data.amount} credited to your account`
+  );
+  return {
+    subject: `${BRAND} — ${data.amount} investment profit credited`,
+    html,
+    text: `Hi ${data.name}, ${data.amount} was credited to your profit balance. Profit: ${data.profitBalance}. Main: ${data.mainBalance}. Reason: ${data.reason}`,
+  };
+}
+
+export function profitRemovedEmail(data: {
+  name: string;
+  amount: string;
+  profitBalance: string;
+  mainBalance: string;
+  reason: string;
+  siteUrl: string;
+}) {
+  const html = layout(
+    `
+      <p style="margin:0 0 8px;color:#ffffff;font-size:18px;font-weight:600;">Investment profit adjusted</p>
+      <p style="margin:0 0 16px;">Hi ${data.name},</p>
+      <p style="margin:0 0 16px;">An administrator has removed <strong style="color:#fff;">${data.amount}</strong> from your investment profit balance.</p>
+      <div style="padding:16px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.08);margin-bottom:16px;">
+        <p style="margin:0 0 8px;color:#9a9aa8;font-size:13px;">Reason</p>
+        <p style="margin:0;color:#fff;">${data.reason}</p>
+      </div>
+      <p style="margin:0 0 8px;"><strong style="color:#fff;">Updated profit balance:</strong> ${data.profitBalance}</p>
+      <p style="margin:0 0 24px;"><strong style="color:#fff;">Updated main balance:</strong> ${data.mainBalance}</p>
+      <div style="text-align:center;margin:28px 0 0;">
+        <a href="${data.siteUrl}/dashboard" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,${ACCENT},#ff0000);color:#ffffff;text-decoration:none;font-weight:600;border-radius:999px;font-size:15px;">View Dashboard</a>
+      </div>
+    `,
+    `Profit adjustment of ${data.amount}`
+  );
+  return {
+    subject: `${BRAND} — Investment profit adjustment`,
+    html,
+    text: `Hi ${data.name}, ${data.amount} was removed from your profit balance. Profit: ${data.profitBalance}. Main: ${data.mainBalance}. Reason: ${data.reason}`,
+  };
+}
+
 export function userNotificationEmail(data: {
   name: string;
   title: string;

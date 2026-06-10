@@ -19,14 +19,18 @@ interface Holding {
 
 export default function InvestmentsPage() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [totalValue, setTotalValue] = useState(0);
+  const [investedBalance, setInvestedBalance] = useState(0);
+  const [profitBalance, setProfitBalance] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchJson<{ holdings: Holding[]; totalValue: number }>("/api/dashboard/investments")
+    fetchJson<{ holdings: Holding[]; investedBalance: number; profitBalance: number }>(
+      "/api/dashboard/investments"
+    )
       .then((json) => {
         setHoldings(json?.holdings ?? []);
-        setTotalValue(json?.totalValue ?? 0);
+        setInvestedBalance(json?.investedBalance ?? 0);
+        setProfitBalance(json?.profitBalance ?? 0);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -43,20 +47,22 @@ export default function InvestmentsPage() {
       <>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <Card>
-            <p className="text-sm text-text-secondary">Total Value</p>
-            <p className="font-mono text-xl sm:text-2xl font-bold text-text-primary mt-1">{formatCurrency(totalValue)}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-text-secondary">Holdings</p>
-            <p className="font-mono text-2xl font-bold text-text-primary mt-1">{holdings.length}</p>
-          </Card>
-          <Card>
-            <p className="text-sm text-text-secondary">Avg. Cost Basis</p>
-            <p className="font-mono text-2xl font-bold text-text-primary mt-1">
-              {holdings.length > 0
-                ? formatCurrency(holdings.reduce((s, h) => s + h.avgPrice, 0) / holdings.length)
-                : formatCurrency(0)}
+            <p className="text-sm text-text-secondary">Invested Balance</p>
+            <p className="font-mono text-xl sm:text-2xl font-bold text-text-primary mt-1">
+              {formatCurrency(investedBalance)}
             </p>
+            <p className="text-xs text-text-muted mt-1">Total capital deployed in investments</p>
+          </Card>
+          <Card>
+            <p className="text-sm text-text-secondary">Profit Balance</p>
+            <p className="font-mono text-xl sm:text-2xl font-bold text-accent-brand mt-1">
+              {formatCurrency(profitBalance)}
+            </p>
+            <p className="text-xs text-text-muted mt-1">Admin-credited profits only</p>
+          </Card>
+          <Card>
+            <p className="text-sm text-text-secondary">Active Holdings</p>
+            <p className="font-mono text-2xl font-bold text-text-primary mt-1">{holdings.length}</p>
           </Card>
         </div>
 
