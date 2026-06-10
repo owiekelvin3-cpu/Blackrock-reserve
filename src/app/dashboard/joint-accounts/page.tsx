@@ -13,7 +13,7 @@ import Badge from "@/components/ui/Badge";
 import DashboardGate from "@/components/dashboard/DashboardGate";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/providers/I18nProvider";
-import { translateApiErrorMessage } from "@/lib/i18n/api-i18n";
+import { translateApiErrorMessage } from "@/lib/i18n/api-error-messages";
 import { fetchDashboardJson } from "@/lib/fetch-json";
 import TransactionPinModal from "@/components/dashboard/TransactionPinModal";
 import { useTransactionPin } from "@/hooks/use-transaction-pin";

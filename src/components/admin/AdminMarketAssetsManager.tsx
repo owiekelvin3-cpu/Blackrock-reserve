@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  GripVertical, Pencil, Pin, Star, Power, PowerOff, Trash2, Upload, X,
-  TrendingUp, ImageIcon, Plus,
+  GripVertical, Pencil, Pin, Star, Power, PowerOff, Trash2, Upload, X, Plus,
 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
@@ -274,7 +273,7 @@ export default function AdminMarketAssetsManager() {
         refresh();
       }
     },
-    [orderedAssets, refresh]
+    [displayAssets, refresh]
   );
 
   const inputCls = "admin-input text-sm";

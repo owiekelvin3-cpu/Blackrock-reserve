@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Wallet, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/providers/I18nProvider";
-import { translateApiErrorMessage } from "@/lib/i18n/api-i18n";
+import { translateApiErrorMessage } from "@/lib/i18n/api-error-messages";
 import { calculateInvestmentFee } from "@/lib/market-assets";
 import Button from "@/components/ui/Button";
 import TransactionPinModal from "@/components/dashboard/TransactionPinModal";

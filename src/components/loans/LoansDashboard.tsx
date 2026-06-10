@@ -13,7 +13,7 @@ import TaxRefundForm from "@/components/loans/TaxRefundForm";
 import { fetchDashboardJson } from "@/lib/fetch-json";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/providers/I18nProvider";
-import { translateApiErrorMessage } from "@/lib/i18n/api-i18n";
+import { translateApiErrorMessage } from "@/lib/i18n/api-error-messages";
 import { estimateMonthlyPayment, getLoanProgressStep } from "@/lib/loan-products";
 import { toast } from "sonner";
 import { dispatchNotificationsRefresh } from "@/hooks/use-push-notifications";
