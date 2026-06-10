@@ -45,18 +45,19 @@ export default function DashboardTopBar() {
       )}
     >
       <div className="flex items-center justify-between gap-2 sm:gap-3 min-w-0 py-2 sm:py-0">
-        <div className={cn("min-w-0 flex-1", isOverview && "hidden lg:block")}>
-          <p className="text-[10px] sm:text-xs font-medium text-text-muted uppercase tracking-wider truncate">
+        {isOverview ? (
+          <p className="text-sm font-semibold text-text-primary truncate min-w-0 flex-1">
             {t("brand.name")}
           </p>
-          <h1 className="text-base sm:text-lg font-semibold text-text-primary truncate leading-tight">
-            {title}
-          </h1>
-        </div>
-        {isOverview && (
-          <p className="lg:hidden text-sm font-semibold text-text-primary truncate min-w-0 flex-1">
-            {t("brand.name")}
-          </p>
+        ) : (
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] sm:text-xs font-medium text-text-muted uppercase tracking-wider truncate">
+              {t("brand.name")}
+            </p>
+            <h1 className="text-base sm:text-lg font-semibold text-text-primary truncate leading-tight">
+              {title}
+            </h1>
+          </div>
         )}
 
         <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
