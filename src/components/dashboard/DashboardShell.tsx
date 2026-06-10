@@ -4,6 +4,8 @@ import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardTopBar from "@/components/dashboard/DashboardTopBar";
+import DashboardMobileNav from "@/components/dashboard/DashboardMobileNav";
+import { DashboardLayoutProvider } from "@/components/dashboard/DashboardLayoutContext";
 
 export default function DashboardShell({
   session,
@@ -14,15 +16,18 @@ export default function DashboardShell({
 }) {
   return (
     <SessionProvider session={session} refetchOnWindowFocus={false} refetchInterval={0}>
-      <div className="dash-layout min-h-screen">
-        <DashboardSidebar />
-        <div className="lg:ml-[260px] min-h-screen">
-          <main className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 max-w-[1500px]">
-            <DashboardTopBar />
-            {children}
-          </main>
+      <DashboardLayoutProvider>
+        <div className="dash-layout min-h-[100dvh] overflow-x-hidden">
+          <DashboardSidebar />
+          <div className="lg:ml-[260px] min-h-[100dvh] flex flex-col">
+            <main className="flex-1 p-4 sm:p-6 lg:p-8 pt-2 lg:pt-8 max-w-[1500px] w-full mx-auto dash-main-pad">
+              <DashboardTopBar />
+              {children}
+            </main>
+            <DashboardMobileNav />
+          </div>
         </div>
-      </div>
+      </DashboardLayoutProvider>
     </SessionProvider>
   );
 }

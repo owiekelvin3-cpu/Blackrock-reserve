@@ -24,11 +24,11 @@ export default function DashboardGreeting() {
       initial="hidden"
       animate="visible"
       variants={fadeUp}
-      className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 w-full"
+      className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4 w-full"
       aria-label="Personalized welcome"
     >
       <div className="min-w-0">
-        <h1 className="text-2xl sm:text-[1.65rem] font-bold text-text-primary tracking-tight" aria-live="polite">
+        <h1 className="text-xl sm:text-[1.65rem] font-bold text-text-primary tracking-tight leading-snug" aria-live="polite">
           {clock.greeting}
         </h1>
         <p className="mt-1 text-sm text-text-muted">{clock.dateLine}</p>

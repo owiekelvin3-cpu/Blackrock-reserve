@@ -71,7 +71,33 @@ export default function InvestmentsPage() {
             <h2 className="font-semibold text-text-primary">Holdings</h2>
             <Button size="sm" disabled>Trade</Button>
           </div>
-          <div className="overflow-x-auto">
+          <div className="md:hidden space-y-3">
+            {holdings.map((h) => (
+              <div key={h.id} className="dash-holding-card">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge variant="gold">{h.symbol}</Badge>
+                    <span className="text-sm text-text-secondary truncate">{h.name}</span>
+                  </div>
+                  <p className="font-mono text-sm font-semibold text-text-primary shrink-0">
+                    {formatCurrency(h.value)}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-white/5 text-xs">
+                  <div>
+                    <p className="text-text-muted">Shares</p>
+                    <p className="font-mono text-text-primary mt-0.5">{h.shares}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-text-muted">Avg Price</p>
+                    <p className="font-mono text-text-primary mt-0.5">{formatCurrency(h.avgPrice)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-text-secondary">

@@ -182,15 +182,17 @@ export default function CapitalMarketsPage() {
               Browse institutional-grade equities, invest directly from your wallet, and track portfolio performance in real time.
             </p>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)]">
-            <span
-              className={cn(
-                "h-2 w-2 rounded-full",
-                data?.marketStatus?.status === "OPEN" ? "bg-accent-green animate-pulse" : "bg-amber-400"
-              )}
-            />
-            <span className="text-sm font-medium text-[var(--text-primary)]">{marketLabel}</span>
-            <span className="text-xs text-[var(--text-muted)]">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 px-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] w-full lg:w-auto">
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full shrink-0",
+                  data?.marketStatus?.status === "OPEN" ? "bg-accent-green animate-pulse" : "bg-amber-400"
+                )}
+              />
+              <span className="text-sm font-medium text-[var(--text-primary)]">{marketLabel}</span>
+            </div>
+            <span className="text-xs text-[var(--text-muted)] sm:border-l sm:border-[var(--border-subtle)] sm:pl-2">
               {data?.marketStatus?.exchanges?.join(" · ")}
             </span>
           </div>
@@ -252,7 +254,7 @@ export default function CapitalMarketsPage() {
               </Card>
             </div>
 
-            <div className="flex flex-wrap gap-2 border-b border-[var(--border-subtle)] pb-1">
+            <div className="dash-scroll-tabs border-b border-[var(--border-subtle)] pb-1">
               {(
                 [
                   { id: "marketplace" as const, label: "Marketplace", icon: LayoutGrid },
@@ -265,7 +267,7 @@ export default function CapitalMarketsPage() {
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors",
+                    "inline-flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium rounded-t-lg transition-colors",
                     activeTab === tab.id
                       ? "text-[var(--text-primary)] border-b-2 border-accent-brand -mb-[3px]"
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"

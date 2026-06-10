@@ -219,7 +219,7 @@ export default function DashboardPage() {
               {data.wallets.length === 0 ? (
                 <p className="text-sm text-text-muted py-6 text-center">No accounts linked yet.</p>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                   {data.wallets.map((w) => (
                     <div key={w.id} className="dash-wallet-tile p-4">
                       <div className="flex items-center justify-between mb-3">
