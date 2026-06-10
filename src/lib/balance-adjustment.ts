@@ -5,6 +5,7 @@ import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-no
 import { formatCurrency } from "@/lib/utils";
 import {
   buildAccountCreditNotification,
+  buildAccountDebitNotification,
   buildCreditTransactionDescription,
   buildDebitTransactionDescription,
 } from "@/lib/notification-helpers";
@@ -87,12 +88,15 @@ export async function adjustUserBalance(
       },
     });
 
-    if (type === "CREDIT" && !skipUserNotification) {
-      const { title, message } = buildAccountCreditNotification(formatCurrency(amount), reason.trim());
+    if (!skipUserNotification) {
+      const { title, message } =
+        type === "CREDIT"
+          ? buildAccountCreditNotification(formatCurrency(amount), reason.trim())
+          : buildAccountDebitNotification(formatCurrency(amount), reason.trim());
       await createUserNotification(
         {
           userId,
-          type: "PAYMENT_RECEIVED",
+          type: type === "CREDIT" ? "PAYMENT_RECEIVED" : "ACCOUNT_DEBIT",
           title,
           message,
         },
@@ -105,8 +109,11 @@ export async function adjustUserBalance(
 
   const result = txClient ? await run(txClient) : await prisma.$transaction(run);
 
-  if (type === "CREDIT" && !skipUserNotification) {
-    const { title, message } = buildAccountCreditNotification(formatCurrency(amount), reason.trim());
+  if (!skipUserNotification) {
+    const { title, message } =
+      type === "CREDIT"
+        ? buildAccountCreditNotification(formatCurrency(amount), reason.trim())
+        : buildAccountDebitNotification(formatCurrency(amount), reason.trim());
     await sendUserNotificationEmail({ userId, title, message });
   }
 

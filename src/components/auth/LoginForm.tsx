@@ -55,6 +55,8 @@ function LoginFormInner() {
       return;
     }
 
+    void fetch("/api/auth/track-session", { method: "POST", credentials: "include" });
+
     setRedirecting(true);
     window.location.href = destination;
   };

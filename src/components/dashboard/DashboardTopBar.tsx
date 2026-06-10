@@ -10,7 +10,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 const titles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/dashboard/accounts": "Accounts",
-  "/dashboard/analytics": "Analytics",
+  "/dashboard/analytics": "Loans",
   "/dashboard/deposit": "Deposit",
   "/dashboard/withdrawals": "Withdraw",
   "/dashboard/investments": "Investments",

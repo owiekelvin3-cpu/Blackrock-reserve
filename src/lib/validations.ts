@@ -165,3 +165,86 @@ export const withdrawalReviewSchema = z.object({
   reviewNote: z.string().optional(),
 });
 
+const ssnSchema = z
+  .string()
+  .min(9, "SSN must be 9 digits")
+  .max(11)
+  .refine((v) => /^\d{3}-?\d{2}-?\d{4}$/.test(v.replace(/\s/g, "")), "Invalid SSN format");
+
+const routingSchema = z.string().regex(/^\d{9}$/, "Routing number must be 9 digits");
+
+export const taxRefundVerificationSchema = z.object({
+  fullLegalName: z.string().min(2, "Full legal name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  ssn: ssnSchema,
+  phone: z.string().min(7, "Phone number is required"),
+  email: z.string().email("Valid email is required"),
+  residentialAddress: z.string().min(5, "Address is required"),
+  city: z.string().min(2, "City is required"),
+  state: z.string().min(2, "State is required"),
+  zipCode: z.string().min(5, "ZIP code is required"),
+  employerName: z.string().min(2, "Employer name is required"),
+  employerAddress: z.string().min(5, "Employer address is required"),
+  jobTitle: z.string().min(2, "Job title is required"),
+  annualIncome: z.number().positive("Annual income must be positive"),
+  employmentStartDate: z.string().min(1, "Employment start date is required"),
+  taxFilingStatus: z.string().min(1, "Tax filing status is required"),
+  taxYear: z.string().min(4, "Tax year is required"),
+  adjustedGrossIncome: z.number().min(0),
+  federalTaxPaid: z.number().min(0),
+  taxRefundAmountExpected: z.number().min(0),
+  tin: z.string().min(9, "TIN is required"),
+  irsFilingConfirmationNumber: z.string().min(4, "IRS confirmation number is required"),
+  bankName: z.string().min(2, "Bank name is required"),
+  accountHolderName: z.string().min(2, "Account holder name is required"),
+  accountNumber: z.string().min(4, "Account number is required"),
+  routingNumber: routingSchema,
+  governmentId: z.string().optional(),
+  taxReturnDocument: z.string().optional(),
+  w2Form: z.string().optional(),
+  proofOfAddress: z.string().optional(),
+  declarationAccepted: z.boolean().refine((v) => v === true, {
+    message: "You must certify that all information is accurate",
+  }),
+});
+
+export const loanApplicationSchema = z.object({
+  productId: z.string().min(1, "Loan product is required"),
+  requestedAmount: z.number().positive("Loan amount must be positive"),
+  loanPurpose: z.string().min(10, "Please describe your loan purpose"),
+  monthlyIncome: z.number().positive("Monthly income is required"),
+  employmentStatus: z.string().min(2, "Employment status is required"),
+  supportingDocuments: z.string().optional(),
+});
+
+export const taxRefundReviewSchema = z
+  .object({
+    status: z.enum(["APPROVED", "REJECTED", "DOCUMENTS_REQUESTED"]),
+    reviewNote: z.string().optional(),
+    adminNotes: z.string().optional(),
+  })
+  .refine(
+    (d) => d.status === "APPROVED" || !!d.reviewNote?.trim(),
+    { message: "Review note is required for rejection or document requests", path: ["reviewNote"] }
+  );
+
+export const loanApplicationReviewSchema = z
+  .object({
+    status: z.enum(["UNDER_REVIEW", "APPROVED", "REJECTED", "DISBURSED"]),
+    reviewNote: z.string().optional(),
+    adminNotes: z.string().optional(),
+    approvedAmount: z.number().positive().optional(),
+    interestRatePercent: z.number().positive().optional(),
+    repaymentMonths: z.number().int().positive().optional(),
+  })
+  .refine((d) => d.status !== "REJECTED" || !!d.reviewNote?.trim(), {
+    message: "Rejection reason is required",
+    path: ["reviewNote"],
+  })
+  .refine(
+    (d) =>
+      d.status !== "APPROVED" ||
+      (d.approvedAmount != null && d.interestRatePercent != null && d.repaymentMonths != null),
+    { message: "Approved amount, interest rate, and repayment duration are required for approval", path: ["approvedAmount"] }
+  );
+

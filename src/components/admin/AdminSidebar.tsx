@@ -5,28 +5,58 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Mail, Building2, LogOut, ChevronRight, Bitcoin, Wallet,
-  ScrollText, Settings, ArrowUpFromLine, Menu, X, LineChart,   TrendingUp, DollarSign,
+  Settings, ArrowUpFromLine, Menu, X, LineChart, TrendingUp, DollarSign, Landmark, FileCheck,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAdminNotifications } from "@/components/admin/AdminNotificationsProvider";
 
-const nav = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true, countKey: null },
-  { href: "/admin/users", label: "Users", icon: Users, countKey: null },
-  { href: "/admin/deposits", label: "Deposit Management", icon: Bitcoin, countKey: "pendingDeposits" as const },
-  { href: "/admin/withdrawals", label: "Withdrawals", icon: ArrowUpFromLine, countKey: "pendingWithdrawals" as const },
-  { href: "/admin/accounts", label: "Accounts", icon: Building2, countKey: null },
-  { href: "/admin/transactions", label: "Transactions", icon: ArrowLeftRight, countKey: "pendingTransactions" as const },
-  { href: "/admin/market-assets", label: "Market Assets", icon: LineChart, countKey: null },
-  { href: "/admin/investments", label: "Investments", icon: TrendingUp, countKey: null },
-  { href: "/admin/profit-management", label: "Profit Management", icon: DollarSign, countKey: null },
-  { href: "/admin/balance-adjustments", label: "Adjustments", icon: Wallet, countKey: null },
-  { href: "/admin/kyc", label: "KYC Review", icon: ShieldCheck, countKey: "pendingKyc" as const },
-  { href: "/admin/messages", label: "Messages", icon: Mail, countKey: "contactMessages" as const },
-  { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText, countKey: null },
-  { href: "/admin/settings", label: "Settings", icon: Settings, countKey: null },
+type NavItem = {
+  href: string;
+  label: string;
+  shortLabel?: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+  countKey?: "pendingDeposits" | "pendingWithdrawals" | "pendingTransactions" | "pendingKyc" | "contactMessages" | "pendingTaxVerifications" | "pendingLoans" | null;
+};
+
+const navGroups: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Overview",
+    items: [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, countKey: null },
+      { href: "/admin/users", label: "Users", icon: Users, countKey: null },
+    ],
+  },
+  {
+    title: "Money",
+    items: [
+      { href: "/admin/deposits", label: "Deposits", shortLabel: "Deposits", icon: Bitcoin, countKey: "pendingDeposits" },
+      { href: "/admin/withdrawals", label: "Withdrawals", icon: ArrowUpFromLine, countKey: "pendingWithdrawals" },
+      { href: "/admin/accounts", label: "Accounts", icon: Building2, countKey: null },
+      { href: "/admin/transactions", label: "Transactions", icon: ArrowLeftRight, countKey: "pendingTransactions" },
+      { href: "/admin/balance-adjustments", label: "Adjustments", icon: Wallet, countKey: null },
+      { href: "/admin/profit-management", label: "Profit", shortLabel: "Profit", icon: DollarSign, countKey: null },
+    ],
+  },
+  {
+    title: "Markets",
+    items: [
+      { href: "/admin/market-assets", label: "Market Assets", shortLabel: "Assets", icon: LineChart, countKey: null },
+      { href: "/admin/investments", label: "Investments", icon: TrendingUp, countKey: null },
+    ],
+  },
+  {
+    title: "Review",
+    items: [
+      { href: "/admin/kyc", label: "KYC Review", shortLabel: "KYC", icon: ShieldCheck, countKey: "pendingKyc" },
+      { href: "/admin/tax-verifications", label: "Tax Verification", shortLabel: "Tax", icon: FileCheck, countKey: "pendingTaxVerifications" },
+      { href: "/admin/loans", label: "Loan Management", shortLabel: "Loans", icon: Landmark, countKey: "pendingLoans" },
+      { href: "/admin/messages", label: "Messages", icon: Mail, countKey: "contactMessages" },
+      { href: "/admin/settings", label: "Settings", icon: Settings, countKey: null },
+    ],
+  },
 ];
 
 export default function AdminSidebar() {
@@ -38,47 +68,56 @@ export default function AdminSidebar() {
 
   const sidebarContent = (
     <>
-      <div className="p-5 border-b border-white/10">
+      <div className="p-4 sm:p-5 border-b border-white/10 shrink-0">
         <Link href="/admin" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-          <div className="h-9 w-9 rounded-xl brand-gradient-bg flex items-center justify-center text-white font-bold text-sm shadow-brand">
+          <div className="h-9 w-9 rounded-xl brand-gradient-bg flex items-center justify-center text-white font-bold text-sm shadow-brand shrink-0">
             BR
           </div>
-          <div>
-            <p className="text-sm font-semibold text-white leading-tight">Blackrock Reserve</p>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-white leading-tight truncate">Blackrock Reserve</p>
             <span className="admin-pill mt-0.5">Admin · Live</span>
           </div>
         </Link>
       </div>
 
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {nav.map((item) => {
-          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-          const badge = item.countKey && counts ? counts[item.countKey] : 0;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors border-l-2 border-transparent",
-                active ? "admin-nav-active" : "text-[var(--admin-muted)] hover:text-white hover:bg-white/5"
-              )}
-            >
-              <item.icon size={18} strokeWidth={1.75} />
-              <span className="flex-1">{item.label}</span>
-              {badge > 0 && (
-                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-accent-brand text-white text-[10px] font-bold flex items-center justify-center">
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 p-2 sm:p-3 overflow-y-auto admin-sidebar-nav">
+        {navGroups.map((group) => (
+          <div key={group.title} className="mb-3 last:mb-0">
+            <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--admin-muted)]">
+              {group.title}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+                const badge = item.countKey && counts ? counts[item.countKey] : 0;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors border-l-2 border-transparent",
+                      active ? "admin-nav-active" : "text-[var(--admin-muted)] hover:text-white hover:bg-white/5"
+                    )}
+                  >
+                    <item.icon size={17} strokeWidth={1.75} className="shrink-0" />
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {badge > 0 && (
+                      <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-accent-brand text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                        {badge > 99 ? "99+" : badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/10 shrink-0">
         <div className="flex items-center gap-3 mb-3 px-1">
-          <div className="h-8 w-8 rounded-full brand-gradient-bg flex items-center justify-center text-xs font-bold text-white shadow-brand">
+          <div className="h-8 w-8 rounded-full brand-gradient-bg flex items-center justify-center text-xs font-bold text-white shadow-brand shrink-0">
             {session?.user?.name?.charAt(0) ?? "A"}
           </div>
           <div className="min-w-0 flex-1">
@@ -103,7 +142,7 @@ export default function AdminSidebar() {
     <>
       <button
         type="button"
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-[var(--admin-card)] border border-white/10 text-white"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 rounded-xl bg-[var(--admin-card)] border border-white/10 text-white shadow-lg"
         onClick={() => setOpen(!open)}
         aria-label="Toggle admin menu"
       >
@@ -111,13 +150,13 @@ export default function AdminSidebar() {
       </button>
 
       {open && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setOpen(false)} />
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
       )}
 
       <aside
         className={cn(
-          "admin-sidebar fixed inset-y-0 left-0 z-40 w-[240px] flex flex-col transition-transform duration-300",
-          "lg:translate-x-0",
+          "admin-sidebar fixed inset-y-0 left-0 z-40 w-[min(280px,88vw)] flex flex-col transition-transform duration-300",
+          "lg:translate-x-0 lg:w-[240px]",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >

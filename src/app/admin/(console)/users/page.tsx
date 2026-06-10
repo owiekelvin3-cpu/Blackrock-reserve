@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import { AdminPageHeader, AdminKycBadge, AdminStatusBadge } from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
@@ -19,7 +19,25 @@ interface UserRow {
   emailVerified: boolean;
   totalBalance: number;
   accountsCount: number;
+  location: string | null;
+  lastLoginIp: string | null;
+  lastSeenAt: string | null;
   createdAt: string;
+}
+
+function LocationCell({ location, ip }: { location: string | null; ip: string | null }) {
+  if (!location && !ip) return <span className="text-[var(--admin-muted)]">—</span>;
+  return (
+    <div className="min-w-0">
+      {location && (
+        <p className="text-xs text-white flex items-center gap-1">
+          <MapPin size={12} className="text-accent-brand shrink-0" />
+          <span className="truncate">{location}</span>
+        </p>
+      )}
+      {ip && <p className="text-[10px] text-[var(--admin-muted)] font-mono truncate">{ip}</p>}
+    </div>
+  );
 }
 
 export default function AdminUsersPage() {
@@ -49,7 +67,7 @@ export default function AdminUsersPage() {
     <div>
       <AdminPageHeader
         title="User Management"
-        description="All registered users — view credentials, balances, and manage funds"
+        description="Registered customers — credentials, location, balances, and fund controls"
         action={
           <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
             Refresh
@@ -58,7 +76,7 @@ export default function AdminUsersPage() {
       />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-md">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]" />
           <input
             type="search"
@@ -68,12 +86,12 @@ export default function AdminUsersPage() {
             className="admin-input pl-9"
           />
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="admin-input w-auto min-w-[140px]">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="admin-input w-full sm:w-auto min-w-[140px]">
           <option value="">All statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="SUSPENDED">Suspended</option>
         </select>
-        <select value={kycFilter} onChange={(e) => setKycFilter(e.target.value)} className="admin-input w-auto min-w-[140px]">
+        <select value={kycFilter} onChange={(e) => setKycFilter(e.target.value)} className="admin-input w-full sm:w-auto min-w-[140px]">
           <option value="">All KYC</option>
           <option value="PENDING">Pending</option>
           <option value="SUBMITTED">Submitted</option>
@@ -91,11 +109,51 @@ export default function AdminUsersPage() {
           isEmpty={!loading && !error && users.length === 0}
           emptyMessage="No users match your filters"
         >
-          <div className="overflow-x-auto">
+          {/* Mobile card list */}
+          <div className="lg:hidden divide-y divide-[var(--admin-border)]/50">
+            {users.map((u) => (
+              <div key={u.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-white font-medium text-sm truncate">{u.name}</p>
+                    <p className="text-[10px] text-[var(--admin-muted)] truncate">{u.email}</p>
+                  </div>
+                  <Link href={`/admin/users/${u.id}`} className="admin-btn-primary text-xs py-1.5 px-3 shrink-0">
+                    Manage
+                  </Link>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <AdminStatusBadge status={u.status} />
+                  <AdminKycBadge status={u.kycStatus} />
+                  <span className={`admin-badge text-[10px] ${u.emailVerified ? "admin-badge-verified" : "admin-badge-submitted"}`}>
+                    {u.emailVerified ? "Verified" : "Unverified"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-[var(--admin-muted)]">Balance</p>
+                    <p className="admin-amount">{formatCurrency(u.totalBalance)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[var(--admin-muted)]">Joined</p>
+                    <p className="text-white">{new Date(u.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-[var(--admin-muted)] mb-0.5">Location</p>
+                    <LocationCell location={u.location} ip={u.lastLoginIp} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="admin-table w-full">
               <thead>
                 <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
                   <th className="text-left py-3 px-5">User</th>
+                  <th className="text-left py-3 px-5">Location</th>
                   <th className="text-left py-3 px-5">Phone</th>
                   <th className="text-left py-3 px-5">Status</th>
                   <th className="text-left py-3 px-5">KYC</th>
@@ -112,6 +170,9 @@ export default function AdminUsersPage() {
                       <p className="text-white font-medium text-sm">{u.name}</p>
                       <p className="text-[10px] text-[var(--admin-muted)]">{u.email}</p>
                       <p className="text-[10px] text-[var(--admin-muted)]">{u.accountType}</p>
+                    </td>
+                    <td className="py-3 px-5 max-w-[180px]">
+                      <LocationCell location={u.location} ip={u.lastLoginIp} />
                     </td>
                     <td className="py-3 px-5 text-xs text-[var(--admin-muted)]">{u.phone ?? "—"}</td>
                     <td className="py-3 px-5"><AdminStatusBadge status={u.status} /></td>

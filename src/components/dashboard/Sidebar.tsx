@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard, Wallet, TrendingUp,
-  BarChart3, Settings, LogOut, ChevronLeft, ChevronRight,
+  Landmark, Settings, LogOut, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import Logo from "@/components/layout/Logo";
 import { useDashboardStore } from "@/store/dashboard-store";
@@ -15,7 +15,7 @@ const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet },
   { href: "/dashboard/investments", label: "Investments", icon: TrendingUp },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/dashboard/analytics", label: "Loans", icon: Landmark },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

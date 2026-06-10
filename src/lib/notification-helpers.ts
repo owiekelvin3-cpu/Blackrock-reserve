@@ -39,6 +39,17 @@ export function buildDebitTransactionDescription(reference: string) {
   return note ? `Account debit — ${note}` : "Account debit";
 }
 
+/** Customer-facing copy when funds are debited from their account */
+export function buildAccountDebitNotification(amountLabel: string, reference?: string) {
+  const note = reference?.trim();
+  return {
+    title: "Funds debited from your account",
+    message: note
+      ? `A debit of ${amountLabel} has been posted to your account. Reference: ${note}.`
+      : `A debit of ${amountLabel} has been posted to your account.`,
+  };
+}
+
 export function getNotificationSoundVariant(type: string): "default" | "success" | "alert" {
   if (ALERT_NOTIFICATION_TYPES.has(type) || type.includes("REJECTED")) return "alert";
   if (PAYMENT_RECEIVED_TYPES.has(type) || type.includes("APPROVED") || type.includes("RECEIVED")) {

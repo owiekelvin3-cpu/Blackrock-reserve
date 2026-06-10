@@ -26,6 +26,12 @@ model User {
   otpCode       String?
   otpExpires    DateTime?
   profitBalance Decimal     @default(0) @db.Decimal(15, 2)
+  signupIp      String?
+  lastLoginIp   String?
+  country       String?
+  region        String?
+  city          String?
+  lastSeenAt    DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -52,6 +58,11 @@ model User {
   initiatedApprovals  JointAccountApproval[] @relation("InitiatedApprovals")
   approvalRequests    JointAccountApproval[] @relation("ApprovalRequests")
   jointActivityLogs   JointAccountActivityLog[]
+  taxRefundVerification    TaxRefundVerification?
+  loanApplications         LoanApplication[]
+  userLoans                UserLoan[]
+  reviewedTaxVerifications TaxRefundVerification[] @relation("TaxRefundReviewer")
+  reviewedLoanApplications LoanApplication[]       @relation("LoanReviewer")
 }
 
 model Session {
@@ -217,10 +228,141 @@ model UserNotification {
   depositId      String?
   invitationId   String?
   jointAccountId String?
-  approvalId     String?
-  createdAt      DateTime @default(now())
+  approvalId        String?
+  taxRefundId       String?
+  loanApplicationId String?
+  createdAt         DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TaxRefundVerification {
+  id                          String                        @id @default(cuid())
+  userId                      String                        @unique
+  applicationNumber           String                        @unique
+  fullLegalName               String
+  dateOfBirth                 DateTime
+  ssnEncrypted                String                        @db.Text
+  ssnHash                     String
+  phone                       String
+  email                       String
+  residentialAddress          String
+  city                        String
+  state                       String
+  zipCode                     String
+  employerName                String
+  employerAddress             String
+  jobTitle                    String
+  annualIncome                Decimal                       @db.Decimal(15, 2)
+  employmentStartDate         DateTime
+  taxFilingStatus             String
+  taxYear                     String
+  adjustedGrossIncome         Decimal                       @db.Decimal(15, 2)
+  federalTaxPaid              Decimal                       @db.Decimal(15, 2)
+  taxRefundAmountExpected     Decimal                       @db.Decimal(15, 2)
+  tinEncrypted                String                        @db.Text
+  irsFilingConfirmationNumber String
+  bankName                    String
+  accountHolderName           String
+  accountNumberEncrypted      String                        @db.Text
+  routingNumberEncrypted      String                        @db.Text
+  governmentId                String?                       @db.Text
+  taxReturnDocument           String?                       @db.Text
+  w2Form                      String?                       @db.Text
+  proofOfAddress              String?                       @db.Text
+  declarationAccepted         Boolean                       @default(false)
+  status                      TaxRefundVerificationStatus   @default(PENDING)
+  reviewedBy                  String?
+  reviewNote                  String?
+  adminNotes                  String?                       @db.Text
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime                      @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewer         User?             @relation("TaxRefundReviewer", fields: [reviewedBy], references: [id])
+  loanApplications LoanApplication[]
+}
+
+model LoanProduct {
+  id                    String          @id @default(cuid())
+  slug                  String          @unique
+  name                  String
+  type                  LoanProductType
+  description           String          @db.Text
+  minAmount             Decimal         @db.Decimal(15, 2)
+  maxAmount             Decimal         @db.Decimal(15, 2)
+  interestRatePercent   Decimal         @db.Decimal(5, 2)
+  repaymentMonthsMin    Int
+  repaymentMonthsMax    Int
+  eligibilityCriteria   String          @db.Text
+  fastApproval          Boolean         @default(false)
+  enabled               Boolean         @default(true)
+  sortOrder             Int             @default(0)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  applications LoanApplication[]
+}
+
+model LoanApplication {
+  id                    String                @id @default(cuid())
+  applicationNumber     String                @unique
+  userId                String
+  productId             String
+  taxVerificationId     String
+  requestedAmount       Decimal               @db.Decimal(15, 2)
+  loanPurpose           String
+  monthlyIncome         Decimal               @db.Decimal(15, 2)
+  employmentStatus      String
+  supportingDocuments   String?               @db.Text
+  status                LoanApplicationStatus @default(SUBMITTED)
+  approvedAmount        Decimal?              @db.Decimal(15, 2)
+  interestRatePercent   Decimal?              @db.Decimal(5, 2)
+  repaymentMonths       Int?
+  reviewNote            String?
+  adminNotes            String?               @db.Text
+  reviewedBy            String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product         LoanProduct           @relation(fields: [productId], references: [id])
+  taxVerification TaxRefundVerification @relation(fields: [taxVerificationId], references: [id])
+  reviewer        User?                 @relation("LoanReviewer", fields: [reviewedBy], references: [id])
+  userLoan        UserLoan?
+}
+
+model UserLoan {
+  id                    String         @id @default(cuid())
+  loanNumber            String         @unique
+  userId                String
+  applicationId         String         @unique
+  productName           String
+  approvedAmount        Decimal        @db.Decimal(15, 2)
+  outstandingBalance    Decimal        @db.Decimal(15, 2)
+  monthlyPayment        Decimal        @db.Decimal(15, 2)
+  interestRatePercent   Decimal        @db.Decimal(5, 2)
+  repaymentMonths       Int
+  nextDueDate           DateTime?
+  status                UserLoanStatus @default(ACTIVE)
+  disbursedAt           DateTime?
+  approvedAt            DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application  LoanApplication @relation(fields: [applicationId], references: [id])
+  repayments   LoanRepayment[]
+}
+
+model LoanRepayment {
+  id        String   @id @default(cuid())
+  loanId    String
+  amount    Decimal  @db.Decimal(15, 2)
+  paidAt    DateTime @default(now())
+  note      String?
+
+  loan UserLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
 }
 
 model JointAccount {
@@ -482,4 +624,33 @@ enum JointApprovalStatus {
   APPROVED
   REJECTED
   EXPIRED
+}
+
+enum TaxRefundVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DOCUMENTS_REQUESTED
+}
+
+enum LoanApplicationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  DISBURSED
+}
+
+enum UserLoanStatus {
+  ACTIVE
+  PAID_OFF
+  DEFAULTED
+  CLOSED
+}
+
+enum LoanProductType {
+  PERSONAL
+  BUSINESS
+  INVESTMENT
+  EMERGENCY
 }

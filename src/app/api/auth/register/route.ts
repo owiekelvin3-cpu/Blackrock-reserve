@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { registerApiSchema } from "@/lib/validations";
 import { generateOtp, sendEmail, isEmailConfigured } from "@/lib/email";
 import { verificationEmail } from "@/lib/email-templates";
+import { getClientIp } from "@/lib/admin-audit";
+import { captureUserLocationAsync } from "@/lib/user-location";
 
 async function deliverVerificationEmail(name: string, email: string, otp: string) {
   const mail = verificationEmail(name, otp);
@@ -105,6 +107,8 @@ export async function POST(req: Request) {
       });
       userId = created.id;
     }
+
+    captureUserLocationAsync(userId, getClientIp(req), { isSignup: true });
 
     let emailSent = false;
     let devOtp: string | undefined;

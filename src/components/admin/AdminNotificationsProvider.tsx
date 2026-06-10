@@ -5,6 +5,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 export type AdminNotificationData = {
   totalAlerts: number;
   pendingDeposits: number;
+  pendingTaxVerifications: number;
+  pendingLoans: number;
   pendingWithdrawals: number;
   pendingKyc: number;
   contactMessages: number;
@@ -79,6 +81,8 @@ export function useAdminNotifications() {
 
 export type AdminSidebarCounts = {
   pendingDeposits: number;
+  pendingTaxVerifications: number;
+  pendingLoans: number;
   pendingWithdrawals: number;
   pendingKyc: number;
   contactMessages: number;

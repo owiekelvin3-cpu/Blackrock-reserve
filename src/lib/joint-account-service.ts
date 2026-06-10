@@ -890,6 +890,20 @@ async function executeJointInvestment(params: {
   const coOwnerId = await getCoOwner(params.jointAccountId, params.userId);
   const title = "Joint account investment";
   const message = `A $${params.amountUsd.toFixed(2)} investment in ${params.symbol} was made from your shared joint account.`;
+
+  await createUserNotification({
+    userId: params.userId,
+    type: "JOINT_INVESTMENT",
+    title: "Your joint investment is confirmed",
+    message: `Your $${params.amountUsd.toFixed(2)} investment in ${params.symbol} from the shared joint account has been executed.`,
+    jointAccountId: params.jointAccountId,
+  });
+  await sendUserNotificationEmail({
+    userId: params.userId,
+    title: "Your joint investment is confirmed",
+    message: `Your $${params.amountUsd.toFixed(2)} investment in ${params.symbol} from the shared joint account has been executed.`,
+  });
+
   await createUserNotification({ userId: coOwnerId, type: "JOINT_INVESTMENT", title, message, jointAccountId: params.jointAccountId });
   await sendUserNotificationEmail({ userId: coOwnerId, title, message });
 }

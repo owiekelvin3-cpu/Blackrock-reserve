@@ -16,6 +16,8 @@ export async function createUserNotification(
     invitationId?: string;
     jointAccountId?: string;
     approvalId?: string;
+    taxRefundId?: string;
+    loanApplicationId?: string;
   },
   txClient?: Tx
 ) {
@@ -30,6 +32,8 @@ export async function createUserNotification(
       invitationId: params.invitationId,
       jointAccountId: params.jointAccountId,
       approvalId: params.approvalId,
+      taxRefundId: params.taxRefundId,
+      loanApplicationId: params.loanApplicationId,
     },
   });
 }

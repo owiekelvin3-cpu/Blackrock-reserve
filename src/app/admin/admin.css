@@ -215,3 +215,18 @@
 [data-theme="light"] .admin-root .brand-gradient-bg .text-white {
   color: #ffffff;
 }
+
+.admin-sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 95, 5, 0.3) transparent;
+}
+
+@media (max-width: 1023px) {
+  .admin-table {
+    min-width: 640px;
+  }
+}
+
+.admin-scroll-card {
+  -webkit-overflow-scrolling: touch;
+}

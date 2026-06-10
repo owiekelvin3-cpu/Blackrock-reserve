@@ -1,10 +1,10 @@
 import { unstable_cache } from "next/cache";
+import { formatUserLocation } from "@/lib/geo-location";
 import { getInvestedBalance } from "@/lib/user-balances";
 import { getWithdrawalMethodLabel } from "@/lib/withdrawal-methods";
 import { prisma } from "@/lib/prisma";
 import { verifiedCustomerWhere, registeredCustomerWhere } from "@/lib/customer-auth";
 import { getAdminStatsCounts, getAdminAlertCounts } from "@/lib/admin-stats";
-import { getAdminAuditLogs } from "@/lib/admin-audit";
 
 export const ADMIN_OVERVIEW_TAG = "admin-overview";
 export const ADMIN_NOTIFICATIONS_TAG = "admin-notifications";
@@ -20,7 +20,15 @@ async function loadAdminNotificationCounts() {
     }),
   ]);
 
-  const { pendingDeposits, pendingWithdrawals, pendingKyc, contactMessages, pendingTransactions } = counts;
+  const {
+    pendingDeposits,
+    pendingWithdrawals,
+    pendingKyc,
+    contactMessages,
+    pendingTransactions,
+    pendingTaxVerifications,
+    pendingLoans,
+  } = counts;
 
   return {
     pendingDeposits,
@@ -28,7 +36,15 @@ async function loadAdminNotificationCounts() {
     pendingKyc,
     contactMessages,
     pendingTransactions,
-    totalAlerts: pendingDeposits + pendingWithdrawals + pendingKyc + pendingTransactions,
+    pendingTaxVerifications,
+    pendingLoans,
+    totalAlerts:
+      pendingDeposits +
+      pendingWithdrawals +
+      pendingKyc +
+      pendingTransactions +
+      pendingTaxVerifications +
+      pendingLoans,
     recentDepositAlerts: recentDepositAlerts.map((d) => ({
       id: d.id,
       depositId: d.id,
@@ -100,8 +116,6 @@ async function loadAdminOverview() {
     include: { user: { select: { id: true, name: true, email: true } } },
   });
 
-  const recentAuditLogs = await getAdminAuditLogs(5);
-
   return {
     stats: {
       totalUsers: stats.totalUsers,
@@ -116,7 +130,6 @@ async function loadAdminOverview() {
       totalWithdrawalRequests: stats.totalWithdrawalRequests,
       withdrawalCount: stats.withdrawalCount,
       depositTxCount: stats.depositTxCount,
-      auditLogCount: stats.auditLogCount,
     },
     recentUsers: recentUsers.map((u) => ({
       ...u,
@@ -147,7 +160,6 @@ async function loadAdminOverview() {
       txHash: d.txHash,
       createdAt: d.createdAt.toISOString(),
     })),
-    recentAuditLogs: recentAuditLogs,
     usersByKyc: usersByKyc.map((g) => ({ status: g.kycStatus, count: g._count })),
     txByType: txByType.map((g) => ({
       type: g.type,
@@ -203,6 +215,9 @@ export async function getAdminUsers(filters?: {
     transactionsCount: u._count.transactions,
     depositsCount: u._count.depositRequests,
     totalBalance: u.accounts.reduce((s, a) => s + Number(a.balance), 0),
+    location: formatUserLocation({ city: u.city, region: u.region, country: u.country }),
+    lastLoginIp: u.lastLoginIp,
+    lastSeenAt: u.lastSeenAt?.toISOString() ?? null,
     createdAt: u.createdAt.toISOString(),
   }));
 }
@@ -249,6 +264,13 @@ export async function getAdminUser(id: string) {
     kycIdBack: user.kycIdBack,
     updatedAt: user.updatedAt.toISOString(),
     createdAt: user.createdAt.toISOString(),
+    location: formatUserLocation({ city: user.city, region: user.region, country: user.country }),
+    signupIp: user.signupIp,
+    lastLoginIp: user.lastLoginIp,
+    country: user.country,
+    region: user.region,
+    city: user.city,
+    lastSeenAt: user.lastSeenAt?.toISOString() ?? null,
     accounts: user.accounts.map((a) => ({
       id: a.id,
       name: a.name,

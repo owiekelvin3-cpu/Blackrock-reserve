@@ -4,6 +4,7 @@ import { getSessionUserId, unauthorizedResponse } from "@/lib/api-auth";
 import { executeInvestment } from "@/lib/investment-service";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/admin-audit";
+import { sendInvestmentConfirmationEmail } from "@/lib/money-notifications";
 
 const investSchema = z.object({
   symbol: z.string().min(1).max(12),
@@ -49,6 +50,17 @@ export async function POST(req: NextRequest) {
       accountId: parsed.data.accountId,
       idempotencyKey: parsed.data.idempotencyKey,
     });
+
+    void sendInvestmentConfirmationEmail({
+      userId,
+      symbol: result.symbol,
+      assetName: result.assetName,
+      amountUsd: result.amountUsd,
+      shares: result.shares,
+      fee: result.fee,
+      totalCost: result.totalCost,
+      newBalance: result.newBalance,
+    }).catch((err) => console.error("Investment email error:", err));
 
     return NextResponse.json({ success: true, investment: result });
   } catch (error) {

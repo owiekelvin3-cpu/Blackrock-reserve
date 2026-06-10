@@ -4,7 +4,8 @@ import { depositReviewSchema } from "@/lib/validations";
 import { logAdminAction, getClientIp } from "@/lib/admin-audit";
 import { adjustUserBalance } from "@/lib/balance-adjustment";
 import { formatDepositStatus } from "@/lib/deposit-status";
-import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-notifications";
+import { createUserNotification } from "@/lib/user-notifications";
+import { sendDepositDecisionEmail } from "@/lib/money-notifications";
 import { formatCurrency } from "@/lib/utils";
 import { buildDepositClearedNotification } from "@/lib/notification-helpers";
 import { prisma } from "@/lib/prisma";
@@ -115,7 +116,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
 
     if (emailPayload) {
-      await sendUserNotificationEmail(emailPayload);
+      if (parsed.data.status === "APPROVED" && creditAmount) {
+        await sendDepositDecisionEmail({
+          userId: deposit.userId,
+          approved: true,
+          amountLabel: formatCurrency(creditAmount),
+        });
+      } else if (parsed.data.status === "REJECTED") {
+        await sendDepositDecisionEmail({
+          userId: deposit.userId,
+          approved: false,
+          amountLabel: deposit.amountUsd ? formatCurrency(Number(deposit.amountUsd)) : "your deposit",
+          reason: reviewNote ?? undefined,
+        });
+      }
     }
 
     await logAdminAction(

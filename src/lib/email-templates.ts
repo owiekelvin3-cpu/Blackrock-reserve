@@ -280,6 +280,48 @@ export function profitRemovedEmail(data: {
   };
 }
 
+export function investmentConfirmationEmail(data: {
+  name: string;
+  symbol: string;
+  assetName: string;
+  amountUsd: string;
+  shares: string;
+  fee: string;
+  totalCost: string;
+  newBalance: string;
+  siteUrl: string;
+}) {
+  const html = layout(
+    `
+      <p style="margin:0 0 8px;color:#ffffff;font-size:18px;font-weight:600;">Investment confirmed</p>
+      <p style="margin:0 0 16px;">Hi ${data.name},</p>
+      <p style="margin:0 0 16px;">Your investment order has been executed successfully.</p>
+      <div style="padding:16px;background:rgba(255,95,5,0.08);border-radius:12px;border:1px solid rgba(255,95,5,0.25);margin-bottom:16px;">
+        <p style="margin:0 0 8px;color:#9a9aa8;font-size:13px;">Asset</p>
+        <p style="margin:0 0 12px;color:#fff;font-weight:600;">${data.symbol} — ${data.assetName}</p>
+        <p style="margin:0 0 4px;color:#9a9aa8;font-size:13px;">Amount invested</p>
+        <p style="margin:0 0 12px;color:#fff;">${data.amountUsd}</p>
+        <p style="margin:0 0 4px;color:#9a9aa8;font-size:13px;">Shares purchased</p>
+        <p style="margin:0 0 12px;color:#fff;">${data.shares}</p>
+        <p style="margin:0 0 4px;color:#9a9aa8;font-size:13px;">Fee</p>
+        <p style="margin:0 0 12px;color:#fff;">${data.fee}</p>
+        <p style="margin:0 0 4px;color:#9a9aa8;font-size:13px;">Total debited</p>
+        <p style="margin:0;color:#fff;font-weight:600;">${data.totalCost}</p>
+      </div>
+      <p style="margin:0 0 24px;"><strong style="color:#fff;">Remaining balance:</strong> ${data.newBalance}</p>
+      <div style="text-align:center;margin:8px 0 0;">
+        <a href="${data.siteUrl}/dashboard/capital-markets" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,${ACCENT},#ff0000);color:#ffffff;text-decoration:none;font-weight:600;border-radius:999px;font-size:15px;">View Portfolio</a>
+      </div>
+    `,
+    `Investment in ${data.symbol} confirmed`
+  );
+  return {
+    subject: `${BRAND} — Investment in ${data.symbol} confirmed`,
+    html,
+    text: `Hi ${data.name}, your investment in ${data.symbol} (${data.assetName}) for ${data.amountUsd} is confirmed. Total debited: ${data.totalCost}. Balance: ${data.newBalance}.`,
+  };
+}
+
 export function userNotificationEmail(data: {
   name: string;
   title: string;

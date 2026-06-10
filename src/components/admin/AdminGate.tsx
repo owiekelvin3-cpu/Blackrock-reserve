@@ -26,9 +26,9 @@ export default function AdminGate({ children }: AdminGateProps) {
 
   if (status === "loading") {
     return (
-      <div className="lg:pl-[240px] p-6 space-y-4">
+      <div className="lg:pl-[240px] p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 max-w-[1400px] mx-auto w-full space-y-4">
         <Skeleton className="h-10 w-64" />
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -39,7 +39,7 @@ export default function AdminGate({ children }: AdminGateProps) {
 
   if (status !== "authenticated" || session?.user?.role !== "ADMIN") {
     return (
-      <div className="lg:pl-[240px] p-6 space-y-4">
+      <div className="lg:pl-[240px] p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 max-w-[1400px] mx-auto w-full space-y-4">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>

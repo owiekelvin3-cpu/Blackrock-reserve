@@ -20,7 +20,6 @@ interface OverviewData {
     totalWithdrawalRequests: number;
     withdrawalCount: number;
     depositTxCount: number;
-    auditLogCount: number;
   };
   recentUsers: { id: string; name: string; email: string; kycStatus: string; createdAt: string }[];
   recentTransactions: {
@@ -31,10 +30,6 @@ interface OverviewData {
   recentDeposits: {
     id: string; userId: string; userName: string; userEmail: string;
     amountUsd: number | null; status: string; txHash: string | null; createdAt: string;
-  }[];
-  recentAuditLogs: {
-    id: string; action: string; createdAt: string;
-    admin: { name: string }; targetUser: { id: string; name: string } | null;
   }[];
   usersByKyc: { status: string; count: number }[];
   txByType: { type: string; count: number; volume: number }[];
@@ -109,7 +104,6 @@ export default function AdminOverviewPage() {
               <AdminStatCard label="Withdrawals" value={data.stats.withdrawalCount.toLocaleString()} sub="From transaction records" />
               <AdminStatCard label="Pending KYC" value={data.stats.pendingKyc} sub="Requires review" />
               <AdminStatCard label="Support Messages" value={data.stats.contactMessages} />
-              <AdminStatCard label="Audit Log Entries" value={data.stats.auditLogCount.toLocaleString()} />
               <AdminStatCard label="Deposit Transactions" value={data.stats.depositTxCount.toLocaleString()} />
             </div>
 
@@ -173,56 +167,29 @@ export default function AdminOverviewPage() {
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
-              <div className="admin-card p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold text-white">Recent Deposits</h2>
-                  <Link href="/admin/deposits" className="text-xs admin-link">View all</Link>
-                </div>
-                {data.recentDeposits.length === 0 ? (
-                  <p className="text-sm text-[var(--admin-muted)] py-6 text-center">No deposit requests yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {data.recentDeposits.map((d) => (
-                      <div key={d.id} className="flex items-center justify-between py-2 border-b border-[var(--admin-border)]/50 last:border-0">
-                        <div>
-                          <Link href={`/admin/users/${d.userId}`} className="text-sm text-white admin-link">{d.userName}</Link>
-                          <p className="text-[10px] text-[var(--admin-muted)] font-mono truncate max-w-[200px]">{d.txHash ?? "No hash"}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`admin-badge ${d.status === "PENDING" ? "admin-badge-submitted" : d.status === "APPROVED" ? "admin-badge-verified" : "admin-badge-rejected"}`}>{d.status}</span>
-                          {d.amountUsd != null && <p className="text-xs admin-amount mt-1">{formatCurrency(d.amountUsd)}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            <div className="admin-card p-5 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-white">Recent Deposits</h2>
+                <Link href="/admin/deposits" className="text-xs admin-link">View all</Link>
               </div>
-
-              <div className="admin-card p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold text-white">Admin Activity Log</h2>
-                  <Link href="/admin/audit-log" className="text-xs admin-link">View all</Link>
-                </div>
-                {data.recentAuditLogs.length === 0 ? (
-                  <p className="text-sm text-[var(--admin-muted)] py-6 text-center">No admin actions logged yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {data.recentAuditLogs.map((log) => (
-                      <div key={log.id} className="py-2 border-b border-[var(--admin-border)]/50 last:border-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="admin-badge admin-badge-submitted text-[10px]">{log.action}</span>
-                          <span className="text-xs text-[var(--admin-muted)]">by {log.admin.name}</span>
-                          {log.targetUser && (
-                            <Link href={`/admin/users/${log.targetUser.id}`} className="admin-link text-xs">{log.targetUser.name}</Link>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-[var(--admin-muted)] mt-1">{new Date(log.createdAt).toLocaleString()}</p>
+              {data.recentDeposits.length === 0 ? (
+                <p className="text-sm text-[var(--admin-muted)] py-6 text-center">No deposit requests yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {data.recentDeposits.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between py-2 border-b border-[var(--admin-border)]/50 last:border-0">
+                      <div>
+                        <Link href={`/admin/users/${d.userId}`} className="text-sm text-white admin-link">{d.userName}</Link>
+                        <p className="text-[10px] text-[var(--admin-muted)] font-mono truncate max-w-[200px]">{d.txHash ?? "No hash"}</p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <div className="text-right">
+                        <span className={`admin-badge ${d.status === "PENDING" ? "admin-badge-submitted" : d.status === "APPROVED" ? "admin-badge-verified" : "admin-badge-rejected"}`}>{d.status}</span>
+                        {d.amountUsd != null && <p className="text-xs admin-amount mt-1">{formatCurrency(d.amountUsd)}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {data.pendingKycUsers.length > 0 && (

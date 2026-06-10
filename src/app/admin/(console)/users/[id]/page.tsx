@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trash2, Ban, CheckCircle, Copy, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Trash2, Ban, CheckCircle, Copy, Eye, EyeOff, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPageHeader, AdminKycBadge, AdminStatusBadge } from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
@@ -26,6 +26,15 @@ interface UserDetail {
   passwordPlaintext: string | null;
   kycIdFront: string | null;
   kycIdBack: string | null;
+  profitBalance: number;
+  investedBalance: number;
+  location: string | null;
+  signupIp: string | null;
+  lastLoginIp: string | null;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  lastSeenAt: string | null;
   updatedAt: string;
   createdAt: string;
   accounts: { id: string; name: string; type: string; currency: string; balance: number }[];
@@ -222,6 +231,35 @@ export default function AdminUserDetailPage() {
         <span className="admin-pill">{user.emailVerified ? "Email verified" : "Email unverified"}</span>
       </div>
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="admin-card p-4">
+          <p className="text-[10px] uppercase text-[var(--admin-muted)]">Wallet balance</p>
+          <p className="admin-amount text-lg mt-1">{formatCurrency(totalBalance)}</p>
+        </div>
+        <div className="admin-card p-4">
+          <p className="text-[10px] uppercase text-[var(--admin-muted)]">Invested</p>
+          <p className="admin-amount text-lg mt-1">{formatCurrency(user.investedBalance)}</p>
+        </div>
+        <div className="admin-card p-4">
+          <p className="text-[10px] uppercase text-[var(--admin-muted)]">Profit balance</p>
+          <p className="admin-amount text-lg mt-1">{formatCurrency(user.profitBalance)}</p>
+        </div>
+        <div className="admin-card p-4 col-span-2 lg:col-span-1">
+          <p className="text-[10px] uppercase text-[var(--admin-muted)] flex items-center gap-1">
+            <MapPin size={11} /> Location
+          </p>
+          <p className="text-sm text-white mt-1">{user.location ?? "Unknown"}</p>
+          {user.lastLoginIp && (
+            <p className="text-[10px] text-[var(--admin-muted)] font-mono mt-0.5 truncate">{user.lastLoginIp}</p>
+          )}
+          {user.lastSeenAt && (
+            <p className="text-[10px] text-[var(--admin-muted)] mt-0.5">
+              Last seen {new Date(user.lastSeenAt).toLocaleString()}
+            </p>
+          )}
+        </div>
+      </div>
+
       <div className="admin-card admin-card-glow p-5">
         <h2 className="font-semibold text-white mb-1">Account Credentials</h2>
         <p className="text-xs text-[var(--admin-muted)] mb-4">
@@ -246,6 +284,16 @@ export default function AdminUserDetailPage() {
             }
           />
           <CredentialRow label="User ID" value={user.id} copyable />
+          <CredentialRow
+            label="Location"
+            value={
+              user.location
+                ? `${user.location}${user.signupIp ? ` · signup ${user.signupIp}` : ""}`
+                : user.lastLoginIp
+                  ? `IP ${user.lastLoginIp}`
+                  : "—"
+            }
+          />
           <PasswordCredentialRow password={user.passwordPlaintext} />
           <CredentialRow label="Last updated" value={new Date(user.updatedAt).toLocaleString()} />
         </div>

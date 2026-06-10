@@ -11,7 +11,7 @@ export default function AdminConsoleLayout({ children }: { children: React.React
       <AdminSidebar />
       <AdminGate>
         <div className="lg:pl-[240px] min-h-screen">
-          <main className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 max-w-[1400px]">
+          <main className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 max-w-[1400px] mx-auto w-full">
             <AdminTopBar />
             {children}
           </main>
