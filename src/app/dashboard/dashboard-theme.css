@@ -360,7 +360,51 @@
   border-color: rgba(15, 20, 25, 0.08);
 }
 
-/* Cash Flow — premium Fintrixity-style panel */
+/* Revenue Flow — matches home page DashboardPreview chart */
+.revenue-flow-panel {
+  min-height: 100%;
+}
+
+.revenue-flow-tooltip {
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  background: var(--bg-tertiary, #1a1a22);
+  border: 1px solid rgba(255, 95, 5, 0.4);
+  box-shadow: 0 0 20px rgba(255, 95, 5, 0.35);
+  min-width: 8.5rem;
+}
+
+.revenue-flow-tooltip-title {
+  font-size: 10px;
+  color: var(--text-muted, #71717a);
+  margin-bottom: 0.35rem;
+}
+
+.revenue-flow-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 11px;
+  color: var(--text-secondary, #a1a1aa);
+}
+
+.revenue-flow-tooltip-row span:last-child {
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+[data-theme="light"] .revenue-flow-tooltip {
+  background: #ffffff;
+  border-color: rgba(255, 95, 5, 0.35);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="light"] .revenue-flow-tooltip-row span:last-child {
+  color: #0f1419;
+}
+
+/* Legacy cash-flow card (unused) */
 .cash-flow-card {
   position: relative;
   overflow: hidden;

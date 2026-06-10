@@ -113,6 +113,7 @@ const enBase = {
     seeDetails: "See details",
     viewPortfolio: "View portfolio",
     cashFlow: "Cash Flow",
+    revenueFlow: "Revenue Flow",
     inflow: "Inflow",
     outflow: "Outflow",
     monthly: "Monthly",
