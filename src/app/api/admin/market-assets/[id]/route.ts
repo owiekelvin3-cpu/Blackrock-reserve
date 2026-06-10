@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, forbiddenResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction, getClientIp } from "@/lib/admin-audit";
-import { marketAssetFieldsSchema } from "@/lib/market-asset-schema";
+import {
+  marketAssetFieldsSchema,
+  buildMarketAssetUpdateData,
+  formatZodError,
+} from "@/lib/market-asset-schema";
 import { mapMarketAsset } from "@/lib/market-asset-mapper";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -13,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const body = await req.json();
     const parsed = marketAssetFieldsSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
 
     const existing = await prisma.marketAsset.findUnique({ where: { id: params.id } });
@@ -21,9 +25,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Asset not found" }, { status: 404 });
     }
 
+    const updateData = buildMarketAssetUpdateData(parsed.data, existing);
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ success: true, asset: mapMarketAsset(existing) });
+    }
+
     const asset = await prisma.marketAsset.update({
       where: { id: params.id },
-      data: parsed.data,
+      data: updateData,
     });
 
     const action =
@@ -36,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await logAdminAction(
       session.user.id,
       action,
-      { symbol: asset.symbol, changes: parsed.data },
+      { symbol: asset.symbol, changes: updateData },
       undefined,
       getClientIp(req)
     );

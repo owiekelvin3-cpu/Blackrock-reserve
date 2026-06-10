@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, forbiddenResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction, getClientIp } from "@/lib/admin-audit";
-import { reorderMarketAssetsSchema } from "@/lib/market-asset-schema";
+import { reorderMarketAssetsSchema, formatZodError } from "@/lib/market-asset-schema";
 
 export async function POST(req: NextRequest) {
   const session = await getAdminSession();
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = reorderMarketAssetsSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
 
     const { orderedIds } = parsed.data;

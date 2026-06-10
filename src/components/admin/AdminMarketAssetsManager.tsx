@@ -87,36 +87,58 @@ function assetToForm(a: AssetRow) {
 }
 
 function formPayload(form: typeof EMPTY_FORM, isEdit: boolean) {
-  const num = (v: string) => (v === "" ? undefined : Number(v));
-  return {
-    ...(isEdit ? {} : { symbol: form.symbol.toUpperCase() }),
-    name: form.name,
-    sector: form.sector,
-    description: form.description || `${form.name} equity security.`,
-    logoDomain: form.logoDomain || null,
+  const num = (v: string) => {
+    if (v === "") return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const symbol = form.symbol.trim().toUpperCase();
+  const name = form.name.trim() || symbol || "Asset";
+  const price = num(form.price);
+
+  const payload: Record<string, unknown> = {
+    ...(isEdit ? {} : { symbol }),
+    name,
+    sector: form.sector || "Technology",
+    description: form.description.trim() || `${name} equity security.`,
+    logoDomain: form.logoDomain.trim() || null,
     logoUrl: form.logoUrl || null,
-    price: Number(form.price),
-    changePercent: num(form.changePercent),
-    minInvestment: num(form.minInvestment),
     riskRating: form.riskRating,
-    expectedReturnPercent: num(form.expectedReturnPercent),
-    growthRate: num(form.growthRate),
-    return7d: num(form.return7d),
-    return14d: num(form.return14d),
-    return30d: num(form.return30d),
-    return90d: num(form.return90d),
-    return1y: num(form.return1y),
-    returnWeekly: num(form.returnWeekly),
-    returnMonthly: num(form.returnMonthly),
-    returnYearly: num(form.returnYearly),
-    customReturnLabel: form.customReturnLabel || null,
-    customReturnPercent: form.customReturnPercent === "" ? null : num(form.customReturnPercent),
-    marketCapRank: num(form.marketCapRank),
-    popularity: num(form.popularity),
     isFeatured: form.isFeatured,
     isPinned: form.isPinned,
     enabled: form.enabled,
   };
+
+  if (price !== undefined) payload.price = price;
+  else if (!isEdit) payload.price = 1;
+
+  const optionalFields: [string, string][] = [
+    ["changePercent", form.changePercent],
+    ["minInvestment", form.minInvestment],
+    ["expectedReturnPercent", form.expectedReturnPercent],
+    ["growthRate", form.growthRate],
+    ["return7d", form.return7d],
+    ["return14d", form.return14d],
+    ["return30d", form.return30d],
+    ["return90d", form.return90d],
+    ["return1y", form.return1y],
+    ["returnWeekly", form.returnWeekly],
+    ["returnMonthly", form.returnMonthly],
+    ["returnYearly", form.returnYearly],
+    ["marketCapRank", form.marketCapRank],
+    ["popularity", form.popularity],
+  ];
+
+  for (const [key, value] of optionalFields) {
+    const parsed = num(value);
+    if (parsed !== undefined) payload[key] = parsed;
+  }
+
+  payload.customReturnLabel = form.customReturnLabel.trim() || null;
+  payload.customReturnPercent =
+    form.customReturnPercent === "" ? null : num(form.customReturnPercent) ?? null;
+
+  return payload;
 }
 
 export default function AdminMarketAssetsManager() {
@@ -175,13 +197,13 @@ export default function AdminMarketAssetsManager() {
 
   const saveAsset = async (e: React.FormEvent) => {
     e.preventDefault();
-    const price = Number(form.price);
-    if (!form.name.trim() || !Number.isFinite(price) || price <= 0) {
-      toast.error("Name and valid price are required");
-      return;
-    }
     if (panel === "create" && !form.symbol.trim()) {
       toast.error("Symbol is required");
+      return;
+    }
+    const price = form.price === "" ? 1 : Number(form.price);
+    if (form.price !== "" && (!Number.isFinite(price) || price <= 0)) {
+      toast.error("Enter a valid price or leave blank to use $1.00");
       return;
     }
 
@@ -319,7 +341,7 @@ export default function AdminMarketAssetsManager() {
                 )}
                 <div>
                   <label className={labelCls}>Name</label>
-                  <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                  <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Defaults to symbol" />
                 </div>
                 <div>
                   <label className={labelCls}>Sector / Category</label>
@@ -341,7 +363,7 @@ export default function AdminMarketAssetsManager() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className={labelCls}>Price (USD)</label>
-                  <input className={inputCls} type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
+                  <input className={inputCls} type="number" step="0.01" min="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="Defaults to 1.00" />
                 </div>
                 <div>
                   <label className={labelCls}>Day Change %</label>
