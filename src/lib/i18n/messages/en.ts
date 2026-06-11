@@ -53,6 +53,7 @@ const enBase = {
     withdraw: "Withdraw",
     markets: "Markets",
     menu: "Menu",
+    supportChat: "Support Chat",
     loans: "Loans",
     jointAccounts: "Joint Accounts",
   },
@@ -583,7 +584,7 @@ const enBase = {
   },
   transactionPin: {
     title: "Transaction PIN",
-    desc: "A 4-digit PIN is required to authorize withdrawals, transfers, deposits, and investments — just like a real bank.",
+    desc: "A secure four-digit Transaction PIN is required to authorize withdrawals, transfers, deposits, and investment activity on your account.",
     statusActive: "PIN is active on your account",
     statusRequired: "Required before you can make transactions",
     loginPassword: "Login password",

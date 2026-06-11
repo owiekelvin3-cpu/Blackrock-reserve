@@ -7,6 +7,7 @@ import { MessageCircle, X, Send, Bot, User, Minimize2 } from "lucide-react";
 import type { ChatSuggestion } from "@/lib/chatbot";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/providers/I18nProvider";
+import { useChat } from "@/components/providers/ChatProvider";
 import { getLocalizedWelcome } from "@/lib/i18n/chat-i18n";
 
 type ChatMessage = {
@@ -104,6 +105,7 @@ function computePanelPosition(launcher: LauncherPosition, panelW: number, panelH
 
 export default function ChatWidget() {
   const { t } = useI18n();
+  const { registerChat } = useChat();
   const pathname = usePathname();
   const router = useRouter();
   const welcome = getLocalizedWelcome(t);
@@ -131,6 +133,21 @@ export default function ChatWidget() {
   });
 
   const hidden = pathname.startsWith("/admin");
+  const openChatRef = useRef(() => {
+    setDismissed(false);
+    setOpen(true);
+  });
+
+  openChatRef.current = () => {
+    setDismissed(false);
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    registerChat({
+      open: () => openChatRef.current(),
+    });
+  }, [registerChat]);
 
   useEffect(() => {
     try {

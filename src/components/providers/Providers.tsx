@@ -1,15 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import NotificationAudioUnlock from "@/components/providers/NotificationAudioUnlock";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/components/providers/I18nProvider";
+import { ChatProvider } from "@/components/providers/ChatProvider";
 import type { LocaleCode } from "@/lib/i18n/locales";
-
-const ChatWidget = dynamic(() => import("@/components/chat/ChatWidget"), { ssr: false });
 
 export default function Providers({
   children,
@@ -18,20 +15,13 @@ export default function Providers({
   children: React.ReactNode;
   initialLocale?: LocaleCode;
 }) {
-  const [showChat, setShowChat] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setShowChat(true), 1500);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   return (
     <ThemeProvider>
       <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
         <I18nProvider initialLocale={initialLocale}>
+        <ChatProvider>
         <NotificationAudioUnlock />
         {children}
-        {showChat && <ChatWidget />}
         <Toaster
           position="top-right"
           toastOptions={{
@@ -42,6 +32,7 @@ export default function Providers({
             },
           }}
         />
+        </ChatProvider>
         </I18nProvider>
       </SessionProvider>
     </ThemeProvider>
