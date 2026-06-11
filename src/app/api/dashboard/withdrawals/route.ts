@@ -235,14 +235,17 @@ export async function POST(req: NextRequest) {
       ? `Your ${getWithdrawalMethodLabel(parsed.data.method)} withdrawal for ${formatCurrency(parsed.data.amountUsd)} was received. Pay the ${formatCurrency(chargeAmount!)} processing charge via a new deposit before it can be reviewed.`
       : `Your ${getWithdrawalMethodLabel(parsed.data.method)} withdrawal request for ${formatCurrency(parsed.data.amountUsd)} has been submitted and is pending review.`;
 
-    await createUserNotification({
-      userId,
-      type: hasCharge ? "WITHDRAWAL_CHARGE_REQUIRED" : "WITHDRAWAL_SUBMITTED",
-      title,
-      message,
-    });
-
-    await sendUserNotificationEmail({ userId, title, message });
+    try {
+      await createUserNotification({
+        userId,
+        type: hasCharge ? "WITHDRAWAL_CHARGE_REQUIRED" : "WITHDRAWAL_SUBMITTED",
+        title,
+        message,
+      });
+      await sendUserNotificationEmail({ userId, title, message });
+    } catch (notifyError) {
+      console.error("Withdrawal notification error:", notifyError);
+    }
 
     const methodDef = getWithdrawalMethod(parsed.data.method);
     const statusLabel = formatWithdrawalStatus(withdrawal.status);

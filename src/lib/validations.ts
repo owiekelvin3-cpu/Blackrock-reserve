@@ -230,7 +230,7 @@ export const withdrawalRequestSchema = z.object({
     "CRYPTO_STABLECOIN",
     "PAPER_CHECK",
   ]),
-  amountUsd: z.number().positive("Amount must be greater than zero"),
+  amountUsd: z.coerce.number().positive("Amount must be greater than zero"),
   destination: z.string().min(3, "Payout destination is required"),
   destinationExtra: z.string().optional(),
   note: z.string().optional(),
@@ -301,7 +301,13 @@ export const userWithdrawalChargeSchema = z
   });
 
 export const withdrawalChargePaymentSubmitSchema = z.object({
-  txHash: z.string().min(10, "Transaction reference must be at least 10 characters").optional().or(z.literal("")),
+  txHash: z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() || undefined)
+    .refine((v) => v == null || v.length >= 10, {
+      message: "Transaction reference must be at least 10 characters when provided",
+    }),
   proofNote: z.string().optional(),
   paymentMethod: z.string().min(1).default("BITCOIN"),
   transactionPin: transactionPinSchema,

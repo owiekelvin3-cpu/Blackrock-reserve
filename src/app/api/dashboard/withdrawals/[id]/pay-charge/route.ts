@@ -10,13 +10,14 @@ import { formatCurrency } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import QRCode from "qrcode";
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const userId = await getSessionUserId();
   if (!userId) return unauthorizedResponse();
 
   try {
+    const { id } = await params;
     const withdrawal = await prisma.withdrawalRequest.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
       include: { chargePayment: true },
     });
 
@@ -91,11 +92,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const userId = await getSessionUserId();
   if (!userId) return unauthorizedResponse();
 
   try {
+    const { id } = await params;
     const body = await req.json();
     const parsed = withdrawalChargePaymentSubmitSchema.safeParse(body);
     if (!parsed.success) {
@@ -106,7 +108,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (pinError) return pinError;
 
     const withdrawal = await prisma.withdrawalRequest.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
       include: { chargePayment: true },
     });
 
@@ -137,12 +139,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
 
     const amount = Number(updated.amountUsd);
-    await createUserNotification({
-      userId,
-      type: "WITHDRAWAL_CHARGE_SUBMITTED",
-      title: "Charge payment submitted",
-      message: `Your withdrawal charge payment of ${formatCurrency(amount)} has been submitted for admin verification.`,
-    });
+    try {
+      await createUserNotification({
+        userId,
+        type: "WITHDRAWAL_CHARGE_SUBMITTED",
+        title: "Charge payment submitted",
+        message: `Your withdrawal charge payment of ${formatCurrency(amount)} has been submitted for admin verification.`,
+      });
+    } catch (notifyError) {
+      console.error("Charge payment notification error:", notifyError);
+    }
 
     return NextResponse.json({
       success: true,

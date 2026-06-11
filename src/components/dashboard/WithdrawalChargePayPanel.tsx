@@ -81,6 +81,11 @@ export default function WithdrawalChargePayPanel({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedHash = txHash.trim();
+    if (trimmedHash.length > 0 && trimmedHash.length < 10) {
+      toast.error(t("withdrawals.chargeModal.txHashTooShort"));
+      return;
+    }
     requestPin(async (transactionPin) => {
       setSubmitting(true);
       try {
@@ -89,20 +94,18 @@ export default function WithdrawalChargePayPanel({
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            txHash,
-            proofNote: proofNote || undefined,
+            txHash: trimmedHash || undefined,
+            proofNote: proofNote.trim() || undefined,
             paymentMethod: "BITCOIN",
             transactionPin,
           }),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Submission failed");
+        if (!res.ok) throw new Error(json.error || t("withdrawals.errors.submitFailed"));
         toast.success(json.message);
         setTxHash("");
         setProofNote("");
         onRefresh();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : t("common.error"));
       } finally {
         setSubmitting(false);
       }

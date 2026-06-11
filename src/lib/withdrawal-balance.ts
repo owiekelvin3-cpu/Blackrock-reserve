@@ -1,12 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import { ACTIVE_WITHDRAWAL_STATUSES } from "@/lib/withdrawal-charge";
+
+/** Only approved-path withdrawals reserve wallet balance (charge must be paid first). */
+const BALANCE_RESERVING_STATUSES = ["PENDING"] as const;
 
 export async function getPendingWithdrawalTotal(userId: string, accountId: string, excludeId?: string) {
   const agg = await prisma.withdrawalRequest.aggregate({
     where: {
       userId,
       accountId,
-      status: { in: [...ACTIVE_WITHDRAWAL_STATUSES] },
+      status: { in: [...BALANCE_RESERVING_STATUSES] },
       ...(excludeId ? { id: { not: excludeId } } : {}),
     },
     _sum: { amountUsd: true },
@@ -28,7 +30,7 @@ export async function getAvailableBalancesMap(
     where: {
       userId,
       accountId: { in: accountIds },
-      status: { in: [...ACTIVE_WITHDRAWAL_STATUSES] },
+      status: { in: [...BALANCE_RESERVING_STATUSES] },
       ...(excludeWithdrawalId ? { id: { not: excludeWithdrawalId } } : {}),
     },
     _sum: { amountUsd: true },

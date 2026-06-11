@@ -143,16 +143,33 @@ export default function WithdrawalsPage() {
 
   const { open: pinOpen, loading: pinLoading, error: pinError, requestPin, closePin, confirmPin } = useTransactionPin();
 
-  const buildPayload = (transactionPin: string) => ({
+  const buildPayload = (transactionPin: string, chargeAcknowledged = false) => ({
     accountId,
     method,
     amountUsd: Number(amountUsd),
-    destination,
-    destinationExtra: destinationExtra || undefined,
-    note: note || undefined,
+    destination: destination.trim(),
+    destinationExtra: destinationExtra.trim() || undefined,
+    note: note.trim() || undefined,
     transactionPin,
-    ...(withdrawalData.userCharge ? { chargeAcknowledged: true } : {}),
+    ...(chargeAcknowledged || withdrawalData.userCharge ? { chargeAcknowledged: true } : {}),
   });
+
+  const validateWithdrawalForm = (): string | null => {
+    const amount = Number(amountUsd);
+    if (!accountId) return t("withdrawals.errors.noAccount");
+    if (!Number.isFinite(amount) || amount <= 0) return t("withdrawals.errors.invalidAmount");
+    if (!destination.trim()) return t("withdrawals.errors.destinationRequired");
+    if (extraRequired && !destinationExtra.trim()) {
+      return selectedMethodDef.extraLabel
+        ? `${selectedMethodDef.extraLabel} is required`
+        : t("withdrawals.errors.extraRequired");
+    }
+    const available = selectedAccount?.availableBalance ?? 0;
+    if (amount > available) {
+      return t("withdrawals.errors.insufficientBalance", { amount: formatCurrency(available) });
+    }
+    return null;
+  };
 
   const submitWithdrawal = async (transactionPin: string) => {
     setSubmitting(true);
@@ -164,7 +181,17 @@ export default function WithdrawalsPage() {
         body: JSON.stringify(buildPayload(transactionPin)),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Submission failed");
+
+      if (json.requiresChargeAcknowledgment) {
+        throw new Error(
+          json.message ||
+            t("withdrawals.errors.chargeAcknowledgment", {
+              amount: json.chargeAmount != null ? formatCurrency(json.chargeAmount) : "",
+            })
+        );
+      }
+
+      if (!res.ok) throw new Error(json.error || t("withdrawals.errors.submitFailed"));
 
       setAmountUsd("");
       setDestination("");
@@ -182,8 +209,6 @@ export default function WithdrawalsPage() {
         setReceiptOpen(true);
       }
       load();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to submit");
     } finally {
       setSubmitting(false);
     }
@@ -191,6 +216,11 @@ export default function WithdrawalsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationError = validateWithdrawalForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     requestPin(async (transactionPin) => {
       await submitWithdrawal(transactionPin);
     });
