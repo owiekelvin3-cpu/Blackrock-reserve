@@ -921,6 +921,33 @@
   height: 100%;
 }
 
+.cash-flow-grid-line {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.cash-flow-grid-line-baseline {
+  stroke: rgba(255, 255, 255, 0.18);
+}
+
+.cash-flow-grid-line-vertical {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-dasharray: 4 6;
+}
+
+[data-theme="light"] .cash-flow-grid-line {
+  stroke: rgba(15, 20, 25, 0.1);
+}
+
+[data-theme="light"] .cash-flow-grid-line-baseline {
+  stroke: rgba(15, 20, 25, 0.16);
+}
+
+[data-theme="light"] .cash-flow-grid-line-vertical {
+  stroke: rgba(15, 20, 25, 0.06);
+}
+
 .cash-flow-axis-label {
   fill: #6b7280;
   font-size: 11px;

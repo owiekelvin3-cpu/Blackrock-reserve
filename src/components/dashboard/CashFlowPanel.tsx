@@ -182,21 +182,36 @@ export default function CashFlowPanel({ data }: { data: CashFlowMonth[] }) {
             </filter>
           </defs>
 
-          {/* Horizontal grid */}
-          {yTicks.map((tick) => {
-            const y = padT + plotH - (tick / yMax) * plotH;
-            return (
-              <line
-                key={tick}
-                x1={padL}
-                y1={y}
-                x2={chartW - padR}
-                y2={y}
-                stroke="rgba(255,255,255,0.06)"
-                strokeWidth="1"
-              />
-            );
-          })}
+          {/* Chart grid */}
+          <g className="cash-flow-grid" aria-hidden>
+            {yTicks.map((tick) => {
+              const y = padT + plotH - (tick / yMax) * plotH;
+              const isBaseline = tick === 0;
+              return (
+                <line
+                  key={`h-${tick}`}
+                  className={cn("cash-flow-grid-line", isBaseline && "cash-flow-grid-line-baseline")}
+                  x1={padL}
+                  y1={y}
+                  x2={chartW - padR}
+                  y2={y}
+                />
+              );
+            })}
+            {chartData.map((row, i) => {
+              const x = padL + i * (barW + barGap) + barW / 2;
+              return (
+                <line
+                  key={`v-${row.month}`}
+                  className="cash-flow-grid-line cash-flow-grid-line-vertical"
+                  x1={x}
+                  y1={padT}
+                  x2={x}
+                  y2={padT + plotH}
+                />
+              );
+            })}
+          </g>
 
           {/* Y-axis labels */}
           {yTicks.map((tick) => {
