@@ -540,13 +540,15 @@ model WithdrawalRequest {
 }
 
 model UserWithdrawalCharge {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  amountUsd   Decimal  @db.Decimal(15, 2)
-  active      Boolean  @default(true)
+  id          String               @id @default(cuid())
+  userId      String               @unique
+  chargeType  WithdrawalChargeType @default(FIXED)
+  amountUsd   Decimal              @db.Decimal(15, 2)
+  percentage  Decimal?             @db.Decimal(5, 2)
+  active      Boolean              @default(true)
   createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdBy User @relation("WithdrawalChargeCreator", fields: [createdById], references: [id])
@@ -659,6 +661,11 @@ enum WithdrawalChargePaymentStatus {
   PENDING_VERIFICATION
   PAID
   REJECTED
+}
+
+enum WithdrawalChargeType {
+  FIXED
+  PERCENTAGE
 }
 
 enum WithdrawalMethod {

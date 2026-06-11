@@ -7,12 +7,16 @@ import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { formatCurrency } from "@/lib/utils";
 
+type ChargeType = "FIXED" | "PERCENTAGE";
+
 interface ChargeRow {
   id: string;
   userId: string;
   userName: string;
   userEmail: string;
+  chargeType: ChargeType;
   amountUsd: number;
+  percentage: number | null;
   active: boolean;
   createdByName: string;
   updatedAt: string;
@@ -33,6 +37,13 @@ interface PaymentRow {
 
 type Tab = "charges" | "payments";
 
+function formatChargeLabel(charge: Pick<ChargeRow, "chargeType" | "amountUsd" | "percentage">) {
+  if (charge.chargeType === "PERCENTAGE" && charge.percentage != null) {
+    return `${charge.percentage}%`;
+  }
+  return formatCurrency(charge.amountUsd);
+}
+
 export default function AdminWithdrawalChargesPage() {
   const { data, error, loading, refresh, lastUpdated } = useAdminFetch<{
     charges: ChargeRow[];
@@ -41,34 +52,91 @@ export default function AdminWithdrawalChargesPage() {
   const paymentsFetch = useAdminFetch<{ payments: PaymentRow[] }>("/api/admin/withdrawal-charge-payments");
   const [tab, setTab] = useState<Tab>("charges");
   const [userId, setUserId] = useState("");
+  const [chargeType, setChargeType] = useState<ChargeType>("FIXED");
   const [amountUsd, setAmountUsd] = useState("");
+  const [percentage, setPercentage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
   const [reviewing, setReviewing] = useState<string | null>(null);
 
   const charges = data?.charges ?? [];
   const users = data?.users ?? [];
   const payments = paymentsFetch.data?.payments ?? [];
 
+  const buildPayload = (applyToAll: boolean) => {
+    const payload: Record<string, unknown> = {
+      chargeType,
+      applyToAll,
+    };
+    if (!applyToAll) payload.userId = userId;
+    if (chargeType === "FIXED") {
+      payload.amountUsd = Number(amountUsd);
+    } else {
+      payload.percentage = Number(percentage);
+    }
+    return payload;
+  };
+
+  const validateForm = (applyToAll: boolean) => {
+    if (!applyToAll && !userId) {
+      toast.error("Select a user");
+      return false;
+    }
+    if (chargeType === "FIXED") {
+      if (!amountUsd || Number(amountUsd) <= 0) {
+        toast.error("Enter a valid fixed charge amount");
+        return false;
+      }
+    } else if (!percentage || Number(percentage) <= 0 || Number(percentage) > 100) {
+      toast.error("Enter a valid percentage between 0 and 100");
+      return false;
+    }
+    if (applyToAll && !confirm(`Apply this ${chargeType === "FIXED" ? "fixed" : "percentage"} charge to all ${users.length} users?`)) {
+      return false;
+    }
+    return true;
+  };
+
   const saveCharge = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !amountUsd) return;
+    if (!validateForm(false)) return;
     setSaving(true);
     try {
       const res = await fetch("/api/admin/withdrawal-charges", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ userId, amountUsd: Number(amountUsd) }),
+        body: JSON.stringify(buildPayload(false)),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
       toast.success(json.message || "Charge saved");
-      setAmountUsd("");
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveChargeForAll = async () => {
+    if (!validateForm(true)) return;
+    setSavingAll(true);
+    try {
+      const res = await fetch("/api/admin/withdrawal-charges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(buildPayload(true)),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      toast.success(json.message || `Charge applied to ${json.appliedCount ?? "all"} users`);
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setSavingAll(false);
     }
   };
 
@@ -115,7 +183,7 @@ export default function AdminWithdrawalChargesPage() {
     <div>
       <AdminPageHeader
         title="Withdrawal Charges"
-        description="Set per-user withdrawal processing charges and verify charge payments"
+        description="Set per-user or global withdrawal processing charges (fixed or percentage) and verify charge payments"
         action={
           <button type="button" onClick={() => { refresh(); paymentsFetch.refresh(); }} className="admin-btn-ghost text-xs px-4 py-2">
             Refresh
@@ -138,48 +206,91 @@ export default function AdminWithdrawalChargesPage() {
 
       {tab === "charges" && (
         <>
-          <form onSubmit={saveCharge} className="admin-card p-5 mb-6 grid sm:grid-cols-3 gap-4 items-end">
-            <div>
-              <label className="block text-xs text-[var(--admin-muted)] mb-1.5">User</label>
-              <select
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                className="admin-input w-full"
-                required
-              >
-                <option value="">Select user…</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.email})
-                  </option>
-                ))}
-              </select>
+          <form onSubmit={saveCharge} className="admin-card p-5 mb-6 space-y-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs text-[var(--admin-muted)] mb-1.5">Charge type</label>
+                <select
+                  value={chargeType}
+                  onChange={(e) => setChargeType(e.target.value as ChargeType)}
+                  className="admin-input w-full"
+                >
+                  <option value="FIXED">Fixed amount (USD)</option>
+                  <option value="PERCENTAGE">Percentage of withdrawal</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--admin-muted)] mb-1.5">User</label>
+                <select
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  className="admin-input w-full"
+                >
+                  <option value="">Select user…</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {chargeType === "FIXED" ? (
+                <div>
+                  <label className="block text-xs text-[var(--admin-muted)] mb-1.5">Charge amount (USD)</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={amountUsd}
+                    onChange={(e) => setAmountUsd(e.target.value)}
+                    className="admin-input w-full"
+                    placeholder="500.00"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs text-[var(--admin-muted)] mb-1.5">Percentage (%)</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    max="100"
+                    step="0.01"
+                    value={percentage}
+                    onChange={(e) => setPercentage(e.target.value)}
+                    className="admin-input w-full"
+                    placeholder="5"
+                  />
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                <button type="submit" disabled={saving || savingAll} className="admin-btn-primary h-10 flex-1">
+                  {saving ? "Saving…" : "Save Charge"}
+                </button>
+                <button
+                  type="button"
+                  disabled={saving || savingAll || users.length === 0}
+                  onClick={saveChargeForAll}
+                  className="admin-btn-ghost h-10 flex-1 border border-[var(--admin-border)]"
+                >
+                  {savingAll ? "Applying…" : "Set for All Users"}
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-[var(--admin-muted)] mb-1.5">Charge amount (USD)</label>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={amountUsd}
-                onChange={(e) => setAmountUsd(e.target.value)}
-                className="admin-input w-full"
-                placeholder="500.00"
-                required
-              />
-            </div>
-            <button type="submit" disabled={saving} className="admin-btn-primary h-10">
-              {saving ? "Saving…" : "Save Charge"}
-            </button>
+            <p className="text-xs text-[var(--admin-muted)]">
+              {chargeType === "FIXED"
+                ? "Fixed charges bill the same USD amount on every withdrawal request."
+                : "Percentage charges are calculated from the withdrawal amount when the user submits a request."}
+            </p>
           </form>
 
           <div className="admin-card overflow-hidden">
             <AdminFetchState loading={loading} error={error} onRetry={refresh} lastUpdated={lastUpdated} isEmpty={!loading && charges.length === 0} emptyMessage="No withdrawal charges configured">
               <div className="overflow-x-auto">
-                <table className="admin-table w-full min-w-[640px]">
+                <table className="admin-table w-full min-w-[720px]">
                   <thead>
                     <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
                       <th className="text-left py-3 px-5">User</th>
+                      <th className="text-left py-3 px-5">Type</th>
                       <th className="text-left py-3 px-5">Charge</th>
                       <th className="text-left py-3 px-5 hidden sm:table-cell">Set by</th>
                       <th className="text-left py-3 px-5 hidden md:table-cell">Updated</th>
@@ -193,7 +304,10 @@ export default function AdminWithdrawalChargesPage() {
                           <p className="text-sm">{c.userName}</p>
                           <p className="text-[10px] text-[var(--admin-muted)]">{c.userEmail}</p>
                         </td>
-                        <td className="py-3 px-5 font-semibold">{formatCurrency(c.amountUsd)}</td>
+                        <td className="py-3 px-5 text-sm">
+                          {c.chargeType === "PERCENTAGE" ? "Percentage" : "Fixed"}
+                        </td>
+                        <td className="py-3 px-5 font-semibold">{formatChargeLabel(c)}</td>
                         <td className="py-3 px-5 text-sm hidden sm:table-cell">{c.createdByName}</td>
                         <td className="py-3 px-5 text-xs text-[var(--admin-muted)] hidden md:table-cell">
                           {new Date(c.updatedAt).toLocaleString()}

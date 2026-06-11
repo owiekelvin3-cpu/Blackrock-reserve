@@ -220,10 +220,64 @@ export const withdrawalReviewSchema = z.object({
   reviewNote: z.string().optional(),
 });
 
-export const userWithdrawalChargeSchema = z.object({
-  userId: z.string().min(1, "User is required"),
-  amountUsd: z.number().positive("Charge amount must be greater than zero"),
-});
+export const userWithdrawalChargeSchema = z
+  .object({
+    userId: z.string().min(1, "User is required").optional(),
+    applyToAll: z.boolean().optional(),
+    chargeType: z.enum(["FIXED", "PERCENTAGE"]).default("FIXED"),
+    amountUsd: z.number().positive("Charge amount must be greater than zero").optional(),
+    percentage: z
+      .number()
+      .positive("Percentage must be greater than zero")
+      .max(100, "Percentage cannot exceed 100")
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.applyToAll) return;
+
+    if (!data.userId) {
+      ctx.addIssue({
+        code: "custom",
+        message: "User is required",
+        path: ["userId"],
+      });
+    }
+
+    if (data.chargeType === "FIXED" && data.amountUsd == null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Fixed charge amount is required",
+        path: ["amountUsd"],
+      });
+    }
+
+    if (data.chargeType === "PERCENTAGE" && data.percentage == null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Percentage is required",
+        path: ["percentage"],
+      });
+    }
+  })
+  .superRefine((data, ctx) => {
+    if (!data.applyToAll) return;
+
+    if (data.chargeType === "FIXED" && data.amountUsd == null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Fixed charge amount is required",
+        path: ["amountUsd"],
+      });
+    }
+
+    if (data.chargeType === "PERCENTAGE" && data.percentage == null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Percentage is required",
+        path: ["percentage"],
+      });
+    }
+  });
 
 export const withdrawalChargePaymentSubmitSchema = z.object({
   txHash: z.string().min(10, "Transaction reference must be at least 10 characters"),

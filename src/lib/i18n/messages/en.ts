@@ -353,6 +353,7 @@ const enBase = {
     titleHighlight: "Funds",
     subtitle: "Choose from 11 payout methods — bank transfers, digital wallets, debit card, stablecoins, or paper check. Requests are reviewed before funds are sent.",
     chargeNotice: "Your account has an assigned withdrawal charge of {amount} per request.",
+    chargeNoticePercent: "Your account has an assigned withdrawal charge of {percent}% of each withdrawal amount.",
     chargeModal: {
       badge: "Treasury Notice",
       title: "Withdrawal Processing Fee",

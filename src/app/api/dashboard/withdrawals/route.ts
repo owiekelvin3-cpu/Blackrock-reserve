@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId, unauthorizedResponse } from "@/lib/api-auth";
 import { getAvailableBalancesMap } from "@/lib/withdrawal-balance";
 import { getWithdrawalMethod, getWithdrawalMethodLabel } from "@/lib/withdrawal-methods";
-import { getActiveUserWithdrawalCharge, formatWithdrawalStatus, formatChargePaymentStatus } from "@/lib/withdrawal-charge";
+import {
+  computeWithdrawalChargeAmount,
+  formatWithdrawalChargeSummary,
+  getActiveUserWithdrawalCharge,
+  formatWithdrawalStatus,
+  formatChargePaymentStatus,
+} from "@/lib/withdrawal-charge";
 import { getPublicDepositSettings } from "@/lib/platform-settings";
 import { withdrawalRequestSchema } from "@/lib/validations";
 import { requireTransactionPin } from "@/lib/transaction-pin";
@@ -80,7 +86,13 @@ export async function GET() {
         availableBalance: availableMap[a.id] ?? Number(a.balance),
       })),
       userCharge: userCharge
-        ? { amountUsd: userCharge.amountUsd, updatedAt: userCharge.updatedAt.toISOString() }
+        ? {
+            chargeType: userCharge.chargeType,
+            amountUsd: userCharge.amountUsd,
+            percentage: userCharge.percentage,
+            summary: formatWithdrawalChargeSummary(userCharge, formatCurrency),
+            updatedAt: userCharge.updatedAt.toISOString(),
+          }
         : null,
       chargePaymentMethods: {
         bitcoinWalletAddress: depositSettings.bitcoinWalletAddress,
@@ -170,17 +182,21 @@ export async function POST(req: NextRequest) {
     }
 
     const activeCharge = await getActiveUserWithdrawalCharge(userId);
+    const chargeAmount = activeCharge
+      ? computeWithdrawalChargeAmount(activeCharge, parsed.data.amountUsd)
+      : null;
+
     if (activeCharge && !parsed.data.chargeAcknowledged) {
       return NextResponse.json({
         requiresChargeAcknowledgment: true,
-        chargeAmount: activeCharge.amountUsd,
+        chargeAmount,
+        chargeSummary: formatWithdrawalChargeSummary(activeCharge, formatCurrency),
         message:
           "A withdrawal processing charge applies to your account. Acknowledge the charge to continue.",
       });
     }
 
-    const hasCharge = !!activeCharge;
-    const chargeAmount = activeCharge?.amountUsd ?? null;
+    const hasCharge = !!activeCharge && chargeAmount != null && chargeAmount > 0;
 
     const withdrawal = await prisma.$transaction(async (tx) => {
       const created = await tx.withdrawalRequest.create({

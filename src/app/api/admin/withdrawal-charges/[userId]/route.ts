@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, forbiddenResponse } from "@/lib/api-auth";
 import { logAdminAction, getClientIp } from "@/lib/admin-audit";
 import { userWithdrawalChargeSchema } from "@/lib/validations";
+import { buildWithdrawalChargeUpsertData } from "@/lib/withdrawal-charge";
 import { prisma } from "@/lib/prisma";
 import { invalidateAdminCaches } from "@/lib/admin-cache";
 
@@ -19,22 +20,34 @@ export async function PATCH(req: NextRequest, { params }: { params: { userId: st
     const existing = await prisma.userWithdrawalCharge.findUnique({ where: { userId: params.userId } });
     if (!existing) return NextResponse.json({ error: "Charge not found" }, { status: 404 });
 
+    const chargeData = buildWithdrawalChargeUpsertData(parsed.data, session.user.id);
     const charge = await prisma.userWithdrawalCharge.update({
       where: { userId: params.userId },
-      data: { amountUsd: parsed.data.amountUsd, active: true },
+      data: chargeData,
     });
 
     await logAdminAction(
       session.user.id,
       "WITHDRAWAL_CHARGE_UPDATED",
-      { userId: params.userId, amountUsd: parsed.data.amountUsd },
+      {
+        userId: params.userId,
+        chargeType: parsed.data.chargeType,
+        amountUsd: parsed.data.amountUsd ?? null,
+        percentage: parsed.data.percentage ?? null,
+      },
       params.userId,
       getClientIp(req)
     );
 
     invalidateAdminCaches();
 
-    return NextResponse.json({ charge: { ...charge, amountUsd: Number(charge.amountUsd) } });
+    return NextResponse.json({
+      charge: {
+        ...charge,
+        amountUsd: Number(charge.amountUsd),
+        percentage: charge.percentage != null ? Number(charge.percentage) : null,
+      },
+    });
   } catch (error) {
     console.error("Admin withdrawal charge PATCH error:", error);
     return NextResponse.json({ error: "Failed to update charge" }, { status: 500 });

@@ -32,7 +32,12 @@ interface ChargePayment {
 
 interface WithdrawalData {
   accounts: { id: string; name: string; currency: string; balance: number; availableBalance: number }[];
-  userCharge: { amountUsd: number } | null;
+  userCharge: {
+    chargeType: "FIXED" | "PERCENTAGE";
+    amountUsd: number;
+    percentage: number | null;
+    summary: string;
+  } | null;
   chargePaymentMethods: {
     bitcoinWalletAddress: string;
     bitcoinPurchaseLink: string;
@@ -224,7 +229,13 @@ export default function WithdrawalsPage() {
           {withdrawalData.userCharge && (
             <p className="text-xs text-amber-400/90 mt-2 flex items-center gap-1.5">
               <CreditCard size={14} />
-              {t("withdrawals.chargeNotice", { amount: formatCurrency(withdrawalData.userCharge.amountUsd) })}
+              {withdrawalData.userCharge.chargeType === "PERCENTAGE"
+                ? t("withdrawals.chargeNoticePercent", {
+                    percent: String(withdrawalData.userCharge.percentage ?? 0),
+                  })
+                : t("withdrawals.chargeNotice", {
+                    amount: formatCurrency(withdrawalData.userCharge.amountUsd),
+                  })}
             </p>
           )}
         </div>

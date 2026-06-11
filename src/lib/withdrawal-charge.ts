@@ -1,17 +1,69 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, WithdrawalChargeType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const ACTIVE_WITHDRAWAL_STATUSES = ["PENDING", "AWAITING_CHARGE_PAYMENT"] as const;
 
-export async function getActiveUserWithdrawalCharge(userId: string) {
+export type ActiveUserWithdrawalCharge = {
+  id: string;
+  chargeType: WithdrawalChargeType;
+  amountUsd: number;
+  percentage: number | null;
+  active: boolean;
+  updatedAt: Date;
+};
+
+export function computeWithdrawalChargeAmount(
+  charge: Pick<ActiveUserWithdrawalCharge, "chargeType" | "amountUsd" | "percentage">,
+  withdrawalAmountUsd: number
+): number {
+  if (charge.chargeType === "PERCENTAGE" && charge.percentage != null && charge.percentage > 0) {
+    const computed = Math.round(withdrawalAmountUsd * (charge.percentage / 100) * 100) / 100;
+    return Math.max(0.01, computed);
+  }
+  return charge.amountUsd;
+}
+
+export function formatWithdrawalChargeSummary(
+  charge: Pick<ActiveUserWithdrawalCharge, "chargeType" | "amountUsd" | "percentage">,
+  formatCurrency: (amount: number) => string
+): string {
+  if (charge.chargeType === "PERCENTAGE" && charge.percentage != null) {
+    return `${charge.percentage}% of withdrawal amount`;
+  }
+  return formatCurrency(charge.amountUsd);
+}
+
+export async function getActiveUserWithdrawalCharge(userId: string): Promise<ActiveUserWithdrawalCharge | null> {
   const charge = await prisma.userWithdrawalCharge.findUnique({
     where: { userId },
-    select: { id: true, amountUsd: true, active: true, updatedAt: true },
+    select: {
+      id: true,
+      chargeType: true,
+      amountUsd: true,
+      percentage: true,
+      active: true,
+      updatedAt: true,
+    },
   });
   if (!charge || !charge.active) return null;
+
+  if (charge.chargeType === "PERCENTAGE") {
+    const percentage = charge.percentage != null ? Number(charge.percentage) : null;
+    if (percentage == null || percentage <= 0) return null;
+    return {
+      ...charge,
+      amountUsd: 0,
+      percentage,
+    };
+  }
+
   const amount = Number(charge.amountUsd);
   if (amount <= 0) return null;
-  return { ...charge, amountUsd: amount };
+  return {
+    ...charge,
+    amountUsd: amount,
+    percentage: charge.percentage != null ? Number(charge.percentage) : null,
+  };
 }
 
 export async function isWithdrawalChargePaid(withdrawalRequestId: string) {
@@ -96,4 +148,31 @@ export function formatChargePaymentStatus(status: string) {
     default:
       return status;
   }
+}
+
+export function buildWithdrawalChargeUpsertData(
+  input: {
+    chargeType: WithdrawalChargeType;
+    amountUsd?: number;
+    percentage?: number;
+  },
+  createdById: string
+) {
+  if (input.chargeType === "PERCENTAGE") {
+    return {
+      chargeType: "PERCENTAGE" as const,
+      amountUsd: 0,
+      percentage: input.percentage!,
+      active: true,
+      createdById,
+    };
+  }
+
+  return {
+    chargeType: "FIXED" as const,
+    amountUsd: input.amountUsd!,
+    percentage: null,
+    active: true,
+    createdById,
+  };
 }
