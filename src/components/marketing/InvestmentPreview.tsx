@@ -3,25 +3,13 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, TrendingUp } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import Button from "@/components/ui/Button";
-import ChartContainer from "@/components/ui/ChartContainer";
 import GlowIcon from "@/components/ui/GlowIcon";
-import { CHART_BRAND } from "@/lib/chart-theme";
-import { useChartTheme } from "@/hooks/use-chart-theme";
 import { useI18n } from "@/components/providers/I18nProvider";
-
-const chartData = [
-  { month: "Jan", value: 4200 }, { month: "Feb", value: 4350 }, { month: "Mar", value: 4100 },
-  { month: "Apr", value: 4580 }, { month: "May", value: 4720 }, { month: "Jun", value: 4650 },
-  { month: "Jul", value: 4890 }, { month: "Aug", value: 5020 }, { month: "Sep", value: 5180 },
-  { month: "Oct", value: 5340 }, { month: "Nov", value: 5490 }, { month: "Dec", value: 5720 },
-];
 
 const tickers = ["AAPL", "MSFT", "TSLA", "BTC", "ETH"];
 
 export default function InvestmentPreview() {
-  const chartTheme = useChartTheme();
   const { t } = useI18n();
 
   return (
@@ -41,22 +29,9 @@ export default function InvestmentPreview() {
                 <span className="text-sm text-text-secondary">{t("marketing.investment.indexLabel")}</span>
                 <span className="font-mono text-sm text-accent-green">{t("marketing.investment.ytd")}</span>
               </div>
-              <ChartContainer className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="brandArea" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={CHART_BRAND} stopOpacity={0.35} />
-                        <stop offset="100%" stopColor={CHART_BRAND} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
-                    <Tooltip contentStyle={chartTheme.tooltip} />
-                    <Area type="monotone" dataKey="value" stroke={CHART_BRAND} fill="url(#brandArea)" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <div className="h-64 rounded-xl border border-dashed border-white/10 bg-white/[0.02] flex items-center justify-center">
+                <p className="text-sm text-text-muted">Live market data in your dashboard</p>
+              </div>
             </div>
           </motion.div>
 

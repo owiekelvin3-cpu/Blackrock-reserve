@@ -20,21 +20,12 @@ export type RevenueFlowDatum = {
   tooltipLines?: RevenueFlowTooltipLine[];
 };
 
-const DEMO_DATA: RevenueFlowDatum[] = [
-  { label: "Mon", value: 42 },
-  { label: "Tue", value: 58 },
-  { label: "Wed", value: 72 },
-  { label: "Thu", value: 51 },
-  { label: "Fri", value: 64 },
-  { label: "Sat", value: 59 },
-  { label: "Sun", value: 68 },
-];
-
 interface RevenueFlowChartProps {
   data?: RevenueFlowDatum[];
   animate?: boolean;
   formatValue?: (value: number) => string;
   className?: string;
+  emptyLabel?: string;
 }
 
 export default function RevenueFlowChart({
@@ -42,17 +33,30 @@ export default function RevenueFlowChart({
   animate = false,
   formatValue = (v) => `$${Math.round(v)}k`,
   className = "",
+  emptyLabel = "No activity yet",
 }: RevenueFlowChartProps) {
   const [hovered, setHovered] = useState<number | null>(null);
 
+  const hasData = Array.isArray(data) && data.length > 0 && data.some((d) => d.value > 0);
+
   const points = useMemo(() => {
-    const source = data?.length ? data : DEMO_DATA;
-    const maxVal = Math.max(...source.map((d) => d.value), 1);
-    return source.map((d) => ({
+    if (!hasData || !data) return [];
+    const maxVal = Math.max(...data.map((d) => d.value), 1);
+    return data.map((d) => ({
       ...d,
       displayValue: d.value > 0 ? d.value : maxVal * 0.12,
     }));
-  }, [data]);
+  }, [data, hasData]);
+
+  if (!hasData) {
+    return (
+      <div
+        className={`relative w-full h-full min-h-[9rem] flex items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] ${className}`}
+      >
+        <p className="text-xs text-text-muted">{emptyLabel}</p>
+      </div>
+    );
+  }
 
   const max = Math.max(...points.map((p) => p.displayValue), 1);
   const peakIdx = points.reduce((best, p, i) => (p.value >= points[best].value ? i : best), 0);

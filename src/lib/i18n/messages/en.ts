@@ -134,7 +134,6 @@ const enBase = {
     thisYear: "This Year",
     noCashFlow: "No cash flow data",
     noCashFlowDesc: "Transaction activity will populate this chart over time.",
-    previewCashFlowHint: "Sample preview — your transactions will appear here",
     savings: "Savings",
     save: "Save",
     withdrawSavings: "Withdraw",
@@ -533,7 +532,7 @@ const enBase = {
       contactSales: "Contact Sales",
     },
     trustBar: {
-      trusted: "Trusted by {count} Teams Worldwide",
+      trusted: "Institutional-grade banking infrastructure",
     },
     workflow: {
       badge: "Our Working Flow",
@@ -584,7 +583,7 @@ const enBase = {
   chat: {
     assistantName: "Crest Assistant",
     onlineStatus: "Online · Blackrock Reserve",
-    welcomeMessage: "Hi! I'm Crest Assistant, your Blackrock Reserve guide. I can help with accounts, deposits, withdrawals, transfers, KYC, and security. What would you like to know?",
+    welcomeMessage: "Hi! I'm Crest Assistant, your Blackrock Reserve guide. I can help with accounts, deposits, withdrawals, ACH liquidity verification, KYC, investments, and security. What would you like to know?",
     placeholder: "Ask about accounts, deposits, KYC...",
     sendMessage: "Send message",
     minimizeChat: "Minimize chat",
@@ -596,6 +595,7 @@ const enBase = {
     ariaLabel: "Blackrock Reserve support chat",
     connectionError: "Sorry, I'm having trouble connecting. Please try again or visit our Contact page.",
     contactRedirect: "Taking you to our Contact page now—you can send a detailed message to our team.",
+    quickAchLiquidity: "ACH liquidity verification",
     quickOpenAccount: "Open an account",
     quickBitcoin: "Bitcoin deposits",
     quickWithdraw: "Withdraw funds",

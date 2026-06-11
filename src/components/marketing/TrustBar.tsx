@@ -33,7 +33,7 @@ export default function TrustBar() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          {t("marketing.trustBar.trusted", { count: "10,000+" })}
+          {t("marketing.trustBar.trusted")}
         </motion.p>
 
         <motion.div
