@@ -18,7 +18,6 @@ type ChatMessage = {
 type LauncherPosition = { x: number; y: number };
 
 const STORAGE_KEY = "pcb-chat-messages";
-const DISMISS_KEY = "pcb-chat-dismissed";
 const POSITION_KEY = "pcb-chat-position";
 const LAUNCHER_SIZE = 56;
 const DRAG_THRESHOLD = 8;
@@ -39,14 +38,6 @@ function loadMessages(): ChatMessage[] {
 
 function saveMessages(messages: ChatMessage[]) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-30)));
-}
-
-function readDismissed(): boolean {
-  try {
-    return localStorage.getItem(DISMISS_KEY) === "1";
-  } catch {
-    return false;
-  }
 }
 
 function readStoredPosition(): LauncherPosition | null {
@@ -142,7 +133,14 @@ export default function ChatWidget() {
   const hidden = pathname.startsWith("/admin");
 
   useEffect(() => {
-    setDismissed(readDismissed());
+    try {
+      localStorage.removeItem("pcb-chat-dismissed");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
     const stored = readStoredPosition();
     const initial = clampPosition(stored ?? getDefaultPosition(isDashboard));
     positionRef.current = initial;
@@ -165,11 +163,6 @@ export default function ChatWidget() {
   const dismissChat = useCallback(() => {
     setOpen(false);
     setDismissed(true);
-    try {
-      localStorage.setItem(DISMISS_KEY, "1");
-    } catch {
-      /* ignore */
-    }
   }, []);
 
   useEffect(() => {
