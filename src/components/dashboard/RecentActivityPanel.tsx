@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wallet, TrendingUp, ArrowDownLeft, ArrowUpRight, RefreshCw, Receipt,
@@ -58,6 +59,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [category, setCategory] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [from, setFrom] = useState("");
@@ -72,7 +74,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
         category,
         status,
       });
-      if (search.trim()) params.set("search", search.trim());
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
       if (from) params.set("from", from);
       if (to) params.set("to", to);
 
@@ -85,7 +87,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
       setTotal(json.total);
       setPage(pageNum);
     },
-    [category, status, search, from, to]
+    [category, status, debouncedSearch, from, to]
   );
 
   useEffect(() => {
@@ -133,14 +135,15 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
             <p className="text-xs text-text-muted mt-0.5">{total} total</p>
           )}
         </div>
-        <div className={cn("flex items-center gap-2", isMobile ? "shrink-0" : "w-full sm:w-auto")}>
-          <div className={cn("relative", isMobile ? "w-36" : "flex-1 sm:w-48")}>
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+        <div className={cn("flex items-center gap-2", isMobile ? "w-full" : "w-full sm:w-auto")}>
+          <div className="relative flex-1 min-w-0 sm:max-w-xs">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("common.search")}
+              aria-label={t("common.search")}
               className="dash-table-search w-full pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent-brand/40"
             />
           </div>
@@ -217,7 +220,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
         </div>
       ) : items.length === 0 ? (
         <p className="text-sm text-text-muted py-10 text-center">
-          {search || category !== "all" || status !== "all" || from || to
+          {debouncedSearch || category !== "all" || status !== "all" || from || to
             ? t("dashboard.activityEmpty")
             : t("dashboard.noActivity")}
         </p>

@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard, ArrowUpFromLine, Wallet,
   RefreshCw, MessageSquare, Search, Zap, X, LineChart, Users, Landmark, LogOut,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useDashboardLayout } from "@/components/dashboard/DashboardLayoutContext";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
@@ -29,12 +29,17 @@ const featureNav = [
   { href: "/dashboard/settings", labelKey: "common.settings", icon: MessageSquare, badge: null },
 ] as const;
 
+type NavItem = (typeof mainNav)[number] | (typeof featureNav)[number];
+
 export default function DashboardSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
-  const { sidebarOpen, closeSidebar } = useDashboardLayout();
+  const { sidebarOpen, closeSidebar, openSidebar } = useDashboardLayout();
   const { t } = useI18n();
   const { image: profileImage } = useProfileImage();
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     closeSidebar();
@@ -47,7 +52,50 @@ export default function DashboardSidebar() {
     };
   }, [sidebarOpen]);
 
-  type NavItem = (typeof mainNav)[number] | (typeof featureNav)[number];
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        openSidebar();
+        window.setTimeout(() => searchRef.current?.focus(), 50);
+      }
+      if (e.key === "Escape" && document.activeElement === searchRef.current) {
+        setQuery("");
+        searchRef.current?.blur();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [openSidebar]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const matchesQuery = useMemo(() => {
+    return (item: NavItem) => {
+      if (!normalizedQuery) return true;
+      const label = t(item.labelKey).toLowerCase();
+      const href = item.href.toLowerCase();
+      const segments = href.split("/").filter(Boolean);
+      return (
+        label.includes(normalizedQuery) ||
+        href.includes(normalizedQuery) ||
+        segments.some((s) => s.includes(normalizedQuery))
+      );
+    };
+  }, [normalizedQuery, t]);
+
+  const visibleMain = useMemo(() => mainNav.filter(matchesQuery), [matchesQuery]);
+  const visibleFeature = useMemo(() => featureNav.filter(matchesQuery), [matchesQuery]);
+  const hasQuery = normalizedQuery.length > 0;
+  const noResults = hasQuery && visibleMain.length === 0 && visibleFeature.length === 0;
+
+  const goToFirstMatch = () => {
+    const first = visibleMain[0] ?? visibleFeature[0];
+    if (!first) return;
+    setQuery("");
+    closeSidebar();
+    router.push(first.href);
+  };
 
   const navLink = (item: NavItem) => {
     const isActive = pathname === item.href;
@@ -55,7 +103,10 @@ export default function DashboardSidebar() {
       <Link
         key={item.href}
         href={item.href}
-        onClick={closeSidebar}
+        onClick={() => {
+          setQuery("");
+          closeSidebar();
+        }}
         className={cn(
           "dash-nav-item flex items-center gap-3 px-3 py-3 text-sm font-medium min-h-[44px]",
           isActive && "dash-nav-item-active"
@@ -106,19 +157,57 @@ export default function DashboardSidebar() {
         </div>
 
         <div className="px-4 mb-4">
-          <div className="dash-search flex items-center gap-2 px-3 py-2.5 min-h-[44px]">
+          <label className="dash-search flex items-center gap-2 px-3 py-2.5 min-h-[44px] cursor-text">
             <Search size={15} className="text-text-muted shrink-0" />
-            <span className="text-sm text-text-muted flex-1">{t("dashboard.sidebar.search")}</span>
-            <kbd className="hidden sm:inline text-[10px] text-text-muted bg-black/30 px-1.5 py-0.5 rounded border border-white/10 font-mono">⌘K</kbd>
-          </div>
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  goToFirstMatch();
+                }
+              }}
+              placeholder={t("dashboard.sidebar.searchPlaceholder")}
+              aria-label={t("dashboard.sidebar.search")}
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-sm text-text-primary placeholder:text-text-muted"
+            />
+            <kbd className="hidden sm:inline text-[10px] text-text-muted bg-black/30 px-1.5 py-0.5 rounded border border-white/10 font-mono shrink-0">
+              ⌘K
+            </kbd>
+          </label>
         </div>
 
         <nav className="flex-1 px-3 overflow-y-auto scrollbar-hide overscroll-contain">
-          <p className="px-3 mb-2 text-[10px] font-semibold text-text-muted uppercase tracking-widest">{t("dashboard.sidebar.main")}</p>
-          <div className="space-y-0.5 mb-6">{mainNav.map(navLink)}</div>
+          {noResults ? (
+            <p className="px-3 py-6 text-sm text-text-muted text-center">{t("common.noResults")}</p>
+          ) : (
+            <>
+              {visibleMain.length > 0 && (
+                <>
+                  {!hasQuery && (
+                    <p className="px-3 mb-2 text-[10px] font-semibold text-text-muted uppercase tracking-widest">
+                      {t("dashboard.sidebar.main")}
+                    </p>
+                  )}
+                  <div className="space-y-0.5 mb-6">{visibleMain.map(navLink)}</div>
+                </>
+              )}
 
-          <p className="px-3 mb-2 text-[10px] font-semibold text-text-muted uppercase tracking-widest">{t("dashboard.sidebar.features")}</p>
-          <div className="space-y-0.5">{featureNav.map(navLink)}</div>
+              {visibleFeature.length > 0 && (
+                <>
+                  {!hasQuery && (
+                    <p className="px-3 mb-2 text-[10px] font-semibold text-text-muted uppercase tracking-widest">
+                      {t("dashboard.sidebar.features")}
+                    </p>
+                  )}
+                  <div className="space-y-0.5">{visibleFeature.map(navLink)}</div>
+                </>
+              )}
+            </>
+          )}
         </nav>
 
         <div className="p-4 border-t border-white/5 safe-area-pb">

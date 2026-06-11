@@ -386,6 +386,7 @@ export default function CapitalMarketsPage() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder={t("capitalMarkets.searchPlaceholder")}
+                      aria-label={t("capitalMarkets.searchPlaceholder")}
                       className="marketplace-field w-full pl-10 pr-4 py-2.5 text-sm"
                     />
                   </div>

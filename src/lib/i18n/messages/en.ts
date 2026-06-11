@@ -166,6 +166,7 @@ const enBase = {
       main: "Main",
       features: "Features",
       search: "Search",
+      searchPlaceholder: "Search pages…",
       closeMenu: "Close menu",
     },
     authGuardLoading: "Loading your dashboard…",
