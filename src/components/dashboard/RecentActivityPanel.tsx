@@ -8,6 +8,7 @@ import {
   Search, SlidersHorizontal, ChevronDown, Loader2,
 } from "lucide-react";
 import { useI18n } from "@/components/providers/I18nProvider";
+import TransactionDetailModal from "@/components/dashboard/TransactionDetailModal";
 import { cn } from "@/lib/utils";
 import type { ActivityCategory } from "@/lib/activity-service";
 
@@ -65,6 +66,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
   const fetchActivities = useCallback(
     async (pageNum: number, append: boolean) => {
@@ -232,16 +234,19 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
                 const Icon = ICONS[a.type] ?? Wallet;
                 const statusKey = a.status.toLowerCase();
                 return (
-                  <motion.div
+                  <motion.button
+                    type="button"
                     key={a.id}
                     layout
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i < 5 ? i * 0.04 : 0 }}
+                    onClick={() => setSelectedTransactionId(a.id)}
                     className={cn(
-                      "dash-wallet-tile",
+                      "dash-wallet-tile w-full text-left transition-colors hover:border-accent-brand/25 hover:bg-white/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-brand/40",
                       isMobile ? "dash-activity-row-mobile p-3" : "p-4"
                     )}
+                    aria-label={`${a.name}, ${formatCurrency(a.amount)}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -277,7 +282,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
                         </span>
                       </div>
                     )}
-                  </motion.div>
+                  </motion.button>
                 );
               })}
             </AnimatePresence>
@@ -301,6 +306,11 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
           )}
         </>
       )}
+
+      <TransactionDetailModal
+        transactionId={selectedTransactionId}
+        onClose={() => setSelectedTransactionId(null)}
+      />
     </div>
   );
 }

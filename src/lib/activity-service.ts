@@ -122,3 +122,50 @@ export async function queryActivities(params: ActivityQuery) {
     hasMore: skip + items.length < total,
   };
 }
+
+function formatTransactionStatus(status: string): string {
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
+export async function getActivityById(userId: string, id: string) {
+  const row = await prisma.transaction.findFirst({
+    where: { id, userId },
+    select: {
+      id: true,
+      type: true,
+      amount: true,
+      description: true,
+      status: true,
+      createdAt: true,
+      account: {
+        select: { id: true, name: true, currency: true },
+      },
+    },
+  });
+
+  if (!row) return null;
+
+  const amount =
+    row.type === "DEPOSIT" || row.type === "PROFIT_CREDIT"
+      ? Number(row.amount)
+      : -Math.abs(Number(row.amount));
+
+  return {
+    id: row.id,
+    referenceId: `#${row.id.slice(-8).toUpperCase()}`,
+    name: row.description,
+    description: row.description,
+    type: row.type,
+    category: categoryForType(row.type),
+    amount,
+    status: row.status,
+    statusLabel: formatTransactionStatus(row.status),
+    date: row.createdAt.toISOString(),
+    account: {
+      id: row.account.id,
+      name: row.account.name,
+      currency: row.account.currency,
+      maskedNumber: `•••• ${row.account.id.slice(-4)}`,
+    },
+  };
+}

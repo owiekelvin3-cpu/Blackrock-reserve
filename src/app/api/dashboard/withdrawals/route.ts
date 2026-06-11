@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId, unauthorizedResponse } from "@/lib/api-auth";
 import { getAvailableBalancesMap } from "@/lib/withdrawal-balance";
-import { getWithdrawalMethodLabel } from "@/lib/withdrawal-methods";
+import { getWithdrawalMethod, getWithdrawalMethodLabel } from "@/lib/withdrawal-methods";
 import { getActiveUserWithdrawalCharge, formatWithdrawalStatus, formatChargePaymentStatus } from "@/lib/withdrawal-charge";
 import { getPublicDepositSettings } from "@/lib/platform-settings";
 import { withdrawalRequestSchema } from "@/lib/validations";
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     const account = await prisma.bankAccount.findFirst({
       where: { id: parsed.data.accountId, userId },
-      select: { id: true, balance: true, user: { select: { status: true, name: true } } },
+      select: { id: true, name: true, balance: true, user: { select: { status: true, name: true } } },
     });
     if (!account) return NextResponse.json({ error: "Invalid account" }, { status: 400 });
     if (account.user.status === "SUSPENDED") {
@@ -228,6 +228,11 @@ export async function POST(req: NextRequest) {
 
     await sendUserNotificationEmail({ userId, title, message });
 
+    const methodDef = getWithdrawalMethod(parsed.data.method);
+    const statusLabel = formatWithdrawalStatus(withdrawal.status);
+    const displayStatus = hasCharge ? "Withdrawal Initiated" : "Withdrawal Initiated";
+    const currentStatus = hasCharge ? "Awaiting Charge Payment" : "Awaiting Confirmation";
+
     return NextResponse.json({
       success: true,
       requiresChargePayment: hasCharge,
@@ -239,9 +244,27 @@ export async function POST(req: NextRequest) {
         id: withdrawal.id,
         method: withdrawal.method,
         status: withdrawal.status,
-        statusLabel: formatWithdrawalStatus(withdrawal.status),
+        statusLabel,
         assignedChargeAmount: withdrawal.assignedChargeAmount != null ? Number(withdrawal.assignedChargeAmount) : null,
         createdAt: withdrawal.createdAt.toISOString(),
+      },
+      receipt: {
+        id: withdrawal.id,
+        amountUsd: parsed.data.amountUsd,
+        method: withdrawal.method,
+        methodLabel: getWithdrawalMethodLabel(withdrawal.method),
+        destination: parsed.data.destination.trim(),
+        destinationExtra: parsed.data.destinationExtra?.trim() || null,
+        accountName: account.name,
+        status: withdrawal.status,
+        statusLabel,
+        displayStatus,
+        currentStatus,
+        createdAt: withdrawal.createdAt.toISOString(),
+        estimatedProcessingTime: methodDef?.timing,
+        requiresChargePayment: hasCharge,
+        chargeAmount,
+        note: parsed.data.note?.trim() || null,
       },
     });
   } catch (error) {

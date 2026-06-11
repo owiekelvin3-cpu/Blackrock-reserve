@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,39 @@ function buildChartRows(data: CashFlowMonth[] | undefined | null, usingPreview: 
   }));
 }
 
+const TOOLTIP_MARGIN = 8;
+const TOOLTIP_GAP = 10;
+
+type TooltipPosition = { left: number; top: number };
+
+function clampTooltipPosition(
+  anchorX: number,
+  anchorY: number,
+  tooltipWidth: number,
+  tooltipHeight: number,
+  containerWidth: number,
+  containerHeight: number
+): TooltipPosition {
+  const halfW = tooltipWidth / 2;
+  let centerX = anchorX;
+  let top = anchorY - tooltipHeight - TOOLTIP_GAP;
+
+  if (top < TOOLTIP_MARGIN) {
+    top = anchorY + TOOLTIP_GAP;
+  }
+  if (top + tooltipHeight > containerHeight - TOOLTIP_MARGIN) {
+    top = Math.max(TOOLTIP_MARGIN, containerHeight - TOOLTIP_MARGIN - tooltipHeight);
+  }
+
+  if (centerX - halfW < TOOLTIP_MARGIN) {
+    centerX = TOOLTIP_MARGIN + halfW;
+  } else if (centerX + halfW > containerWidth - TOOLTIP_MARGIN) {
+    centerX = containerWidth - TOOLTIP_MARGIN - halfW;
+  }
+
+  return { left: centerX, top };
+}
+
 function roundedBarPath(x: number, y: number, w: number, h: number, r: number): string {
   const radius = Math.min(r, w / 2, h / 2);
   return [
@@ -73,6 +106,10 @@ export default function CashFlowPanel({ data }: { data: CashFlowMonth[] }) {
   const [chartMode, setChartMode] = useState<ChartMode>("yearly");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<TooltipPosition>({ left: 0, top: 0 });
+  const [tooltipReady, setTooltipReady] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const usingPreview = !hasRealActivity(data);
   const chartData = useMemo(() => buildChartRows(data, usingPreview), [data, usingPreview]);
@@ -123,6 +160,77 @@ export default function CashFlowPanel({ data }: { data: CashFlowMonth[] }) {
   const barW = (plotW - barGap * (chartData.length - 1)) / chartData.length;
   const minBarH = 8;
 
+  const getBarAnchor = useCallback(
+    (index: number) => {
+      const row = chartData[index];
+      if (!row) return { x: 0, y: 0 };
+      const displayVal = usingPreview ? row.value : Math.max(row.value, 0);
+      const barH = Math.max((displayVal / yMax) * plotH, minBarH);
+      const x = padL + index * (barW + barGap);
+      const barTop = padT + plotH - barH;
+      return {
+        x: x + barW / 2,
+        y: barTop,
+      };
+    },
+    [chartData, usingPreview, yMax, plotH, padL, barW, barGap, minBarH, padT]
+  );
+
+  const updateTooltipPosition = useCallback(
+    (index: number) => {
+      const container = chartRef.current;
+      const tooltip = tooltipRef.current;
+      if (!container || !tooltip) return;
+
+      const { width: containerW, height: containerH } = container.getBoundingClientRect();
+      if (containerW <= 0 || containerH <= 0) return;
+
+      const anchor = getBarAnchor(index);
+      const anchorX = (anchor.x / chartW) * containerW;
+      const anchorY = (anchor.y / chartH) * containerH;
+
+      const { width: tipW, height: tipH } = tooltip.getBoundingClientRect();
+      const measuredW = tipW > 0 ? tipW : tooltip.offsetWidth;
+      const measuredH = tipH > 0 ? tipH : tooltip.offsetHeight;
+
+      setTooltipPos(
+        clampTooltipPosition(
+          anchorX,
+          anchorY,
+          measuredW || 176,
+          measuredH || 100,
+          containerW,
+          containerH
+        )
+      );
+      setTooltipReady(true);
+    },
+    [getBarAnchor]
+  );
+
+  useLayoutEffect(() => {
+    if (hoveredIndex === null) {
+      setTooltipReady(false);
+      return;
+    }
+
+    updateTooltipPosition(hoveredIndex);
+    const raf = requestAnimationFrame(() => updateTooltipPosition(hoveredIndex));
+
+    const container = chartRef.current;
+    if (!container) {
+      return () => cancelAnimationFrame(raf);
+    }
+
+    const observer = new ResizeObserver(() => updateTooltipPosition(hoveredIndex));
+    observer.observe(container);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
+  }, [hoveredIndex, updateTooltipPosition, chartData, chartMode]);
+
   return (
     <div className="cash-flow-card w-full">
       <div className="cash-flow-card-glow" aria-hidden />
@@ -157,6 +265,7 @@ export default function CashFlowPanel({ data }: { data: CashFlowMonth[] }) {
       </div>
 
       <div
+        ref={chartRef}
         className="cash-flow-chart"
         onMouseLeave={() => setHoveredIndex(null)}
       >
@@ -297,15 +406,16 @@ export default function CashFlowPanel({ data }: { data: CashFlowMonth[] }) {
         <AnimatePresence>
           {hoveredIndex !== null && chartData[hoveredIndex] && (
             <motion.div
-              key={hoveredIndex}
+              ref={tooltipRef}
               className="cash-flow-floating-tooltip"
               style={{
-                left: `${((padL + hoveredIndex * (barW + barGap) + barW / 2) / chartW) * 100}%`,
-                top: "18%",
+                left: tooltipPos.left,
+                top: tooltipPos.top,
+                opacity: tooltipReady ? 1 : 0,
               }}
-              initial={{ opacity: 0, y: 8, scale: 0.94 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 6, scale: 0.96 }}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: tooltipReady ? 1 : 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             >
               <p className="cash-flow-tooltip-date">{chartData[hoveredIndex].tooltipDate}</p>

@@ -9,6 +9,7 @@ import DashboardGate from "@/components/dashboard/DashboardGate";
 import EmptyState from "@/components/dashboard/EmptyState";
 import WithdrawalMethodIcon from "@/components/dashboard/WithdrawalMethodIcon";
 import { PayWithdrawalChargeModal, WithdrawalChargeNoticeModal } from "@/components/dashboard/WithdrawalChargeModals";
+import WithdrawalReceiptModal, { type WithdrawalReceiptData } from "@/components/dashboard/WithdrawalReceiptModal";
 import TransactionPinModal from "@/components/dashboard/TransactionPinModal";
 import { useTransactionPin } from "@/hooks/use-transaction-pin";
 import {
@@ -81,6 +82,8 @@ export default function WithdrawalsPage() {
   const [pendingChargeAmount, setPendingChargeAmount] = useState<number | null>(null);
   const [payChargeWithdrawalId, setPayChargeWithdrawalId] = useState<string | null>(null);
   const [payChargeAmount, setPayChargeAmount] = useState<number | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<WithdrawalReceiptData | null>(null);
 
   const selectedMethodDef = getWithdrawalMethod(method)!;
 
@@ -172,6 +175,10 @@ export default function WithdrawalsPage() {
       setNote("");
       setChargeModalOpen(false);
       setPendingChargeAmount(null);
+      if (json.receipt) {
+        setReceiptData(json.receipt as WithdrawalReceiptData);
+        setReceiptOpen(true);
+      }
       load();
       if (json.requiresChargePayment && json.withdrawal?.id) {
         setPayChargeWithdrawalId(json.withdrawal.id);
@@ -322,7 +329,7 @@ export default function WithdrawalsPage() {
                   className="w-full sm:w-auto"
                   disabled={submitting || !accountId || !amountUsd || !destination || (extraRequired && !destinationExtra) || (selectedAccount?.availableBalance ?? 0) <= 0}
                 >
-                  {submitting ? "Submitting..." : `Submit ${selectedMethodDef.label} Withdrawal`}
+                  {submitting ? t("withdrawals.submitting") : t("withdrawals.confirmWithdrawal")}
                 </Button>
               </form>
             </Card>
@@ -419,6 +426,15 @@ export default function WithdrawalsPage() {
           onPaid={() => load(true)}
         />
       )}
+
+      <WithdrawalReceiptModal
+        open={receiptOpen}
+        receipt={receiptData}
+        onClose={() => {
+          setReceiptOpen(false);
+          setReceiptData(null);
+        }}
+      />
     </DashboardGate>
   );
 }
