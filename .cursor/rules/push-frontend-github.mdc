@@ -9,10 +9,10 @@ After completing work in this project, commit and push to the `blackrock` remote
 
 ## Remote
 
-- **Remote name:** `blackrock`
-- **Repository:** https://github.com/owiekelvin3-cpu/Blackrock-reserve.git
-- **Branch:** `main` (tracks `blackrock/main`)
-- **Deploy:** Vercel auto-deploys from `main` → https://www.blackrockreserve.site
+- **Remote name:** `theblackrock`
+- **Repository:** https://github.com/owiekelvin3-cpu/theblackrockreserve.com.git
+- **Branch:** `main` (tracks `theblackrock/main`)
+- **Deploy:** Vercel auto-deploys from `main` → https://www.theblackrockreserve.com
 
 ## Include
 
@@ -28,4 +28,4 @@ After completing work in this project, commit and push to the `blackrock` remote
 
 1. Never `git add .env` or commit secrets.
 2. Commit with a concise message focused on why.
-3. Push: `git push blackrock main`
+3. Push: `git push theblackrock main`

@@ -12,7 +12,7 @@ Use this checklist when connecting your custom domain and going live.
 ## 2. Connect your custom domain
 
 1. In Vercel: **Project → Settings → Domains → Add**.
-2. Enter your domain (e.g. `blackrockreserve.site` and `www.blackrockreserve.site`).
+2. Enter your domain (e.g. `theblackrockreserve.com` and `www.theblackrockreserve.com`).
 3. At your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.), add the DNS records Vercel shows:
    - **A record** `@` → Vercel IP, or
    - **CNAME** `www` → `cname.vercel-dns.com`
@@ -24,8 +24,8 @@ After the domain works, set these in Vercel **Production** environment:
 
 | Variable | Example |
 |----------|---------|
-| `NEXTAUTH_URL` | `https://www.blackrockreserve.site` |
-| `NEXT_PUBLIC_SITE_URL` | `https://www.blackrockreserve.site` |
+| `NEXTAUTH_URL` | `https://www.theblackrockreserve.com` |
+| `NEXT_PUBLIC_SITE_URL` | `https://www.theblackrockreserve.com` |
 | `NEXTAUTH_SECRET` | 32+ char random string (`openssl rand -base64 32`) |
 
 Redeploy after changing env vars (**Deployments → … → Redeploy**).
@@ -37,7 +37,7 @@ All transactional email uses [Resend](https://resend.com): sign-up verification,
 ### Add your domain in Resend
 
 1. Sign in at [resend.com](https://resend.com) → **Domains** → **Add Domain**.
-2. Enter `blackrockreserve.site`.
+2. Enter `theblackrockreserve.com`.
 3. Resend will show DNS records (typically **DKIM**, **SPF**, and sometimes **MX**). Add them at the same place you manage DNS for the site (registrar or Cloudflare).
 4. Wait until Resend shows the domain as **Verified** (often 5–30 minutes).
 
@@ -49,15 +49,15 @@ All transactional email uses [Resend](https://resend.com): sign-up verification,
 | Variable | Value |
 |----------|--------|
 | `RESEND_API_KEY` | Your `re_...` key |
-| `EMAIL_FROM` | `BlackrockReserve <noreply@blackrockreserve.site>` |
-| `NOTIFY_EMAIL` | `admin@blackrockreserve.site` (contact form alerts) |
+| `EMAIL_FROM` | `BlackrockReserve <noreply@theblackrockreserve.com>` |
+| `NOTIFY_EMAIL` | `admin@theblackrockreserve.com` (contact form alerts) |
 
 3. Redeploy.
 
 **Sender addresses you can use** (after domain is verified):
 
-- `noreply@blackrockreserve.site` — verification & password emails
-- `notifications@blackrockreserve.site` — transaction alerts (set in `EMAIL_FROM` if you prefer)
+- `noreply@theblackrockreserve.com` — verification & password emails
+- `notifications@theblackrockreserve.com` — transaction alerts (set in `EMAIL_FROM` if you prefer)
 
 Resend takes priority over Gmail when `RESEND_API_KEY` is set. Gmail vars are optional fallback for local dev.
 
@@ -82,7 +82,7 @@ Configure **Admin → Settings** (Bitcoin wallet, deposit messages) before custo
 - [ ] Admin can credit balance and customer gets notification
 - [ ] `NEXTAUTH_URL` uses `https://` (not `http://`)
 - [ ] Resend domain verified and `RESEND_API_KEY` set in Vercel
-- [ ] Test register → verification email arrives from `@blackrockreserve.site`
+- [ ] Test register → verification email arrives from `@theblackrockreserve.com`
 - [ ] Supabase project is **not paused**
 
 ## 7. Optional: Google OAuth

@@ -6,15 +6,15 @@ Premium digital banking platform built with Next.js 14, TypeScript, Tailwind CSS
 
 ## Email (Resend + your domain)
 
-Sign-up verification, password reset, transaction alerts, and contact notifications are sent via **[Resend](https://resend.com)** from `@blackrockreserve.site`.
+Sign-up verification, password reset, transaction alerts, and contact notifications are sent via **[Resend](https://resend.com)** from `@theblackrockreserve.com`.
 
-1. Add domain `blackrockreserve.site` in Resend → copy DNS records to your registrar
+1. Add domain `theblackrockreserve.com` in Resend → copy DNS records to your registrar
 2. Create an API key and add to `.env` / Vercel:
 
 | Variable | Description |
 |----------|-------------|
 | `RESEND_API_KEY` | Resend API key (`re_...`) |
-| `EMAIL_FROM` | e.g. `BlackrockReserve <noreply@blackrockreserve.site>` |
+| `EMAIL_FROM` | e.g. `BlackrockReserve <noreply@theblackrockreserve.com>` |
 | `NOTIFY_EMAIL` | Inbox for contact-form alerts |
 
 Gmail (`GMAIL_USER` / `GMAIL_APP_PASSWORD`) is optional fallback for local dev. See `DEPLOYMENT.md` for full DNS setup.
@@ -29,14 +29,14 @@ In development without email configured, OTP codes are printed to the server con
 | Variable | Description |
 |----------|-------------|
 | `RESEND_API_KEY` | Resend API key for transactional email |
-| `EMAIL_FROM` | Verified sender, e.g. `BlackrockReserve <noreply@blackrockreserve.site>` |
+| `EMAIL_FROM` | Verified sender, e.g. `BlackrockReserve <noreply@theblackrockreserve.com>` |
 | `NOTIFY_EMAIL` | Optional — contact form notification inbox |
 | `DATABASE_URL` | Supabase pooled connection (`aws-1-[region].pooler.supabase.com:6543?pgbouncer=true&sslmode=require`) |
 | `DIRECT_URL` | Supabase **direct** host (`db.[PROJECT_REF].supabase.co:5432?sslmode=require`) |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server only) |
-| `NEXT_PUBLIC_SITE_URL` | Production URL, e.g. `https://www.blackrockreserve.site` |
+| `NEXT_PUBLIC_SITE_URL` | Production URL, e.g. `https://www.theblackrockreserve.com` |
 | `NEXTAUTH_URL` | Same as production URL (auth cookies & email links) |
 | `NEXTAUTH_SECRET` | Random secret (`openssl rand -base64 32`) |
 | `ADMIN_EMAIL` | Admin bootstrap email (for `npm run admin:create`) |
