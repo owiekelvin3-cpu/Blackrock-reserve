@@ -51,7 +51,7 @@ export default function RevenueFlowChart({
   if (!hasData) {
     return (
       <div
-        className={`relative w-full h-full min-h-[9rem] flex items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] ${className}`}
+        className={`relative w-full h-full min-h-[9rem] flex items-center justify-center rounded-xl border border-dashed border-border bg-surface-overlay ${className}`}
       >
         <p className="text-xs text-text-muted">{emptyLabel}</p>
       </div>
