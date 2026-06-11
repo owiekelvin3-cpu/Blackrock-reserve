@@ -33,7 +33,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [showWidget, setShowWidget] = useState(false);
 
   useEffect(() => {
-    if (isDashboard) return;
+    if (isDashboard) {
+      setShowWidget(true);
+      return;
+    }
     const timer = window.setTimeout(() => setShowWidget(true), 1500);
     return () => window.clearTimeout(timer);
   }, [isDashboard]);

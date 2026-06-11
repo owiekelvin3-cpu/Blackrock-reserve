@@ -134,6 +134,8 @@ const enBase = {
     thisYear: "This Year",
     noCashFlow: "No cash flow data",
     noCashFlowDesc: "Transaction activity will populate this chart over time.",
+    supportChatTitle: "Support Chat",
+    supportChatDesc: "Ask about deposits, withdrawals, KYC, and account security. Our AI assistant is available 24/7.",
     savings: "Savings",
     save: "Save",
     withdrawSavings: "Withdraw",
