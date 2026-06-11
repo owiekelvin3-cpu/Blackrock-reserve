@@ -9,7 +9,6 @@ import DashboardQuickActions from "@/components/dashboard/DashboardQuickActions"
 import SavingsPanel, { type SavingsData } from "@/components/dashboard/SavingsPanel";
 import CashFlowPanel, { type CashFlowMonth } from "@/components/dashboard/CashFlowPanel";
 import RecentActivityPanel from "@/components/dashboard/RecentActivityPanel";
-import SupportChatPanel from "@/components/dashboard/SupportChatPanel";
 import { useI18n } from "@/components/providers/I18nProvider";
 
 interface OverviewData {
@@ -87,8 +86,6 @@ export default function DashboardPage() {
               <CashFlowPanel data={data.cashFlowData ?? []} />
             </div>
           </div>
-
-          <SupportChatPanel />
 
           <RecentActivityPanel variant="mobile" />
         </div>
