@@ -27,7 +27,7 @@ export default function DashboardGreeting() {
       animate="visible"
       variants={fadeUp}
       className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4 w-full"
-      aria-label={t("dashboard.welcomeBack")}
+      aria-label={clock.greeting}
     >
       <div className="min-w-0">
         <h1 className="text-xl sm:text-[1.65rem] font-bold text-text-primary tracking-tight leading-snug" aria-live="polite">

@@ -82,8 +82,8 @@ export default function DashboardPage() {
             <div className="lg:col-span-2">
               <SavingsPanel data={data.savings} onUpdated={loadData} />
             </div>
-            <div className="lg:col-span-3">
-              <CashFlowPanel data={data.cashFlowData} />
+            <div className="lg:col-span-3 w-full min-w-0">
+              <CashFlowPanel data={data.cashFlowData ?? []} />
             </div>
           </div>
 

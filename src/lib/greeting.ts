@@ -28,8 +28,8 @@ export function getFirstName(name?: string | null): string | null {
 
 export function buildGreetingMessage(period: GreetingPeriod, firstName: string | null): string {
   const label = getGreetingLabel(period);
-  if (!firstName) return "Welcome Back 👋";
-  return `${label}, ${firstName} 👋`;
+  if (!firstName) return label;
+  return `${label}, ${firstName}`;
 }
 
 export function resolveBrowserTimezone(): string {

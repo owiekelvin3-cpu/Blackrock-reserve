@@ -69,9 +69,9 @@ function buildGreeting(
   firstName: string | null,
   t: (key: string, vars?: Record<string, string | number>) => string
 ): string {
-  if (!firstName) return t("dashboard.welcomeBack");
   const label = t(GREETING_KEYS[period]);
-  return `${label}, ${firstName} 👋`;
+  if (!firstName) return label;
+  return `${label}, ${firstName}`;
 }
 
 function buildState(

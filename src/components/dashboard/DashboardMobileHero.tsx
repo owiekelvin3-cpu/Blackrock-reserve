@@ -9,6 +9,7 @@ import ProfileAvatar from "@/components/ui/ProfileAvatar";
 import { useProfileImage } from "@/components/providers/ProfileImageProvider";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { getFirstName } from "@/lib/greeting";
+import { useLiveClock } from "@/hooks/use-live-clock";
 import { cn } from "@/lib/utils";
 
 type DashboardMobileHeroProps = {
@@ -32,10 +33,11 @@ export default function DashboardMobileHero({
 }: DashboardMobileHeroProps) {
   const { data: session } = useSession();
   const { image: profileImage } = useProfileImage();
-  const { t, formatCurrency } = useI18n();
+  const { t, formatCurrency, locale } = useI18n();
   const [balanceVisible, setBalanceVisible] = useState(true);
 
   const firstName = useMemo(() => getFirstName(session?.user?.name), [session?.user?.name]);
+  const { clock, ready } = useLiveClock(firstName, locale, t);
   const formattedTotal = formatCurrency(totalBalance);
   const formattedSavings = formatCurrency(savingsBalance, savingsCurrency);
 
@@ -51,10 +53,23 @@ export default function DashboardMobileHero({
         <div className="dash-mobile-hero-user">
           <ProfileAvatar name={session?.user?.name} image={profileImage} size="md" />
           <div className="min-w-0">
-            <p className="dash-mobile-hero-welcome">{t("dashboard.welcomeBack")}</p>
-            <p className="dash-mobile-hero-name truncate">{firstName || session?.user?.name || t("nav.dashboard")}</p>
+            <p className="dash-mobile-hero-greeting truncate" aria-live="polite">
+              {ready && clock ? clock.greeting : t("dashboard.greetingMorning")}
+            </p>
+            {ready && clock && (
+              <p className="dash-mobile-hero-date truncate">{clock.dateLine}</p>
+            )}
           </div>
         </div>
+        {ready && clock && (
+          <time
+            className="dash-mobile-hero-time"
+            dateTime={new Date().toISOString()}
+            aria-live="polite"
+          >
+            {clock.timeLine}
+          </time>
+        )}
       </div>
 
       <motion.div

@@ -22,9 +22,16 @@ export default function ChartContainer({ className, children }: ChartContainerPr
     };
 
     check();
+    const raf = requestAnimationFrame(check);
+    const fallback = window.setTimeout(() => setReady(true), 150);
     const observer = new ResizeObserver(check);
     observer.observe(el);
-    return () => observer.disconnect();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(fallback);
+      observer.disconnect();
+    };
   }, []);
 
   return (
