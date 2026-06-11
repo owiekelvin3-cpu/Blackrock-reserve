@@ -563,7 +563,7 @@ export default function ChatWidget() {
       </AnimatePresence>
 
       {/* Launcher — hidden on dashboard and admin */}
-      {!hideLauncher && (
+      {!hideLauncher && position && (
         <div
           ref={launcherRef}
           className={cn(
