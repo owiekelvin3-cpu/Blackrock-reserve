@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUpFromLine, AlertCircle, Check, CreditCard } from "lucide-react";
+import { ArrowUpFromLine, AlertCircle, Check } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -213,18 +213,6 @@ export default function WithdrawalsPage() {
             {t("withdrawals.title")} <span className="gold-gradient-text">{t("withdrawals.titleHighlight")}</span>
           </h1>
           <p className="text-sm text-text-secondary mt-1">{t("withdrawals.subtitle")}</p>
-          {withdrawalData.userCharge && (
-            <p className="text-xs text-amber-400/90 mt-2 flex items-center gap-1.5">
-              <CreditCard size={14} />
-              {withdrawalData.userCharge.chargeType === "PERCENTAGE"
-                ? t("withdrawals.chargeNoticePercent", {
-                    percent: String(withdrawalData.userCharge.percentage ?? 0),
-                  })
-                : t("withdrawals.chargeNotice", {
-                    amount: formatCurrency(withdrawalData.userCharge.amountUsd),
-                  })}
-            </p>
-          )}
         </div>
 
         {loadError && (
