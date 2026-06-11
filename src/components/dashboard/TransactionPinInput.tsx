@@ -76,7 +76,7 @@ export default function TransactionPinInput({
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
-          className="h-12 w-11 sm:h-14 sm:w-12 rounded-xl border border-white/15 bg-white/[0.04] text-center text-lg font-semibold text-text-primary tracking-widest focus:border-accent-brand/50 focus:outline-none focus:ring-2 focus:ring-accent-brand/20 disabled:opacity-50"
+          className="transaction-pin-digit h-12 w-11 sm:h-14 sm:w-12 rounded-xl border border-border bg-surface-overlay text-center text-lg font-semibold text-text-primary tracking-widest shadow-sm focus:border-accent-brand focus:outline-none focus:ring-2 focus:ring-accent-brand/30 disabled:opacity-50"
           aria-label={`PIN digit ${index + 1}`}
         />
       ))}

@@ -103,7 +103,7 @@ export default function TransactionPinSettings() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-bg-tertiary/40 p-4">
         <div className="h-10 w-10 rounded-xl bg-accent-brand/15 flex items-center justify-center shrink-0">
           <ShieldCheck size={18} className="text-accent-brand" />
         </div>
@@ -114,7 +114,7 @@ export default function TransactionPinSettings() {
             {status?.configured ? (
               <span className="text-accent-green">{t("transactionPin.statusActive")}</span>
             ) : (
-              <span className="text-amber-400">{t("transactionPin.statusRequired")}</span>
+              <span className="text-amber-600 dark:text-amber-400">{t("transactionPin.statusRequired")}</span>
             )}
           </p>
           {status?.locked && (
@@ -134,11 +134,11 @@ export default function TransactionPinSettings() {
           />
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-3">{t("transactionPin.choosePin")}</label>
-            <TransactionPinInput value={pin} onChange={setPin} disabled={saving} />
+            <TransactionPinInput value={pin} onChange={setPin} disabled={saving} className="justify-start" />
           </div>
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-3">{t("transactionPin.confirmPin")}</label>
-            <TransactionPinInput value={confirmPin} onChange={setConfirmPin} disabled={saving} />
+            <TransactionPinInput value={confirmPin} onChange={setConfirmPin} disabled={saving} className="justify-start" />
           </div>
           <p className="text-xs text-text-muted">{t("transactionPin.weakPinHint")}</p>
           <Button type="submit" isLoading={saving} className="w-full sm:w-auto">
@@ -150,15 +150,15 @@ export default function TransactionPinSettings() {
         <form onSubmit={handleChange} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-3">{t("transactionPin.currentPin")}</label>
-            <TransactionPinInput value={currentPin} onChange={setCurrentPin} disabled={saving || !!status?.locked} />
+            <TransactionPinInput value={currentPin} onChange={setCurrentPin} disabled={saving || !!status?.locked} className="justify-start" />
           </div>
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-3">{t("transactionPin.newPin")}</label>
-            <TransactionPinInput value={pin} onChange={setPin} disabled={saving || !!status?.locked} />
+            <TransactionPinInput value={pin} onChange={setPin} disabled={saving || !!status?.locked} className="justify-start" />
           </div>
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-3">{t("transactionPin.confirmNewPin")}</label>
-            <TransactionPinInput value={confirmPin} onChange={setConfirmPin} disabled={saving || !!status?.locked} />
+            <TransactionPinInput value={confirmPin} onChange={setConfirmPin} disabled={saving || !!status?.locked} className="justify-start" />
           </div>
           <Button type="submit" isLoading={saving} variant="outline" className="w-full sm:w-auto" disabled={!!status?.locked}>
             {t("transactionPin.changePin")}

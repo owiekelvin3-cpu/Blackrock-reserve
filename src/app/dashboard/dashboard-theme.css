@@ -1651,3 +1651,20 @@
   justify-content: center;
   padding: 3rem 1rem;
 }
+
+/* Transaction PIN digit inputs */
+.transaction-pin-digit {
+  border-color: var(--border-strong);
+  background: var(--surface-elevated);
+}
+
+[data-theme="light"] .transaction-pin-digit {
+  background: #ffffff;
+  border-color: rgba(15, 20, 25, 0.14);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .transaction-pin-digit:focus {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 3px rgba(255, 95, 5, 0.15);
+}
