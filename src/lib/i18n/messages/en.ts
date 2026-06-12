@@ -467,7 +467,7 @@ const enBase = {
       paidDesc: "Your processing charge has been confirmed. Your withdrawal is now pending admin review.",
       rejectedTitle: "Previous payment not accepted",
       rejectedDesc: "Please submit a new deposit with valid proof of payment below.",
-      returnWithdrawals: "Return to withdrawals",
+      viewReceipt: "View withdrawal receipt",
       goDashboard: "Go to dashboard",
     },
     confirmation: "Your withdrawal request has been submitted. Our team will review and process it according to your selected payout method.",

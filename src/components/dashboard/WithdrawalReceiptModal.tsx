@@ -16,25 +16,9 @@ import {
   maskDestination,
 } from "@/lib/transaction-receipt";
 import { toast } from "sonner";
+import type { WithdrawalReceiptData } from "@/lib/withdrawal-receipt";
 
-export type WithdrawalReceiptData = {
-  id: string;
-  amountUsd: number;
-  method: string;
-  methodLabel: string;
-  destination: string;
-  destinationExtra?: string | null;
-  accountName?: string;
-  status: string;
-  statusLabel: string;
-  displayStatus: string;
-  currentStatus: string;
-  createdAt: string;
-  estimatedProcessingTime?: string;
-  requiresChargePayment?: boolean;
-  chargeAmount?: number | null;
-  note?: string | null;
-};
+export type { WithdrawalReceiptData };
 
 type WithdrawalReceiptModalProps = {
   open: boolean;

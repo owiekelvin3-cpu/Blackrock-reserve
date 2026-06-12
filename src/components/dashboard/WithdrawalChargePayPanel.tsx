@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import WithdrawalReceiptModal from "@/components/dashboard/WithdrawalReceiptModal";
+import type { WithdrawalReceiptData } from "@/lib/withdrawal-receipt";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, ArrowRight, Check, CheckCircle2, Copy, FileCheck, Info, Wallet,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, Copy, FileCheck, FileText, Info, Wallet,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -22,8 +24,11 @@ export type ChargePayPageData = {
   withdrawal: {
     id: string;
     amountUsd: number;
+    method: string;
     methodLabel: string;
     destination: string;
+    destinationExtra?: string | null;
+    note?: string | null;
     accountName: string | null;
     status: string;
     statusLabel: string;
@@ -46,6 +51,7 @@ export type ChargePayPageData = {
     qrCodeDataUrl?: string;
   };
   canPay: boolean;
+  receipt: WithdrawalReceiptData;
 };
 
 export default function WithdrawalChargePayPanel({
@@ -61,10 +67,11 @@ export default function WithdrawalChargePayPanel({
   const [proofNote, setProofNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const { open: pinOpen, loading: pinLoading, error: pinError, requestPin, closePin, confirmPin } =
     useTransactionPin();
 
-  const { withdrawal, chargePayment, chargePaymentMethods, canPay } = data;
+  const { withdrawal, chargePayment, chargePaymentMethods, canPay, receipt } = data;
   const chargeAmount = chargePayment?.amountUsd ?? withdrawal.assignedChargeAmount ?? 0;
   const referenceId = formatReferenceId(withdrawal.id);
   const submitted = chargePayment?.status === "PENDING_VERIFICATION";
@@ -312,10 +319,11 @@ export default function WithdrawalChargePayPanel({
             <Button
               type="button"
               variant="outline"
-              className="w-full sm:flex-1"
-              onClick={() => router.push("/dashboard/withdrawals")}
+              className="w-full sm:flex-1 gap-2"
+              onClick={() => setReceiptOpen(true)}
             >
-              {t("withdrawals.chargePay.returnWithdrawals")}
+              {t("withdrawals.chargePay.viewReceipt")}
+              <FileText size={16} />
             </Button>
             {(submitted || paid) && (
               <Button
@@ -336,6 +344,12 @@ export default function WithdrawalChargePayPanel({
         onConfirm={confirmPin}
         loading={pinLoading || submitting}
         error={pinError}
+      />
+
+      <WithdrawalReceiptModal
+        open={receiptOpen}
+        receipt={receipt}
+        onClose={() => setReceiptOpen(false)}
       />
     </div>
   );

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId, unauthorizedResponse } from "@/lib/api-auth";
 import { getWithdrawalMethodLabel } from "@/lib/withdrawal-methods";
 import { formatWithdrawalStatus, formatChargePaymentStatus } from "@/lib/withdrawal-charge";
+import { buildWithdrawalReceiptData } from "@/lib/withdrawal-receipt";
 import { getPublicDepositSettings } from "@/lib/platform-settings";
 import { withdrawalChargePaymentSubmitSchema } from "@/lib/validations";
 import { requireTransactionPin } from "@/lib/transaction-pin";
@@ -58,12 +59,26 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         method: withdrawal.method,
         methodLabel: getWithdrawalMethodLabel(withdrawal.method),
         destination: withdrawal.destination,
+        destinationExtra: withdrawal.destinationExtra,
+        note: withdrawal.note,
         accountName: account?.name ?? null,
         status: withdrawal.status,
         statusLabel: formatWithdrawalStatus(withdrawal.status),
         assignedChargeAmount: chargeAmount,
         createdAt: withdrawal.createdAt.toISOString(),
       },
+      receipt: buildWithdrawalReceiptData({
+        id: withdrawal.id,
+        amountUsd: Number(withdrawal.amountUsd),
+        method: withdrawal.method,
+        destination: withdrawal.destination,
+        destinationExtra: withdrawal.destinationExtra,
+        note: withdrawal.note,
+        accountName: account?.name ?? null,
+        status: withdrawal.status,
+        createdAt: withdrawal.createdAt,
+        assignedChargeAmount: chargeAmount,
+      }),
       chargePayment: withdrawal.chargePayment
         ? {
             id: withdrawal.chargePayment.id,
