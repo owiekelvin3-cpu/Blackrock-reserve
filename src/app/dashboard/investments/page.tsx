@@ -119,7 +119,8 @@ export default function InvestmentsPage() {
                     <th className="pb-3 pr-4">{t("investments.asset")}</th>
                     <th className="pb-3 pr-4">{t("investments.shares")}</th>
                     <th className="pb-3 pr-4">{t("investments.avgPrice")}</th>
-                    <th className="pb-3">{t("investments.value")}</th>
+                    <th className="pb-3 pr-4">{t("investments.value")}</th>
+                    <th className="pb-3 text-right">{t("trade.action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -133,7 +134,18 @@ export default function InvestmentsPage() {
                       </td>
                       <td className="py-4 pr-4 text-text-secondary">{h.shares.toFixed(4)}</td>
                       <td className="py-4 pr-4 text-text-secondary">{formatCurrency(h.avgPrice)}</td>
-                      <td className="py-4 font-medium text-white">{formatCurrency(h.value)}</td>
+                      <td className="py-4 pr-4 font-medium text-white">{formatCurrency(h.value)}</td>
+                      <td className="py-4 text-right">
+                        <Link href={`/dashboard/capital-markets?sell=${encodeURIComponent(h.symbol)}`}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-accent-red/30 text-accent-red hover:bg-accent-red/10"
+                          >
+                            {t("trade.closePosition")}
+                          </Button>
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

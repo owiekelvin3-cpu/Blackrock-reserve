@@ -243,7 +243,7 @@ const enBase = {
     portfolioValueDesc: "Current market value of unsold positions",
     activeHoldings: "Active Holdings",
     holdings: "Your Holdings",
-    holdingsDesc: "Open positions — sell from the Portfolio tab in Capital Markets.",
+    holdingsDesc: "Every open position can be closed instantly with the Close Position action.",
     noHoldings: "No open holdings. Buy assets in the marketplace to get started.",
     trade: "Trade in Marketplace",
     shares: "Shares",

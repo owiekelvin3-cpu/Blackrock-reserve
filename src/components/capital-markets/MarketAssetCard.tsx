@@ -12,11 +12,19 @@ import { useI18n } from "@/components/providers/I18nProvider";
 
 export type MarketAssetCardData = MarketAssetRecord;
 
+export type OwnedHoldingSummary = {
+  shares: number;
+  marketValue: number;
+  gainLossPercent: number;
+};
+
 interface MarketAssetCardProps {
   asset: MarketAssetCardData;
   marketStatus: string;
   returnPeriod?: ReturnPeriodKey;
   onInvest: (asset: MarketAssetCardData) => void;
+  onSell?: (asset: MarketAssetCardData) => void;
+  holding?: OwnedHoldingSummary | null;
   index?: number;
 }
 
@@ -48,6 +56,8 @@ export default function MarketAssetCard({
   marketStatus,
   returnPeriod = "30d",
   onInvest,
+  onSell,
+  holding,
   index = 0,
 }: MarketAssetCardProps) {
   const { t } = useI18n();
@@ -92,6 +102,11 @@ export default function MarketAssetCard({
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <Badge variant="gold">{asset.symbol}</Badge>
               <span className="text-xs text-[var(--text-muted)]">{asset.sector}</span>
+              {holding && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-accent-green/10 text-accent-green border border-accent-green/25">
+                  {t("trade.owned")}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -139,14 +154,38 @@ export default function MarketAssetCard({
         </span>
       </div>
 
-      <div className="relative flex items-center justify-between gap-3 pt-3 border-t border-[var(--border-subtle)]">
-        <div>
-          <p className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">Expected Return</p>
-          <p className="text-sm font-semibold text-accent-brand">~{asset.expectedReturnPercent}% p.a.</p>
+      <div className="relative flex items-end justify-between gap-3 pt-3 border-t border-[var(--border-subtle)]">
+        <div className="min-w-0">
+          {holding ? (
+            <>
+              <p className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{t("trade.yourPosition")}</p>
+              <p className="text-sm font-semibold text-[var(--text-primary)] font-mono">
+                {holding.shares.toFixed(4)} shares
+              </p>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">{formatCurrency(holding.marketValue)}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">Expected Return</p>
+              <p className="text-sm font-semibold text-accent-brand">~{asset.expectedReturnPercent}% p.a.</p>
+            </>
+          )}
         </div>
-        <Button size="sm" onClick={() => onInvest(asset)} className="shrink-0">
-          {t("trade.buy")}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+          {holding && onSell && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSell(asset)}
+              className="border-accent-red/30 text-accent-red hover:bg-accent-red/10"
+            >
+              {t("trade.closePosition")}
+            </Button>
+          )}
+          <Button size="sm" onClick={() => onInvest(asset)}>
+            {holding ? t("trade.buyMore") : t("trade.buy")}
+          </Button>
+        </div>
       </div>
     </motion.article>
   );

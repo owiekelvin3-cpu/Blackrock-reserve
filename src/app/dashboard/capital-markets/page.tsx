@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   TrendingUp, TrendingDown, BarChart3, Wallet, PieChart, Search,
   SlidersHorizontal, LineChart, History, LayoutGrid, Star, RefreshCw,
@@ -201,6 +202,9 @@ export default function CapitalMarketsPage() {
   const [returnPeriod, setReturnPeriod] = useState<ReturnPeriodKey>("30d");
   const [investAsset, setInvestAsset] = useState<MarketAssetCardData | null>(null);
   const [sellHolding, setSellHolding] = useState<SellHoldingData | null>(null);
+  const searchParams = useSearchParams();
+  const sellFromUrl = searchParams.get("sell");
+  const handledSellUrl = useRef<string | null>(null);
 
   const load = useCallback((silent = false) => {
     if (!silent) setLoading(true);
@@ -260,24 +264,80 @@ export default function CapitalMarketsPage() {
     return sortAssetList(featured, "admin", returnPeriod);
   }, [data?.assets, filterAssets, returnPeriod]);
 
+  const holdingsBySymbol = useMemo(() => {
+    const map = new Map<string, Holding>();
+    data?.holdings.forEach((h) => map.set(h.symbol, h));
+    return map;
+  }, [data?.holdings]);
+
   const marketLabel = data?.marketStatus?.label ?? t("capitalMarkets.marketClosed");
 
-  const openSell = (h: Holding) => {
-    const asset = data?.assets.find((a) => a.symbol === h.symbol);
-    setSellHolding({
-      symbol: h.symbol,
-      name: h.name,
-      sector: h.sector,
-      shares: h.shares,
-      avgPrice: h.avgPrice,
-      marketPrice: h.marketPrice,
-      marketValue: h.marketValue,
-      gainLoss: h.gainLoss,
-      gainLossPercent: h.gainLossPercent,
-      logoDomain: asset?.logoDomain,
-      logoUrl: asset?.logoUrl,
-      minSaleUsd: asset?.minInvestment ?? 50,
-    });
+  const openSell = useCallback(
+    (h: Holding, assets = data?.assets ?? []) => {
+      const asset = assets.find((a) => a.symbol === h.symbol);
+      setActiveTab("portfolio");
+      setSellHolding({
+        symbol: h.symbol,
+        name: h.name,
+        sector: h.sector,
+        shares: h.shares,
+        avgPrice: h.avgPrice,
+        marketPrice: h.marketPrice,
+        marketValue: h.marketValue,
+        gainLoss: h.gainLoss,
+        gainLossPercent: h.gainLossPercent,
+        logoDomain: asset?.logoDomain,
+        logoUrl: asset?.logoUrl,
+        minSaleUsd: asset?.minInvestment ?? 50,
+      });
+    },
+    [data?.assets]
+  );
+
+  const openSellBySymbol = useCallback(
+    (symbol: string, marketData: CapitalMarketsData) => {
+      const holding = marketData.holdings.find((h) => h.symbol === symbol);
+      if (holding) openSell(holding, marketData.assets);
+    },
+    [openSell]
+  );
+
+  const refreshAfterBuy = useCallback(
+    async (symbol: string, openSellAfter = false) => {
+      const { data: json } = await fetchDashboardJson<CapitalMarketsData>("/api/dashboard/capital-markets");
+      if (!json) return;
+      setData(json);
+      if (openSellAfter) openSellBySymbol(symbol, json);
+    },
+    [openSellBySymbol]
+  );
+
+  useEffect(() => {
+    if (!sellFromUrl || !data?.holdings.length) return;
+    const symbol = sellFromUrl.trim().toUpperCase();
+    if (handledSellUrl.current === symbol) return;
+    const holding = data.holdings.find((h) => h.symbol === symbol);
+    if (holding) {
+      handledSellUrl.current = symbol;
+      openSell(holding);
+    }
+  }, [sellFromUrl, data?.holdings, openSell]);
+
+  const cardHoldingProps = (symbol: string) => {
+    const owned = holdingsBySymbol.get(symbol);
+    if (!owned) return { holding: undefined };
+    return {
+      holding: {
+        shares: owned.shares,
+        marketValue: owned.marketValue,
+        gainLossPercent: owned.gainLossPercent,
+      },
+    };
+  };
+
+  const handleSellFromMarketplace = (asset: MarketAssetCardData) => {
+    const owned = holdingsBySymbol.get(asset.symbol);
+    if (owned) openSell(owned);
   };
 
   return (
@@ -474,6 +534,8 @@ export default function CapitalMarketsPage() {
                           marketStatus={marketLabel}
                           returnPeriod={returnPeriod}
                           onInvest={setInvestAsset}
+                          onSell={handleSellFromMarketplace}
+                          {...cardHoldingProps(asset.symbol)}
                           index={i}
                         />
                       ))}
@@ -498,6 +560,8 @@ export default function CapitalMarketsPage() {
                           marketStatus={marketLabel}
                           returnPeriod={returnPeriod}
                           onInvest={setInvestAsset}
+                          onSell={handleSellFromMarketplace}
+                          {...cardHoldingProps(asset.symbol)}
                           index={i}
                         />
                       ))}
@@ -608,7 +672,7 @@ export default function CapitalMarketsPage() {
                                   onClick={() => openSell(h)}
                                   className="inline-flex items-center justify-center px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold border border-accent-red/30 text-accent-red hover:bg-accent-red/10 transition-colors"
                                 >
-                                  {t("trade.sell")}
+                                  {t("trade.closePosition")}
                                 </button>
                               </td>
                             </tr>
@@ -781,7 +845,8 @@ export default function CapitalMarketsPage() {
         walletBalance={data?.availableCash ?? 0}
         open={!!investAsset}
         onClose={() => setInvestAsset(null)}
-        onSuccess={() => load()}
+        onSuccess={(symbol) => refreshAfterBuy(symbol, false)}
+        onClosePosition={(symbol) => refreshAfterBuy(symbol, true)}
       />
 
       <SellModal

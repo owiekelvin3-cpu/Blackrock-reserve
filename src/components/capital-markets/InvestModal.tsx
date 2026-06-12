@@ -20,12 +20,20 @@ interface InvestModalProps {
   walletBalance: number;
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (symbol: string) => void;
+  onClosePosition?: (symbol: string) => void;
 }
 
 const QUICK_AMOUNTS = [100, 500, 1000, 5000];
 
-export default function InvestModal({ asset, walletBalance, open, onClose, onSuccess }: InvestModalProps) {
+export default function InvestModal({
+  asset,
+  walletBalance,
+  open,
+  onClose,
+  onSuccess,
+  onClosePosition,
+}: InvestModalProps) {
   const { t, formatCurrency, formatDate } = useI18n();
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
@@ -109,7 +117,7 @@ export default function InvestModal({ asset, walletBalance, open, onClose, onSuc
           totalCost: json.investment.totalCost,
         });
         setStep("success");
-        onSuccess();
+        onSuccess(asset.symbol);
       } catch (e) {
         throw e instanceof Error ? e : new Error(t("invest.failed"));
       } finally {
@@ -272,10 +280,24 @@ export default function InvestModal({ asset, walletBalance, open, onClose, onSuc
                         total: formatCurrency(result.totalCost),
                       })}
                     </p>
+                    <p className="text-xs text-[var(--text-muted)] mt-2">{t("invest.positionReady")}</p>
                   </div>
-                  <Button className="w-full" onClick={onClose}>
-                    {t("invest.done")}
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full">
+                    <Button variant="outline" className="flex-1" onClick={onClose}>
+                      {t("invest.done")}
+                    </Button>
+                    {onClosePosition && (
+                      <Button
+                        className="flex-1 border-accent-red/30 bg-accent-red/10 text-accent-red hover:bg-accent-red/20"
+                        onClick={() => {
+                          onClosePosition(asset.symbol);
+                          onClose();
+                        }}
+                      >
+                        {t("trade.closePosition")}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 

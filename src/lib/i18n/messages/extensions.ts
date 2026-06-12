@@ -178,12 +178,17 @@ const extensions = {
     successTitle: "Purchase Confirmed",
     successDesc: "You bought {shares} shares of {symbol} for {total}.",
     done: "Done",
+    positionReady: "Your position is open. You can close it anytime from the marketplace or portfolio.",
     processing: "Processing order…",
     failed: "Purchase failed",
   },
   trade: {
     buy: "Buy",
+    buyMore: "Buy More",
     sell: "Sell",
+    closePosition: "Close Position",
+    owned: "Owned",
+    yourPosition: "Your Position",
     action: "Action",
   },
   sell: {
