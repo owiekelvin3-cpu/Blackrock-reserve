@@ -37,6 +37,8 @@ interface SuccessState {
   message: string;
 }
 
+const DEPOSIT_HISTORY_PREVIEW = 2;
+
 export default function DepositPage() {
   const { t } = useI18n();
   const [data, setData] = useState<DepositData | null>(null);
@@ -49,6 +51,7 @@ export default function DepositPage() {
   const [proofNote, setProofNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<SuccessState | null>(null);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const { open: pinOpen, loading: pinLoading, error: pinError, requestPin, closePin, confirmPin } = useTransactionPin();
 
   const load = (silent = false) => {
@@ -293,7 +296,10 @@ export default function DepositPage() {
           <Card>
             <h2 className="font-semibold text-white mb-4">{t("deposit.history")}</h2>
             <div className="space-y-3">
-              {depositData.deposits.map((d) => (
+              {(historyExpanded
+                ? depositData.deposits
+                : depositData.deposits.slice(0, DEPOSIT_HISTORY_PREVIEW)
+              ).map((d) => (
                 <div
                   key={d.id}
                   className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 gap-4"
@@ -322,6 +328,19 @@ export default function DepositPage() {
                 </div>
               ))}
             </div>
+            {depositData.deposits.length > DEPOSIT_HISTORY_PREVIEW && (
+              <button
+                type="button"
+                onClick={() => setHistoryExpanded((expanded) => !expanded)}
+                className="mt-4 w-full text-sm font-medium text-accent-brand hover:text-accent-brand/80 transition-colors py-2"
+              >
+                {historyExpanded
+                  ? t("deposit.historyShowLess")
+                  : t("deposit.historyViewMore", {
+                      count: depositData.deposits.length - DEPOSIT_HISTORY_PREVIEW,
+                    })}
+              </button>
+            )}
           </Card>
         )}
       </div>
