@@ -40,12 +40,10 @@ export default function DashboardMobileNav() {
               key={tab.href}
               href={tab.href}
               className={cn("dash-mobile-nav-item", active && "dash-mobile-nav-item-active")}
+              aria-current={active ? "page" : undefined}
             >
-              <span className="dash-mobile-nav-icon-wrap">
-                <tab.icon size={21} strokeWidth={active ? 2.25 : 1.75} />
-                {active && <span className="dash-mobile-nav-dot" aria-hidden />}
-              </span>
-              <span>{t(tab.labelKey)}</span>
+              <tab.icon size={20} strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+              <span className="dash-mobile-nav-label">{t(tab.labelKey)}</span>
             </Link>
           );
         })}
@@ -56,11 +54,8 @@ export default function DashboardMobileNav() {
           aria-label={t("dashboard.sidebar.closeMenu")}
           aria-expanded={sidebarOpen}
         >
-          <span className="dash-mobile-nav-icon-wrap">
-            <Menu size={21} strokeWidth={moreActive ? 2.25 : 1.75} />
-            {moreActive && <span className="dash-mobile-nav-dot" aria-hidden />}
-          </span>
-          <span>{t("nav.menu")}</span>
+          <Menu size={20} strokeWidth={moreActive ? 2.25 : 1.75} aria-hidden />
+          <span className="dash-mobile-nav-label">{t("nav.menu")}</span>
         </button>
       </div>
     </nav>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Providers from "@/components/providers/Providers";
 import { getSiteUrl } from "@/lib/site-url";
 import { getLocaleDir, getServerLocale } from "@/lib/i18n/server";
@@ -64,6 +64,16 @@ export const metadata: Metadata = {
     icon: "/favicon.svg",
     apple: "/favicon.svg",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#121214" },
+    { media: "(prefers-color-scheme: light)", color: "#e8ebf0" },
+  ],
 };
 
 export default async function RootLayout({
