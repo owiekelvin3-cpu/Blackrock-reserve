@@ -100,7 +100,7 @@ function LoginForm() {
             <AlertCircle size={16} className="mt-0.5 shrink-0" />
             <p>
               Sign-in is unavailable. Add <strong>NEXTAUTH_SECRET</strong> (32+ chars) and{" "}
-              <strong>NEXTAUTH_URL=https://www.blackrockreserve.site</strong> in Vercel, then redeploy.
+              <strong>NEXTAUTH_URL=https://theblackrockreserve-com.vercel.app</strong> in Vercel, then redeploy.
             </p>
           </div>
         )}

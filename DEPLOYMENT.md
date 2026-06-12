@@ -24,8 +24,8 @@ After the domain works, set these in Vercel **Production** environment:
 
 | Variable | Example |
 |----------|---------|
-| `NEXTAUTH_URL` | `https://www.theblackrockreserve.com` |
-| `NEXT_PUBLIC_SITE_URL` | `https://www.theblackrockreserve.com` |
+| `NEXTAUTH_URL` | `https://theblackrockreserve-com.vercel.app` |
+| `NEXT_PUBLIC_SITE_URL` | `https://theblackrockreserve-com.vercel.app` |
 | `NEXTAUTH_SECRET` | 32+ char random string (`openssl rand -base64 32`) |
 
 Redeploy after changing env vars (**Deployments → … → Redeploy**).

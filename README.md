@@ -36,7 +36,7 @@ In development without email configured, OTP codes are printed to the server con
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server only) |
-| `NEXT_PUBLIC_SITE_URL` | Production URL, e.g. `https://www.theblackrockreserve.com` |
+| `NEXT_PUBLIC_SITE_URL` | Production URL, e.g. `https://theblackrockreserve-com.vercel.app` |
 | `NEXTAUTH_URL` | Same as production URL (auth cookies & email links) |
 | `NEXTAUTH_SECRET` | Random secret (`openssl rand -base64 32`) |
 | `ADMIN_EMAIL` | Admin bootstrap email (for `npm run admin:create`) |
