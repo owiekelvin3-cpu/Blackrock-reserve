@@ -303,11 +303,31 @@ In your dashboard, you will complete this step on the Pay Processing Charge page
   },
   {
     id: "transfer",
-    priority: 45,
-    keywords: ["transfer", "send money", "move money", "p2p"],
+    priority: 48,
+    keywords: [
+      "transfer",
+      "send money",
+      "move money",
+      "p2p",
+      "member transfer",
+      "send to friend",
+      "send to user",
+      "gmail",
+      "email transfer",
+      "another member",
+      "another account",
+    ],
+    patterns: [
+      /\b(send|transfer).*(money|funds|cash).*(email|member|user|gmail)/i,
+      /\btransfer to\b/i,
+      /\bmember transfer/i,
+    ],
     message:
-      "Peer-to-peer transfers between users aren't available in the dashboard right now. To move funds out, use Dashboard → Withdraw. To add funds, use Dashboard → Deposit.",
-    suggestions: [{ label: "Withdraw steps", value: "How do withdrawals work?" }],
+      "To send money to another member, go to Dashboard → Withdraw → Bank Transfers and use Transfer to Member at the top. Enter the recipient's registered email (Gmail works), amount, and confirm with your Transaction PIN. Funds arrive instantly in their Primary Checking account.",
+    suggestions: [
+      { label: "Transaction PIN", value: "What is the Transaction PIN?" },
+      { label: "Withdraw externally", value: "How do withdrawals work?" },
+    ],
   },
   {
     id: "fees",

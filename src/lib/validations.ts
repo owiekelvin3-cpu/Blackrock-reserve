@@ -191,6 +191,14 @@ export const savingsTransferSchema = z.object({
   transactionPin: transactionPinSchema,
 });
 
+export const memberTransferSchema = z.object({
+  accountId: z.string().min(1, "Account is required"),
+  recipientEmail: z.string().email("Enter a valid recipient email address"),
+  amount: z.number().positive("Amount must be greater than zero"),
+  note: z.string().max(200).optional(),
+  transactionPin: transactionPinSchema,
+});
+
 export const depositSubmitSchema = z.object({
   accountId: z.string().min(1, "Account is required"),
   amountUsd: z.number().positive("Amount must be greater than zero").optional(),
