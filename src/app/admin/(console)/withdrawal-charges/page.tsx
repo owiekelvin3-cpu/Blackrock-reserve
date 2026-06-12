@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { AdminPageHeader } from "@/components/admin/AdminUi";
@@ -87,7 +87,8 @@ export default function AdminWithdrawalChargesPage() {
     users: { id: string; name: string; email: string }[];
   }>("/api/admin/withdrawal-charges");
   const paymentsFetch = useAdminFetch<{ payments: PaymentRow[] }>("/api/admin/withdrawal-charge-payments");
-  const [tab, setTab] = useState<Tab>("charges");
+  const [tab, setTab] = useState<Tab>("payments");
+  const [tabInitialized, setTabInitialized] = useState(false);
   const [userId, setUserId] = useState("");
   const [chargeType, setChargeType] = useState<ChargeType>("FIXED");
   const [amountUsd, setAmountUsd] = useState("");
@@ -103,6 +104,13 @@ export default function AdminWithdrawalChargesPage() {
   const charges = data?.charges ?? [];
   const users = data?.users ?? [];
   const payments = paymentsFetch.data?.payments ?? [];
+  const pendingPaymentCount = payments.filter((p) => p.status === "PENDING_VERIFICATION").length;
+
+  useEffect(() => {
+    if (tabInitialized || paymentsFetch.loading) return;
+    setTab(pendingPaymentCount > 0 ? "payments" : "charges");
+    setTabInitialized(true);
+  }, [paymentsFetch.loading, pendingPaymentCount, tabInitialized]);
 
   const selectedUser = users.find((u) => u.id === userId);
   const chargeToRemove = charges.find((c) => c.userId === removeUserId);
@@ -269,7 +277,9 @@ export default function AdminWithdrawalChargesPage() {
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${tab === t ? "admin-btn-primary" : "admin-btn-ghost"}`}
           >
-            {t === "charges" ? "User Charges" : "Charge Payments"}
+            {t === "charges"
+              ? "User Charges"
+              : `Charge Payments${pendingPaymentCount > 0 ? ` (${pendingPaymentCount})` : ""}`}
           </button>
         ))}
       </div>

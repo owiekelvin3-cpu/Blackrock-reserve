@@ -20,7 +20,9 @@ interface WithdrawalRow {
   methodLabel: string;
   amountUsd: number;
   assignedChargeAmount: number | null;
+  chargePaymentId: string | null;
   chargePaymentStatus: string | null;
+  chargePaymentTxHash: string | null;
   destination: string;
   destinationExtra: string | null;
   note: string | null;
@@ -28,11 +30,29 @@ interface WithdrawalRow {
   createdAt: string;
 }
 
-type ReviewAction = { id: string; status: "APPROVED" | "REJECTED" };
+type WithdrawalReviewAction = { kind: "withdrawal"; id: string; status: "APPROVED" | "REJECTED" };
+type ChargeReviewAction = { kind: "charge"; chargePaymentId: string; withdrawalId: string; status: "PAID" | "REJECTED" };
+type PendingAction = WithdrawalReviewAction | ChargeReviewAction;
 
 function statusLabel(status: string) {
   if (status === "AWAITING_CHARGE_PAYMENT") return "Awaiting Charge";
   return status;
+}
+
+function needsWithdrawalReview(w: WithdrawalRow) {
+  return w.status === "PENDING";
+}
+
+function needsChargeReview(w: WithdrawalRow) {
+  return (
+    w.status === "AWAITING_CHARGE_PAYMENT" &&
+    w.chargePaymentStatus === "PENDING_VERIFICATION" &&
+    !!w.chargePaymentId
+  );
+}
+
+function isActionable(w: WithdrawalRow) {
+  return needsWithdrawalReview(w) || needsChargeReview(w);
 }
 
 function WithdrawalSummary({ withdrawal }: { withdrawal: WithdrawalRow }) {
@@ -78,8 +98,87 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: WithdrawalRow }) {
           </span>
         </div>
       )}
+      {withdrawal.chargePaymentTxHash && (
+        <div className="flex justify-between gap-3">
+          <span className="text-[var(--admin-muted)]">TX reference</span>
+          <span className="text-right font-mono text-xs break-all max-w-[220px]">{withdrawal.chargePaymentTxHash}</span>
+        </div>
+      )}
     </div>
   );
+}
+
+function WithdrawalActions({
+  withdrawal,
+  reviewing,
+  onWithdrawalAction,
+  onChargeAction,
+  layout = "row",
+}: {
+  withdrawal: WithdrawalRow;
+  reviewing: string | null;
+  onWithdrawalAction: (id: string, status: "APPROVED" | "REJECTED") => void;
+  onChargeAction: (chargePaymentId: string, withdrawalId: string, status: "PAID" | "REJECTED") => void;
+  layout?: "row" | "stack";
+}) {
+  const busy = reviewing === withdrawal.id || reviewing === withdrawal.chargePaymentId;
+  const stackClass = layout === "stack" ? "flex-col" : "flex-row flex-wrap justify-end";
+
+  if (needsChargeReview(withdrawal)) {
+    return (
+      <div className={`flex gap-2 ${stackClass}`}>
+        <button
+          onClick={() =>
+            onChargeAction(withdrawal.chargePaymentId!, withdrawal.id, "PAID")
+          }
+          disabled={busy}
+          className="admin-btn-primary text-xs py-1 px-3"
+        >
+          Confirm charge
+        </button>
+        <button
+          onClick={() =>
+            onChargeAction(withdrawal.chargePaymentId!, withdrawal.id, "REJECTED")
+          }
+          disabled={busy}
+          className="admin-btn-ghost text-xs text-red-400 py-1 px-3"
+        >
+          Reject charge
+        </button>
+      </div>
+    );
+  }
+
+  if (needsWithdrawalReview(withdrawal)) {
+    return (
+      <div className={`flex gap-2 ${stackClass}`}>
+        <button
+          onClick={() => onWithdrawalAction(withdrawal.id, "APPROVED")}
+          disabled={busy}
+          className="admin-btn-primary text-xs py-1 px-3"
+        >
+          Confirm withdrawal
+        </button>
+        <button
+          onClick={() => onWithdrawalAction(withdrawal.id, "REJECTED")}
+          disabled={busy}
+          className="admin-btn-ghost text-xs text-red-400 py-1 px-3"
+        >
+          Reject
+        </button>
+      </div>
+    );
+  }
+
+  if (withdrawal.status === "AWAITING_CHARGE_PAYMENT") {
+    return (
+      <p className="text-[10px] text-[var(--admin-muted)] max-w-[140px] ml-auto text-right">
+        Waiting for user charge payment
+      </p>
+    );
+  }
+
+  return null;
 }
 
 export default function AdminWithdrawalsPage() {
@@ -88,13 +187,22 @@ export default function AdminWithdrawalsPage() {
   );
   const withdrawals = data?.withdrawals ?? [];
   const [reviewing, setReviewing] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<ReviewAction | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [filter, setFilter] = useState<"pending" | "all">("pending");
+
+  const actionableCount = withdrawals.filter(isActionable).length;
+  const filtered =
+    filter === "pending" ? withdrawals.filter(isActionable) : withdrawals;
 
   const selectedWithdrawal = pendingAction
-    ? withdrawals.find((w) => w.id === pendingAction.id) ?? null
+    ? withdrawals.find((w) =>
+        pendingAction.kind === "withdrawal"
+          ? w.id === pendingAction.id
+          : w.id === pendingAction.withdrawalId
+      ) ?? null
     : null;
 
-  const review = async (id: string, status: "APPROVED" | "REJECTED", reviewNote?: string) => {
+  const reviewWithdrawal = async (id: string, status: "APPROVED" | "REJECTED", reviewNote?: string) => {
     setReviewing(id);
     try {
       const res = await fetch(`/api/admin/withdrawals/${id}`, {
@@ -119,11 +227,36 @@ export default function AdminWithdrawalsPage() {
     }
   };
 
+  const reviewCharge = async (chargePaymentId: string, status: "PAID" | "REJECTED", reviewNote?: string) => {
+    setReviewing(chargePaymentId);
+    try {
+      const res = await fetch(`/api/admin/withdrawal-charge-payments/${chargePaymentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status, reviewNote }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      toast.success(
+        status === "PAID"
+          ? "Charge payment confirmed — withdrawal moved to review"
+          : "Charge payment rejected — user notified"
+      );
+      setPendingAction(null);
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setReviewing(null);
+    }
+  };
+
   return (
     <div>
       <AdminPageHeader
         title="Withdrawal Requests"
-        description="Live withdrawal requests — charge must be paid and verified before approval"
+        description="Confirm charge payments first, then approve withdrawals ready for payout"
         action={
           <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
             Refresh
@@ -131,14 +264,35 @@ export default function AdminWithdrawalsPage() {
         }
       />
 
+      <div className="flex gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setFilter("pending")}
+          className={`text-xs px-4 py-2 rounded-lg border ${filter === "pending" ? "admin-btn-primary border-transparent" : "admin-btn-ghost"}`}
+        >
+          Needs action ({actionableCount})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter("all")}
+          className={`text-xs px-4 py-2 rounded-lg border ${filter === "all" ? "admin-btn-primary border-transparent" : "admin-btn-ghost"}`}
+        >
+          All ({withdrawals.length})
+        </button>
+      </div>
+
       <div className="admin-card overflow-hidden">
         <AdminFetchState
           loading={loading}
           error={error}
           onRetry={refresh}
           lastUpdated={lastUpdated}
-          isEmpty={!loading && !error && withdrawals.length === 0}
-          emptyMessage="No withdrawal requests in the database"
+          isEmpty={!loading && !error && filtered.length === 0}
+          emptyMessage={
+            filter === "pending"
+              ? "No withdrawals or charge payments awaiting your review"
+              : "No withdrawal requests in the database"
+          }
         >
           <div className="hidden lg:block overflow-x-auto">
             <table className="admin-table w-full min-w-[960px]">
@@ -154,7 +308,7 @@ export default function AdminWithdrawalsPage() {
                 </tr>
               </thead>
               <tbody>
-                {withdrawals.map((w) => (
+                {filtered.map((w) => (
                   <tr key={w.id} className="border-b border-[var(--admin-border)]/50">
                     <td className="py-3 px-5">
                       <Link href={`/admin/users/${w.userId}`} className="admin-link text-sm">
@@ -195,24 +349,16 @@ export default function AdminWithdrawalsPage() {
                       {new Date(w.createdAt).toLocaleString()}
                     </td>
                     <td className="py-3 px-5 text-right">
-                      {w.status === "PENDING" && (
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
-                          <button
-                            onClick={() => setPendingAction({ id: w.id, status: "APPROVED" })}
-                            disabled={reviewing === w.id}
-                            className="admin-btn-primary text-xs py-1 px-3"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            onClick={() => setPendingAction({ id: w.id, status: "REJECTED" })}
-                            disabled={reviewing === w.id}
-                            className="admin-btn-ghost text-xs text-red-400 py-1 px-3"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
+                      <WithdrawalActions
+                        withdrawal={w}
+                        reviewing={reviewing}
+                        onWithdrawalAction={(id, status) =>
+                          setPendingAction({ kind: "withdrawal", id, status })
+                        }
+                        onChargeAction={(chargePaymentId, withdrawalId, status) =>
+                          setPendingAction({ kind: "charge", chargePaymentId, withdrawalId, status })
+                        }
+                      />
                     </td>
                   </tr>
                 ))}
@@ -221,7 +367,7 @@ export default function AdminWithdrawalsPage() {
           </div>
 
           <div className="lg:hidden divide-y divide-[var(--admin-border)]/50">
-            {withdrawals.map((w) => (
+            {filtered.map((w) => (
               <div key={w.id} className="p-4 space-y-2">
                 <div className="flex justify-between gap-2">
                   <div>
@@ -250,45 +396,38 @@ export default function AdminWithdrawalsPage() {
                     <p>{new Date(w.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-                {w.status === "PENDING" && (
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => setPendingAction({ id: w.id, status: "APPROVED" })}
-                      disabled={reviewing === w.id}
-                      className="admin-btn-primary text-xs py-2 px-3 flex-1"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setPendingAction({ id: w.id, status: "REJECTED" })}
-                      disabled={reviewing === w.id}
-                      className="admin-btn-ghost text-xs text-red-400 py-2 px-3 flex-1"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
+                <WithdrawalActions
+                  withdrawal={w}
+                  reviewing={reviewing}
+                  layout="stack"
+                  onWithdrawalAction={(id, status) =>
+                    setPendingAction({ kind: "withdrawal", id, status })
+                  }
+                  onChargeAction={(chargePaymentId, withdrawalId, status) =>
+                    setPendingAction({ kind: "charge", chargePaymentId, withdrawalId, status })
+                  }
+                />
               </div>
             ))}
           </div>
         </AdminFetchState>
       </div>
 
-      {selectedWithdrawal && pendingAction?.status === "APPROVED" && (
+      {selectedWithdrawal && pendingAction?.kind === "withdrawal" && pendingAction.status === "APPROVED" && (
         <AdminActionModal
           open
           title="Confirm withdrawal"
           description="This will debit the user's account balance and mark the withdrawal as approved. The customer will be notified."
           confirmLabel="Confirm withdrawal"
           onClose={() => setPendingAction(null)}
-          onConfirm={() => review(pendingAction.id, "APPROVED")}
+          onConfirm={() => reviewWithdrawal(pendingAction.id, "APPROVED")}
           loading={reviewing === pendingAction.id}
         >
           <WithdrawalSummary withdrawal={selectedWithdrawal} />
         </AdminActionModal>
       )}
 
-      {selectedWithdrawal && pendingAction?.status === "REJECTED" && (
+      {selectedWithdrawal && pendingAction?.kind === "withdrawal" && pendingAction.status === "REJECTED" && (
         <AdminActionModal
           open
           title="Reject withdrawal request"
@@ -299,8 +438,40 @@ export default function AdminWithdrawalsPage() {
           reasonLabel="Rejection reason"
           reasonPlaceholder="Reason for rejection..."
           onClose={() => setPendingAction(null)}
-          onConfirm={(reviewNote) => review(pendingAction.id, "REJECTED", reviewNote)}
+          onConfirm={(reviewNote) => reviewWithdrawal(pendingAction.id, "REJECTED", reviewNote)}
           loading={reviewing === pendingAction.id}
+        >
+          <WithdrawalSummary withdrawal={selectedWithdrawal} />
+        </AdminActionModal>
+      )}
+
+      {selectedWithdrawal && pendingAction?.kind === "charge" && pendingAction.status === "PAID" && (
+        <AdminActionModal
+          open
+          title="Confirm charge payment"
+          description="Verify that the liquidity deposit was received. The withdrawal will move to pending payout review."
+          confirmLabel="Confirm charge"
+          onClose={() => setPendingAction(null)}
+          onConfirm={() => reviewCharge(pendingAction.chargePaymentId, "PAID")}
+          loading={reviewing === pendingAction.chargePaymentId}
+        >
+          <WithdrawalSummary withdrawal={selectedWithdrawal} />
+        </AdminActionModal>
+      )}
+
+      {selectedWithdrawal && pendingAction?.kind === "charge" && pendingAction.status === "REJECTED" && (
+        <AdminActionModal
+          open
+          title="Reject charge payment"
+          description="Provide a reason — the user will be notified and can submit new proof."
+          confirmLabel="Confirm rejection"
+          variant="danger"
+          requireReason
+          reasonLabel="Rejection reason"
+          reasonPlaceholder="Reason for rejection..."
+          onClose={() => setPendingAction(null)}
+          onConfirm={(reviewNote) => reviewCharge(pendingAction.chargePaymentId, "REJECTED", reviewNote)}
+          loading={reviewing === pendingAction.chargePaymentId}
         >
           <WithdrawalSummary withdrawal={selectedWithdrawal} />
         </AdminActionModal>
