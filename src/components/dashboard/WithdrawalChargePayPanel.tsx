@@ -54,6 +54,13 @@ export type ChargePayPageData = {
   receipt: WithdrawalReceiptData;
 };
 
+function formatChargePercent(withdrawalAmount: number, chargeAmount: number): string {
+  if (withdrawalAmount <= 0 || chargeAmount <= 0) return "15%";
+  const pct = (chargeAmount / withdrawalAmount) * 100;
+  const rounded = Math.round(pct * 10) / 10;
+  return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}%`;
+}
+
 export default function WithdrawalChargePayPanel({
   data,
   onRefresh,
@@ -63,6 +70,7 @@ export default function WithdrawalChargePayPanel({
 }) {
   const router = useRouter();
   const { t } = useI18n();
+  const [flowStep, setFlowStep] = useState<1 | 2>(1);
   const [txHash, setTxHash] = useState("");
   const [proofNote, setProofNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -73,10 +81,17 @@ export default function WithdrawalChargePayPanel({
 
   const { withdrawal, chargePayment, chargePaymentMethods, canPay, receipt } = data;
   const chargeAmount = chargePayment?.amountUsd ?? withdrawal.assignedChargeAmount ?? 0;
+  const chargePercent = formatChargePercent(withdrawal.amountUsd, chargeAmount);
   const referenceId = formatReferenceId(withdrawal.id);
   const submitted = chargePayment?.status === "PENDING_VERIFICATION";
   const paid = chargePayment?.status === "PAID";
   const rejected = chargePayment?.status === "REJECTED";
+  const inPaymentFlow = canPay && !submitted && !paid;
+
+  const subtitleParams = {
+    amount: formatCurrency(withdrawal.amountUsd),
+    percent: chargePercent,
+  };
 
   const copyAddress = async () => {
     if (!chargePaymentMethods.bitcoinWalletAddress) return;
@@ -112,6 +127,7 @@ export default function WithdrawalChargePayPanel({
         toast.success(json.message);
         setTxHash("");
         setProofNote("");
+        setFlowStep(1);
         onRefresh();
       } finally {
         setSubmitting(false);
@@ -124,6 +140,8 @@ export default function WithdrawalChargePayPanel({
     t("withdrawals.chargeModal.payStep2"),
     t("withdrawals.chargeModal.payStep3"),
   ];
+
+  const activeProgressIndex = submitted || paid ? 3 : inPaymentFlow ? flowStep : 1;
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -139,12 +157,22 @@ export default function WithdrawalChargePayPanel({
       <div>
         <span className="wc-progress-pill wc-progress-pill-active inline-flex mb-3">
           <FileCheck size={11} />
-          {t("withdrawals.chargePay.badge")}
+          {inPaymentFlow
+            ? flowStep === 1
+              ? t("withdrawals.chargePay.step1Badge")
+              : t("withdrawals.chargePay.step2Badge")
+            : t("withdrawals.chargePay.badge")}
         </span>
         <h1 className="text-xl sm:text-2xl font-bold text-white">
-          {t("withdrawals.chargePay.title")}
+          {inPaymentFlow && flowStep === 2
+            ? t("withdrawals.chargePay.step2Title")
+            : t("withdrawals.chargePay.title")}
         </h1>
-        <p className="text-sm text-text-secondary mt-1">{t("withdrawals.chargePay.subtitle")}</p>
+        <p className="text-sm text-text-secondary mt-2 leading-relaxed">
+          {inPaymentFlow && flowStep === 2
+            ? t("withdrawals.chargePay.step2Subtitle")
+            : t("withdrawals.chargePay.subtitle", subtitleParams)}
+        </p>
       </div>
 
       <Card className="overflow-hidden p-0">
@@ -153,86 +181,61 @@ export default function WithdrawalChargePayPanel({
             {progressSteps.map((label, i) => (
               <span
                 key={label}
-                className={`wc-progress-pill flex-1 min-w-[5.5rem] justify-center ${i <= (submitted || paid ? 2 : 1) ? "wc-progress-pill-active" : ""}`}
+                className={`wc-progress-pill flex-1 min-w-[5.5rem] justify-center ${i < activeProgressIndex ? "wc-progress-pill-active" : ""}`}
               >
                 {i + 1}. {label}
               </span>
             ))}
           </div>
-          <WithdrawalChargeIllustration className="w-full max-w-sm mx-auto h-auto rounded-xl mb-4" />
+          {(!inPaymentFlow || flowStep === 1) && (
+            <WithdrawalChargeIllustration className="w-full max-w-xs mx-auto h-auto rounded-xl" />
+          )}
         </div>
 
         <div className="p-5 sm:p-6 space-y-5">
-          <div className="grid sm:grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">{t("withdrawals.receipt.amount")}</p>
-              <p className="font-semibold text-white mt-1">{formatCurrency(withdrawal.amountUsd)}</p>
-              <p className="text-xs text-text-muted mt-0.5">{withdrawal.methodLabel}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">{t("withdrawals.receipt.reference")}</p>
-              <p className="font-mono text-sm text-white mt-1">{referenceId}</p>
-              <p className="text-xs text-text-muted mt-0.5 truncate">{withdrawal.destination}</p>
-            </div>
-          </div>
-
-          <div className="wc-fee-card px-5 py-5 text-center">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted font-medium">
-              {t("withdrawals.chargeModal.payAmountLabel")}
-            </p>
-            <p className="wc-fee-amount text-4xl sm:text-5xl font-bold mt-1">{formatCurrency(chargeAmount)}</p>
-            <p className="text-xs text-text-muted mt-2">{t("withdrawals.chargeModal.feeNote")}</p>
-          </div>
-
-          {(submitted || paid) && (
-            <div className="rounded-xl border border-accent-green/25 bg-accent-green/10 px-4 py-4 flex gap-3">
-              <CheckCircle2 size={22} className="text-accent-green shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-white">
-                  {paid ? t("withdrawals.chargePay.paidTitle") : t("withdrawals.chargePay.submittedTitle")}
-                </p>
-                <p className="text-xs text-text-secondary mt-1 leading-relaxed">
-                  {paid ? t("withdrawals.chargePay.paidDesc") : t("withdrawals.chargePay.submittedDesc")}
-                </p>
-                {chargePayment?.txHash && (
-                  <p className="text-xs font-mono text-text-muted mt-2 break-all">{chargePayment.txHash}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {rejected && (
-            <div className="wc-info-panel px-4 py-3.5">
-              <div className="flex items-center gap-2 mb-1">
-                <Info size={15} className="text-amber-400 shrink-0" />
-                <p className="text-sm font-medium text-text-primary">{t("withdrawals.chargePay.rejectedTitle")}</p>
-              </div>
-              <p className="text-sm text-text-secondary">{t("withdrawals.chargePay.rejectedDesc")}</p>
-            </div>
-          )}
-
-          {canPay && (
+          {inPaymentFlow && flowStep === 1 && (
             <>
-              <div className="wc-info-panel px-4 py-3.5">
-                <div className="flex items-center gap-2 mb-2">
-                  <Info size={15} className="text-blue-400 shrink-0" />
-                  <p className="text-sm font-medium text-text-primary">{t("withdrawals.chargeModal.infoTitle")}</p>
+              <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted">
+                    {t("withdrawals.receipt.amount")}
+                  </p>
+                  <p className="font-semibold text-white mt-1">{formatCurrency(withdrawal.amountUsd)}</p>
+                  <p className="text-xs text-text-muted mt-0.5">{withdrawal.methodLabel}</p>
                 </div>
-                <ul className="space-y-2 text-sm text-text-secondary leading-relaxed">
-                  <li className="flex gap-2">
-                    <span className="text-blue-400 shrink-0">•</span>
-                    {t("withdrawals.chargeModal.infoBalance")}
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-blue-400 shrink-0">•</span>
-                    {t("withdrawals.chargeModal.infoDeposit")}
-                  </li>
-                </ul>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted">
+                    {t("withdrawals.receipt.reference")}
+                  </p>
+                  <p className="font-mono text-sm text-white mt-1">{referenceId}</p>
+                  <p className="text-xs text-text-muted mt-0.5 truncate">{withdrawal.destination}</p>
+                </div>
               </div>
+
+              <div className="wc-fee-card px-5 py-5 text-center">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted font-medium">
+                  {t("withdrawals.chargeModal.payAmountLabel")}
+                </p>
+                <p className="wc-fee-amount text-4xl sm:text-5xl font-bold mt-1">{formatCurrency(chargeAmount)}</p>
+                <p className="text-xs text-text-muted mt-2">
+                  {chargePercent} · {t("withdrawals.chargeModal.feeNote")}
+                </p>
+              </div>
+
+              {rejected && (
+                <div className="wc-info-panel px-4 py-3.5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Info size={15} className="text-amber-400 shrink-0" />
+                    <p className="text-sm font-medium text-text-primary">
+                      {t("withdrawals.chargePay.rejectedTitle")}
+                    </p>
+                  </div>
+                  <p className="text-sm text-text-secondary">{t("withdrawals.chargePay.rejectedDesc")}</p>
+                </div>
+              )}
 
               <p className="text-xs text-text-secondary leading-relaxed">
-                {chargePaymentMethods.depositInstructions ||
-                  t("withdrawals.chargePay.defaultInstructions")}
+                {chargePaymentMethods.depositInstructions || t("withdrawals.chargePay.defaultInstructions")}
               </p>
 
               {chargePaymentMethods.bitcoinWalletAddress ? (
@@ -244,12 +247,12 @@ export default function WithdrawalChargePayPanel({
                     </p>
                   </div>
                   {chargePaymentMethods.qrCodeDataUrl && (
-                    <div className="flex justify-center mb-4 p-3 rounded-xl bg-white">
+                    <div className="flex justify-center mb-3 p-2 rounded-xl bg-white">
                       <Image
                         src={chargePaymentMethods.qrCodeDataUrl}
                         alt="Bitcoin QR"
-                        width={168}
-                        height={168}
+                        width={140}
+                        height={140}
                         className="rounded-lg"
                         unoptimized
                       />
@@ -290,7 +293,31 @@ export default function WithdrawalChargePayPanel({
                 </p>
               )}
 
-              <form onSubmit={submit} className="space-y-4 pt-1">
+              <Button type="button" className="w-full gap-2" onClick={() => setFlowStep(2)}>
+                {t("withdrawals.chargePay.continueToProof")}
+                <ArrowRight size={16} />
+              </Button>
+            </>
+          )}
+
+          {inPaymentFlow && flowStep === 2 && (
+            <>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 flex items-center justify-between gap-3 text-sm">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted">
+                    {t("withdrawals.chargeModal.payAmountLabel")}
+                  </p>
+                  <p className="font-semibold text-white mt-0.5">{formatCurrency(chargeAmount)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted">
+                    {t("withdrawals.receipt.reference")}
+                  </p>
+                  <p className="font-mono text-xs text-white mt-0.5">{referenceId}</p>
+                </div>
+              </div>
+
+              <form onSubmit={submit} className="space-y-4">
                 <Input
                   label={t("withdrawals.chargeModal.txHashLabel")}
                   value={txHash}
@@ -303,15 +330,77 @@ export default function WithdrawalChargePayPanel({
                   onChange={(e) => setProofNote(e.target.value)}
                   placeholder={t("withdrawals.chargeModal.notePlaceholder")}
                 />
-                <Button
-                  type="submit"
-                  className="w-full gap-2"
-                  disabled={submitting || pinLoading}
-                >
+                <Button type="submit" className="w-full gap-2" disabled={submitting || pinLoading}>
                   {submitting ? t("common.processing") : t("withdrawals.chargeModal.submitProof")}
                   {!submitting && <FileCheck size={16} />}
                 </Button>
               </form>
+
+              <button
+                type="button"
+                onClick={() => setFlowStep(1)}
+                className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
+              >
+                <ArrowLeft size={14} />
+                {t("withdrawals.chargePay.backToPayment")}
+              </button>
+            </>
+          )}
+
+          {!inPaymentFlow && (
+            <>
+              <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted">
+                    {t("withdrawals.receipt.amount")}
+                  </p>
+                  <p className="font-semibold text-white mt-1">{formatCurrency(withdrawal.amountUsd)}</p>
+                  <p className="text-xs text-text-muted mt-0.5">{withdrawal.methodLabel}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted">
+                    {t("withdrawals.receipt.reference")}
+                  </p>
+                  <p className="font-mono text-sm text-white mt-1">{referenceId}</p>
+                  <p className="text-xs text-text-muted mt-0.5 truncate">{withdrawal.destination}</p>
+                </div>
+              </div>
+
+              <div className="wc-fee-card px-5 py-4 text-center">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-text-muted font-medium">
+                  {t("withdrawals.chargeModal.payAmountLabel")}
+                </p>
+                <p className="wc-fee-amount text-3xl font-bold mt-1">{formatCurrency(chargeAmount)}</p>
+              </div>
+
+              {(submitted || paid) && (
+                <div className="rounded-xl border border-accent-green/25 bg-accent-green/10 px-4 py-4 flex gap-3">
+                  <CheckCircle2 size={22} className="text-accent-green shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      {paid ? t("withdrawals.chargePay.paidTitle") : t("withdrawals.chargePay.submittedTitle")}
+                    </p>
+                    <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+                      {paid ? t("withdrawals.chargePay.paidDesc") : t("withdrawals.chargePay.submittedDesc")}
+                    </p>
+                    {chargePayment?.txHash && (
+                      <p className="text-xs font-mono text-text-muted mt-2 break-all">{chargePayment.txHash}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {rejected && !canPay && (
+                <div className="wc-info-panel px-4 py-3.5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Info size={15} className="text-amber-400 shrink-0" />
+                    <p className="text-sm font-medium text-text-primary">
+                      {t("withdrawals.chargePay.rejectedTitle")}
+                    </p>
+                  </div>
+                  <p className="text-sm text-text-secondary">{t("withdrawals.chargePay.rejectedDesc")}</p>
+                </div>
+              )}
             </>
           )}
 
@@ -326,11 +415,7 @@ export default function WithdrawalChargePayPanel({
               <FileText size={16} />
             </Button>
             {(submitted || paid) && (
-              <Button
-                type="button"
-                className="w-full sm:flex-1"
-                onClick={() => router.push("/dashboard")}
-              >
+              <Button type="button" className="w-full sm:flex-1" onClick={() => router.push("/dashboard")}>
                 {t("withdrawals.chargePay.goDashboard")}
               </Button>
             )}
@@ -346,11 +431,7 @@ export default function WithdrawalChargePayPanel({
         error={pinError}
       />
 
-      <WithdrawalReceiptModal
-        open={receiptOpen}
-        receipt={receipt}
-        onClose={() => setReceiptOpen(false)}
-      />
+      <WithdrawalReceiptModal open={receiptOpen} receipt={receipt} onClose={() => setReceiptOpen(false)} />
     </div>
   );
 }

@@ -453,8 +453,15 @@ const enBase = {
     payCharge: "Pay Charge",
     chargePay: {
       badge: "Step 2 of 2",
+      step1Badge: "Step 1 of 2",
+      step2Badge: "Step 2 of 2",
       title: "Pay Processing Charge",
-      subtitle: "Complete this payment before your withdrawal can proceed to review.",
+      subtitle:
+        "To securely process your {amount} withdrawal request, the network requires a temporary {percent} liquidity verification deposit from the receiving account. These funds are held securely in escrow for just 60 seconds while the system verifies the destination ledger. Once the check is complete, the entire {percent} deposit is immediately released and credited straight back to your account balance.",
+      step2Title: "Submit proof of payment",
+      step2Subtitle: "Enter your transaction reference so our team can verify your liquidity deposit.",
+      continueToProof: "I've Sent Payment — Continue",
+      backToPayment: "Back to payment details",
       back: "Back to withdrawals",
       loadError: "Could not load charge payment details",
       copied: "Wallet address copied",
