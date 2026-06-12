@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import AdminActionModal from "@/components/admin/AdminActionModal";
 import { AdminPageHeader } from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
@@ -27,9 +28,58 @@ interface WithdrawalRow {
   createdAt: string;
 }
 
+type ReviewAction = { id: string; status: "APPROVED" | "REJECTED" };
+
 function statusLabel(status: string) {
   if (status === "AWAITING_CHARGE_PAYMENT") return "Awaiting Charge";
   return status;
+}
+
+function WithdrawalSummary({ withdrawal }: { withdrawal: WithdrawalRow }) {
+  return (
+    <div className="rounded-lg border border-[var(--admin-border)] bg-white/[0.02] p-4 space-y-2 text-sm">
+      <div className="flex justify-between gap-3">
+        <span className="text-[var(--admin-muted)]">User</span>
+        <span className="text-right text-white">{withdrawal.userName}</span>
+      </div>
+      <div className="flex justify-between gap-3">
+        <span className="text-[var(--admin-muted)]">Amount</span>
+        <span className="font-semibold text-white">{formatCurrency(withdrawal.amountUsd)}</span>
+      </div>
+      <div className="flex justify-between gap-3">
+        <span className="text-[var(--admin-muted)]">Method</span>
+        <span className="text-right">{withdrawal.methodLabel}</span>
+      </div>
+      <div className="flex justify-between gap-3">
+        <span className="text-[var(--admin-muted)]">Destination</span>
+        <span className="text-right break-all max-w-[220px]">{withdrawal.destination}</span>
+      </div>
+      {withdrawal.accountName && (
+        <div className="flex justify-between gap-3">
+          <span className="text-[var(--admin-muted)]">Account</span>
+          <span className="text-right">
+            {withdrawal.accountName}
+            {withdrawal.accountBalance != null && (
+              <span className="block text-xs text-[var(--admin-muted)]">
+                Balance: {formatCurrency(withdrawal.accountBalance)}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+      {withdrawal.assignedChargeAmount != null && (
+        <div className="flex justify-between gap-3">
+          <span className="text-[var(--admin-muted)]">Processing charge</span>
+          <span className="text-right">
+            {formatCurrency(withdrawal.assignedChargeAmount)}
+            {withdrawal.chargePaymentStatus && (
+              <span className="block text-xs text-[var(--admin-muted)]">{withdrawal.chargePaymentStatus}</span>
+            )}
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminWithdrawalsPage() {
@@ -38,19 +88,29 @@ export default function AdminWithdrawalsPage() {
   );
   const withdrawals = data?.withdrawals ?? [];
   const [reviewing, setReviewing] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<ReviewAction | null>(null);
 
-  const review = async (id: string, status: "APPROVED" | "REJECTED") => {
+  const selectedWithdrawal = pendingAction
+    ? withdrawals.find((w) => w.id === pendingAction.id) ?? null
+    : null;
+
+  const review = async (id: string, status: "APPROVED" | "REJECTED", reviewNote?: string) => {
     setReviewing(id);
     try {
       const res = await fetch(`/api/admin/withdrawals/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reviewNote }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Review failed");
-      toast.success(`Withdrawal ${status.toLowerCase()}`);
+      toast.success(
+        status === "APPROVED"
+          ? "Withdrawal confirmed and balance debited"
+          : "Withdrawal rejected — user notified"
+      );
+      setPendingAction(null);
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
@@ -137,10 +197,18 @@ export default function AdminWithdrawalsPage() {
                     <td className="py-3 px-5 text-right">
                       {w.status === "PENDING" && (
                         <div className="flex items-center justify-end gap-2 flex-wrap">
-                          <button onClick={() => review(w.id, "APPROVED")} disabled={reviewing === w.id} className="admin-btn-primary text-xs py-1 px-3">
-                            Approve
+                          <button
+                            onClick={() => setPendingAction({ id: w.id, status: "APPROVED" })}
+                            disabled={reviewing === w.id}
+                            className="admin-btn-primary text-xs py-1 px-3"
+                          >
+                            Confirm
                           </button>
-                          <button onClick={() => review(w.id, "REJECTED")} disabled={reviewing === w.id} className="admin-btn-ghost text-xs text-red-400 py-1 px-3">
+                          <button
+                            onClick={() => setPendingAction({ id: w.id, status: "REJECTED" })}
+                            disabled={reviewing === w.id}
+                            className="admin-btn-ghost text-xs text-red-400 py-1 px-3"
+                          >
                             Reject
                           </button>
                         </div>
@@ -184,10 +252,18 @@ export default function AdminWithdrawalsPage() {
                 </div>
                 {w.status === "PENDING" && (
                   <div className="flex gap-2 pt-2">
-                    <button onClick={() => review(w.id, "APPROVED")} disabled={reviewing === w.id} className="admin-btn-primary text-xs py-2 px-3 flex-1">
-                      Approve
+                    <button
+                      onClick={() => setPendingAction({ id: w.id, status: "APPROVED" })}
+                      disabled={reviewing === w.id}
+                      className="admin-btn-primary text-xs py-2 px-3 flex-1"
+                    >
+                      Confirm
                     </button>
-                    <button onClick={() => review(w.id, "REJECTED")} disabled={reviewing === w.id} className="admin-btn-ghost text-xs text-red-400 py-2 px-3 flex-1">
+                    <button
+                      onClick={() => setPendingAction({ id: w.id, status: "REJECTED" })}
+                      disabled={reviewing === w.id}
+                      className="admin-btn-ghost text-xs text-red-400 py-2 px-3 flex-1"
+                    >
                       Reject
                     </button>
                   </div>
@@ -197,6 +273,38 @@ export default function AdminWithdrawalsPage() {
           </div>
         </AdminFetchState>
       </div>
+
+      {selectedWithdrawal && pendingAction?.status === "APPROVED" && (
+        <AdminActionModal
+          open
+          title="Confirm withdrawal"
+          description="This will debit the user's account balance and mark the withdrawal as approved. The customer will be notified."
+          confirmLabel="Confirm withdrawal"
+          onClose={() => setPendingAction(null)}
+          onConfirm={() => review(pendingAction.id, "APPROVED")}
+          loading={reviewing === pendingAction.id}
+        >
+          <WithdrawalSummary withdrawal={selectedWithdrawal} />
+        </AdminActionModal>
+      )}
+
+      {selectedWithdrawal && pendingAction?.status === "REJECTED" && (
+        <AdminActionModal
+          open
+          title="Reject withdrawal request"
+          description="Provide a reason — the user will be notified."
+          confirmLabel="Confirm rejection"
+          variant="danger"
+          requireReason
+          reasonLabel="Rejection reason"
+          reasonPlaceholder="Reason for rejection..."
+          onClose={() => setPendingAction(null)}
+          onConfirm={(reviewNote) => review(pendingAction.id, "REJECTED", reviewNote)}
+          loading={reviewing === pendingAction.id}
+        >
+          <WithdrawalSummary withdrawal={selectedWithdrawal} />
+        </AdminActionModal>
+      )}
     </div>
   );
 }

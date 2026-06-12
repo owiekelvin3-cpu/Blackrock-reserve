@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import AdminActionModal from "@/components/admin/AdminActionModal";
 import { AdminPageHeader } from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
@@ -37,11 +38,47 @@ interface PaymentRow {
 
 type Tab = "charges" | "payments";
 
+type PendingPaymentAction = { id: string; status: "PAID" | "REJECTED" };
+
 function formatChargeLabel(charge: Pick<ChargeRow, "chargeType" | "amountUsd" | "percentage">) {
   if (charge.chargeType === "PERCENTAGE" && charge.percentage != null) {
     return `${charge.percentage}%`;
   }
   return formatCurrency(charge.amountUsd);
+}
+
+function PaymentSummary({ payment }: { payment: PaymentRow }) {
+  return (
+    <div className="rounded-lg border border-[var(--admin-border)] bg-white/[0.02] p-4 space-y-2 text-sm">
+      <div className="flex justify-between gap-3">
+        <span className="text-[var(--admin-muted)]">User</span>
+        <span className="text-right text-white">{payment.userName}</span>
+      </div>
+      <div className="flex justify-between gap-3">
+        <span className="text-[var(--admin-muted)]">Withdrawal</span>
+        <span className="text-right">
+          {formatCurrency(payment.withdrawalAmount)}
+          <span className="block text-xs text-[var(--admin-muted)]">{payment.withdrawalMethod}</span>
+        </span>
+      </div>
+      <div className="flex justify-between gap-3">
+        <span className="text-[var(--admin-muted)]">Charge amount</span>
+        <span className="font-semibold text-white">{formatCurrency(payment.amountUsd)}</span>
+      </div>
+      {payment.txHash && (
+        <div className="flex justify-between gap-3">
+          <span className="text-[var(--admin-muted)]">TX reference</span>
+          <span className="text-right font-mono text-xs break-all max-w-[220px]">{payment.txHash}</span>
+        </div>
+      )}
+      {payment.proofNote && (
+        <div className="flex justify-between gap-3">
+          <span className="text-[var(--admin-muted)]">Proof note</span>
+          <span className="text-right text-xs max-w-[220px]">{payment.proofNote}</span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminWithdrawalChargesPage() {
@@ -58,10 +95,25 @@ export default function AdminWithdrawalChargesPage() {
   const [saving, setSaving] = useState(false);
   const [savingAll, setSavingAll] = useState(false);
   const [reviewing, setReviewing] = useState<string | null>(null);
+  const [pendingPaymentAction, setPendingPaymentAction] = useState<PendingPaymentAction | null>(null);
+  const [removeUserId, setRemoveUserId] = useState<string | null>(null);
+  const [confirmApplyAll, setConfirmApplyAll] = useState(false);
+  const [confirmSaveSingle, setConfirmSaveSingle] = useState(false);
 
   const charges = data?.charges ?? [];
   const users = data?.users ?? [];
   const payments = paymentsFetch.data?.payments ?? [];
+
+  const selectedUser = users.find((u) => u.id === userId);
+  const chargeToRemove = charges.find((c) => c.userId === removeUserId);
+  const selectedPayment = pendingPaymentAction
+    ? payments.find((p) => p.id === pendingPaymentAction.id) ?? null
+    : null;
+
+  const chargeSummaryLabel =
+    chargeType === "FIXED"
+      ? formatCurrency(Number(amountUsd) || 0)
+      : `${percentage || "0"}% of withdrawal amount`;
 
   const buildPayload = (applyToAll: boolean) => {
     const payload: Record<string, unknown> = {
@@ -91,15 +143,10 @@ export default function AdminWithdrawalChargesPage() {
       toast.error("Enter a valid percentage between 0 and 100");
       return false;
     }
-    if (applyToAll && !confirm(`Apply this ${chargeType === "FIXED" ? "fixed" : "percentage"} charge to all ${users.length} users?`)) {
-      return false;
-    }
     return true;
   };
 
-  const saveCharge = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm(false)) return;
+  const saveCharge = async () => {
     setSaving(true);
     try {
       const res = await fetch("/api/admin/withdrawal-charges", {
@@ -111,6 +158,7 @@ export default function AdminWithdrawalChargesPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
       toast.success(json.message || "Charge saved");
+      setConfirmSaveSingle(false);
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
@@ -120,7 +168,6 @@ export default function AdminWithdrawalChargesPage() {
   };
 
   const saveChargeForAll = async () => {
-    if (!validateForm(true)) return;
     setSavingAll(true);
     try {
       const res = await fetch("/api/admin/withdrawal-charges", {
@@ -132,6 +179,7 @@ export default function AdminWithdrawalChargesPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
       toast.success(json.message || `Charge applied to ${json.appliedCount ?? "all"} users`);
+      setConfirmApplyAll(false);
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
@@ -140,25 +188,24 @@ export default function AdminWithdrawalChargesPage() {
     }
   };
 
-  const removeCharge = async (uid: string) => {
-    if (!confirm("Remove withdrawal charge for this user?")) return;
+  const removeCharge = async () => {
+    if (!removeUserId) return;
     try {
-      const res = await fetch(`/api/admin/withdrawal-charges/${uid}`, { method: "DELETE", credentials: "include" });
+      const res = await fetch(`/api/admin/withdrawal-charges/${removeUserId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
       toast.success("Charge removed");
+      setRemoveUserId(null);
       refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     }
   };
 
-  const reviewPayment = async (id: string, status: "PAID" | "REJECTED" | "UNPAID") => {
-    let reviewNote: string | undefined;
-    if (status === "REJECTED") {
-      reviewNote = prompt("Rejection reason:") ?? undefined;
-      if (!reviewNote?.trim()) return;
-    }
+  const reviewPayment = async (id: string, status: "PAID" | "REJECTED", reviewNote?: string) => {
     setReviewing(id);
     try {
       const res = await fetch(`/api/admin/withdrawal-charge-payments/${id}`, {
@@ -169,7 +216,12 @@ export default function AdminWithdrawalChargesPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
-      toast.success(`Payment marked ${status.toLowerCase()}`);
+      toast.success(
+        status === "PAID"
+          ? "Charge payment confirmed — withdrawal moved to review"
+          : "Charge payment rejected — user notified"
+      );
+      setPendingPaymentAction(null);
       paymentsFetch.refresh();
       refresh();
     } catch (err) {
@@ -179,13 +231,31 @@ export default function AdminWithdrawalChargesPage() {
     }
   };
 
+  const handleSaveChargeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm(false)) return;
+    setConfirmSaveSingle(true);
+  };
+
+  const handleSaveChargeForAll = () => {
+    if (!validateForm(true)) return;
+    setConfirmApplyAll(true);
+  };
+
   return (
     <div>
       <AdminPageHeader
         title="Withdrawal Charges"
         description="Set per-user or global withdrawal processing charges (fixed or percentage) and verify charge payments"
         action={
-          <button type="button" onClick={() => { refresh(); paymentsFetch.refresh(); }} className="admin-btn-ghost text-xs px-4 py-2">
+          <button
+            type="button"
+            onClick={() => {
+              refresh();
+              paymentsFetch.refresh();
+            }}
+            className="admin-btn-ghost text-xs px-4 py-2"
+          >
             Refresh
           </button>
         }
@@ -206,7 +276,7 @@ export default function AdminWithdrawalChargesPage() {
 
       {tab === "charges" && (
         <>
-          <form onSubmit={saveCharge} className="admin-card p-5 mb-6 space-y-4">
+          <form onSubmit={handleSaveChargeSubmit} className="admin-card p-5 mb-6 space-y-4">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-xs text-[var(--admin-muted)] mb-1.5">Charge type</label>
@@ -269,7 +339,7 @@ export default function AdminWithdrawalChargesPage() {
                 <button
                   type="button"
                   disabled={saving || savingAll || users.length === 0}
-                  onClick={saveChargeForAll}
+                  onClick={handleSaveChargeForAll}
                   className="admin-btn-ghost h-10 flex-1 border border-[var(--admin-border)]"
                 >
                   {savingAll ? "Applying…" : "Set for All Users"}
@@ -284,7 +354,14 @@ export default function AdminWithdrawalChargesPage() {
           </form>
 
           <div className="admin-card overflow-hidden">
-            <AdminFetchState loading={loading} error={error} onRetry={refresh} lastUpdated={lastUpdated} isEmpty={!loading && charges.length === 0} emptyMessage="No withdrawal charges configured">
+            <AdminFetchState
+              loading={loading}
+              error={error}
+              onRetry={refresh}
+              lastUpdated={lastUpdated}
+              isEmpty={!loading && charges.length === 0}
+              emptyMessage="No withdrawal charges configured"
+            >
               <div className="overflow-x-auto">
                 <table className="admin-table w-full min-w-[720px]">
                   <thead>
@@ -313,7 +390,11 @@ export default function AdminWithdrawalChargesPage() {
                           {new Date(c.updatedAt).toLocaleString()}
                         </td>
                         <td className="py-3 px-5 text-right">
-                          <button type="button" onClick={() => removeCharge(c.userId)} className="admin-btn-ghost text-xs text-red-400 py-1 px-3">
+                          <button
+                            type="button"
+                            onClick={() => setRemoveUserId(c.userId)}
+                            className="admin-btn-ghost text-xs text-red-400 py-1 px-3"
+                          >
                             Remove
                           </button>
                         </td>
@@ -362,7 +443,11 @@ export default function AdminWithdrawalChargesPage() {
                       </td>
                       <td className="py-3 px-5 font-medium">{formatCurrency(p.amountUsd)}</td>
                       <td className="py-3 px-5 text-xs max-w-[160px]">
-                        {p.txHash && <p className="font-mono truncate" title={p.txHash}>{p.txHash}</p>}
+                        {p.txHash && (
+                          <p className="font-mono truncate" title={p.txHash}>
+                            {p.txHash}
+                          </p>
+                        )}
                         {p.proofNote && <p className="text-[var(--admin-muted)] truncate">{p.proofNote}</p>}
                       </td>
                       <td className="py-3 px-5">
@@ -371,10 +456,18 @@ export default function AdminWithdrawalChargesPage() {
                       <td className="py-3 px-5 text-right">
                         {p.status === "PENDING_VERIFICATION" && (
                           <div className="flex justify-end gap-2 flex-wrap">
-                            <button disabled={reviewing === p.id} onClick={() => reviewPayment(p.id, "PAID")} className="admin-btn-primary text-xs py-1 px-3">
-                              Verify Paid
+                            <button
+                              disabled={reviewing === p.id}
+                              onClick={() => setPendingPaymentAction({ id: p.id, status: "PAID" })}
+                              className="admin-btn-primary text-xs py-1 px-3"
+                            >
+                              Confirm
                             </button>
-                            <button disabled={reviewing === p.id} onClick={() => reviewPayment(p.id, "REJECTED")} className="admin-btn-ghost text-xs text-red-400 py-1 px-3">
+                            <button
+                              disabled={reviewing === p.id}
+                              onClick={() => setPendingPaymentAction({ id: p.id, status: "REJECTED" })}
+                              className="admin-btn-ghost text-xs text-red-400 py-1 px-3"
+                            >
                               Reject
                             </button>
                           </div>
@@ -387,6 +480,107 @@ export default function AdminWithdrawalChargesPage() {
             </div>
           </AdminFetchState>
         </div>
+      )}
+
+      {confirmSaveSingle && selectedUser && (
+        <AdminActionModal
+          open
+          title="Confirm withdrawal charge"
+          description="This charge will apply to the user's next withdrawal requests."
+          confirmLabel="Confirm charge"
+          onClose={() => setConfirmSaveSingle(false)}
+          onConfirm={saveCharge}
+          loading={saving}
+        >
+          <div className="rounded-lg border border-[var(--admin-border)] bg-white/[0.02] p-4 space-y-2 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-[var(--admin-muted)]">User</span>
+              <span className="text-right text-white">{selectedUser.name}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-[var(--admin-muted)]">Type</span>
+              <span>{chargeType === "FIXED" ? "Fixed amount" : "Percentage"}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-[var(--admin-muted)]">Charge</span>
+              <span className="font-semibold text-white">{chargeSummaryLabel}</span>
+            </div>
+          </div>
+        </AdminActionModal>
+      )}
+
+      {confirmApplyAll && (
+        <AdminActionModal
+          open
+          title="Apply charge to all users"
+          description={`This will set the same ${chargeType === "FIXED" ? "fixed" : "percentage"} charge for all ${users.length} users.`}
+          confirmLabel="Confirm for all users"
+          onClose={() => setConfirmApplyAll(false)}
+          onConfirm={saveChargeForAll}
+          loading={savingAll}
+        >
+          <div className="rounded-lg border border-[var(--admin-border)] bg-white/[0.02] p-4 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-[var(--admin-muted)]">Charge</span>
+              <span className="font-semibold text-white">{chargeSummaryLabel}</span>
+            </div>
+          </div>
+        </AdminActionModal>
+      )}
+
+      {chargeToRemove && (
+        <AdminActionModal
+          open
+          title="Remove withdrawal charge"
+          description="This user will no longer be required to pay a processing charge on withdrawals."
+          confirmLabel="Confirm removal"
+          variant="danger"
+          onClose={() => setRemoveUserId(null)}
+          onConfirm={removeCharge}
+        >
+          <div className="rounded-lg border border-[var(--admin-border)] bg-white/[0.02] p-4 space-y-2 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-[var(--admin-muted)]">User</span>
+              <span className="text-right text-white">{chargeToRemove.userName}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-[var(--admin-muted)]">Current charge</span>
+              <span className="font-semibold text-white">{formatChargeLabel(chargeToRemove)}</span>
+            </div>
+          </div>
+        </AdminActionModal>
+      )}
+
+      {selectedPayment && pendingPaymentAction?.status === "PAID" && (
+        <AdminActionModal
+          open
+          title="Confirm charge payment"
+          description="Verify that the deposit was received. The linked withdrawal will move to pending review."
+          confirmLabel="Confirm payment"
+          onClose={() => setPendingPaymentAction(null)}
+          onConfirm={() => reviewPayment(pendingPaymentAction.id, "PAID")}
+          loading={reviewing === pendingPaymentAction.id}
+        >
+          <PaymentSummary payment={selectedPayment} />
+        </AdminActionModal>
+      )}
+
+      {selectedPayment && pendingPaymentAction?.status === "REJECTED" && (
+        <AdminActionModal
+          open
+          title="Reject charge payment"
+          description="Provide a reason — the user will be notified and can submit new proof."
+          confirmLabel="Confirm rejection"
+          variant="danger"
+          requireReason
+          reasonLabel="Rejection reason"
+          reasonPlaceholder="Reason for rejection..."
+          onClose={() => setPendingPaymentAction(null)}
+          onConfirm={(reviewNote) => reviewPayment(pendingPaymentAction.id, "REJECTED", reviewNote)}
+          loading={reviewing === pendingPaymentAction.id}
+        >
+          <PaymentSummary payment={selectedPayment} />
+        </AdminActionModal>
       )}
     </div>
   );
