@@ -128,6 +128,9 @@ export default function AdminMessagesPage() {
   );
   const [selection, setSelection] = useState<Selection>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+  );
   const [search, setSearch] = useState("");
   const [thread, setThread] = useState<ConversationDetail | null>(null);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -194,6 +197,24 @@ export default function AdminMessagesPage() {
   );
 
   const unreadChats = conversations.filter((c) => c.adminUnread).length;
+  const viewingChat = isDesktop || mobileShowChat;
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop) {
+      setMobileShowChat(false);
+      setSelection(null);
+      setThread(null);
+      setThreadError(null);
+    }
+  }, [isDesktop]);
 
   useEffect(() => {
     if (data?.partialError && !partialErrorShown.current) {
@@ -203,6 +224,7 @@ export default function AdminMessagesPage() {
   }, [data?.partialError]);
 
   useEffect(() => {
+    if (!isDesktop) return;
     if (loading || inbox.length === 0) {
       if (inbox.length === 0) setSelection(null);
       return;
@@ -217,7 +239,7 @@ export default function AdminMessagesPage() {
       const first = firstUnreadChat ?? inbox[0];
       setSelection({ kind: first.kind, id: first.id });
     }
-  }, [loading, inbox, selection]);
+  }, [loading, inbox, selection, isDesktop]);
 
   const selectItem = (item: InboxItem) => {
     setSelection({ kind: item.kind, id: item.id });
@@ -226,6 +248,8 @@ export default function AdminMessagesPage() {
 
   const backToList = () => {
     setMobileShowChat(false);
+    setSelection(null);
+    setReply("");
   };
 
   const loadThread = useCallback(async (id: string, silent = false) => {
@@ -256,9 +280,11 @@ export default function AdminMessagesPage() {
   }, []);
 
   useEffect(() => {
-    if (selection?.kind !== "chat") {
-      setThread(null);
-      setThreadError(null);
+    if (selection?.kind !== "chat" || !viewingChat) {
+      if (selection?.kind !== "chat") {
+        setThread(null);
+        setThreadError(null);
+      }
       return;
     }
 
@@ -272,7 +298,7 @@ export default function AdminMessagesPage() {
     }, 12_000);
 
     return () => window.clearInterval(timer);
-  }, [selection, loadThread]);
+  }, [selection, loadThread, viewingChat]);
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
@@ -324,6 +350,8 @@ export default function AdminMessagesPage() {
   const threadReady = selection?.kind === "chat" && thread?.id === selection.id;
   const sidebarClass = mobileShowChat ? "admin-wa-sidebar admin-wa-sidebar-hidden" : "admin-wa-sidebar";
   const chatClass = mobileShowChat ? "admin-wa-chat admin-wa-chat-open" : "admin-wa-chat";
+  const showListActive = (item: InboxItem) =>
+    isDesktop && selection?.kind === item.kind && selection.id === item.id;
 
   return (
     <div>
@@ -371,8 +399,7 @@ export default function AdminMessagesPage() {
                 </p>
               ) : (
                 filteredInbox.map((item) => {
-                  const active =
-                    selection?.kind === item.kind && selection.id === item.id;
+                  const active = showListActive(item);
 
                   if (item.kind === "chat") {
                     const c = item.row;
@@ -437,10 +464,10 @@ export default function AdminMessagesPage() {
             </div>
           </aside>
 
-          {/* Conversation panel — WhatsApp thread view */}
-          <section className={chatClass}>
-            {!selection ? (
-              <div className="admin-wa-empty">
+          {/* Conversation panel — desktop always visible; mobile only after tap */}
+          <section className={chatClass} aria-hidden={!isDesktop && !mobileShowChat}>
+            {!selection || !viewingChat ? (
+              <div className="admin-wa-empty hidden lg:flex">
                 <div className="admin-wa-empty-icon">
                   <MessageSquare size={32} />
                 </div>
