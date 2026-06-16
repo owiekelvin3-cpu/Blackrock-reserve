@@ -855,6 +855,7 @@ const enBase = {
     hideAccountNumber: "Hide number",
     primaryAccount: "Primary account",
     copyAccountNumber: "Copy",
+    accountNumberCopied: "Account number copied",
     incomingTransfersToMain: "Incoming transfers are credited to your main checking balance",
   },
   footer: {
