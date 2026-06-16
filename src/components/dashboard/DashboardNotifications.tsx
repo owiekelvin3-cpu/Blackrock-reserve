@@ -56,7 +56,7 @@ function MemberTransferNotificationMessage({
 
 function showMemberTransferToast(n: Notification) {
   if (!n.actorName) {
-    toast.info(n.title, { description: n.message, duration: 10_000, important: true });
+    toast.info(n.title, { description: n.message, duration: 10_000 });
     return;
   }
   toast.info(n.title, {
@@ -72,7 +72,6 @@ function showMemberTransferToast(n: Notification) {
       </span>
     ),
     duration: 10_000,
-    important: true,
   });
 }
 
@@ -88,7 +87,6 @@ function showNotificationToast(n: Notification) {
   const opts = {
     description: n.message,
     duration: 10_000,
-    important: true,
   } as const;
 
   if (n.type.includes("REJECTED")) {

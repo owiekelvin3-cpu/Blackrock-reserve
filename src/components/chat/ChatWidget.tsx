@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageCircle, X, Send, Bot, User, Minimize2, Headphones, Info } from "lucide-react";
+import { X, Send, Bot, User, Minimize2, Headphones, Info } from "lucide-react";
 import type { ChatSuggestion } from "@/lib/chatbot";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/providers/I18nProvider";
@@ -19,16 +19,10 @@ type ChatMessage = {
 
 type ChatMode = "bot" | "human";
 
-type LauncherPosition = { x: number; y: number };
-
 const STORAGE_KEY = "pcb-chat-messages";
 const MODE_KEY = "pcb-chat-mode";
-const POSITION_KEY = "pcb-chat-position";
-const LAUNCHER_SIZE = 56;
-const DRAG_THRESHOLD = 8;
 const PANEL_WIDTH = 380;
 const PANEL_HEIGHT = 520;
-const VIEWPORT_MARGIN = 8;
 
 function loadMessages(): ChatMessage[] {
   if (typeof window === "undefined") return [];
@@ -59,68 +53,6 @@ function saveChatMode(mode: ChatMode) {
   sessionStorage.setItem(MODE_KEY, mode);
 }
 
-function readStoredPosition(): LauncherPosition | null {
-  try {
-    const raw = localStorage.getItem(POSITION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as LauncherPosition;
-    if (typeof parsed.x !== "number" || typeof parsed.y !== "number") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function savePosition(position: LauncherPosition) {
-  try {
-    localStorage.setItem(POSITION_KEY, JSON.stringify(position));
-  } catch {
-    /* ignore */
-  }
-}
-
-function getDashboardBottomGap(): number {
-  if (typeof window === "undefined") return 84;
-  return window.matchMedia("(min-width: 640px)").matches ? 24 : 84;
-}
-
-function getDefaultPosition(isDashboard: boolean): LauncherPosition {
-  const margin = 16;
-  const bottomGap = isDashboard ? getDashboardBottomGap() : 24;
-  return {
-    x: window.innerWidth - LAUNCHER_SIZE - margin,
-    y: window.innerHeight - LAUNCHER_SIZE - bottomGap,
-  };
-}
-
-function clampPosition(position: LauncherPosition): LauncherPosition {
-  const maxX = Math.max(VIEWPORT_MARGIN, window.innerWidth - LAUNCHER_SIZE - VIEWPORT_MARGIN);
-  const maxY = Math.max(VIEWPORT_MARGIN, window.innerHeight - LAUNCHER_SIZE - VIEWPORT_MARGIN);
-  return {
-    x: Math.min(Math.max(position.x, VIEWPORT_MARGIN), maxX),
-    y: Math.min(Math.max(position.y, VIEWPORT_MARGIN), maxY),
-  };
-}
-
-function computePanelPosition(launcher: LauncherPosition, panelW: number, panelH: number) {
-  let left = launcher.x + LAUNCHER_SIZE - panelW;
-  let top = launcher.y - panelH - 12;
-
-  if (left < VIEWPORT_MARGIN) left = VIEWPORT_MARGIN;
-  if (left + panelW > window.innerWidth - VIEWPORT_MARGIN) {
-    left = window.innerWidth - panelW - VIEWPORT_MARGIN;
-  }
-
-  if (top < VIEWPORT_MARGIN) {
-    top = launcher.y + LAUNCHER_SIZE + 12;
-  }
-  if (top + panelH > window.innerHeight - VIEWPORT_MARGIN) {
-    top = window.innerHeight - panelH - VIEWPORT_MARGIN;
-  }
-
-  return { left, top };
-}
-
 export default function ChatWidget() {
   const { t } = useI18n();
   const { registerChat } = useChat();
@@ -130,8 +62,6 @@ export default function ChatWidget() {
   const isDashboard = pathname.startsWith("/dashboard");
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [position, setPosition] = useState<LauncherPosition | null>(null);
-  const [dragging, setDragging] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [humanMessages, setHumanMessages] = useState<ChatMessage[]>([]);
   const [chatMode, setChatMode] = useState<ChatMode>("bot");
@@ -143,16 +73,6 @@ export default function ChatWidget() {
   const [initialized, setInitialized] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const launcherRef = useRef<HTMLDivElement>(null);
-  const positionRef = useRef<LauncherPosition | null>(null);
-  const dragState = useRef({
-    active: false,
-    moved: false,
-    startX: 0,
-    startY: 0,
-    offsetX: 0,
-    offsetY: 0,
-  });
 
   const isAdmin = pathname.startsWith("/admin");
   const hideLauncher = isAdmin || isDashboard;
@@ -186,26 +106,6 @@ export default function ChatWidget() {
     } catch {
       /* ignore */
     }
-  }, []);
-
-  useEffect(() => {
-    const stored = readStoredPosition();
-    const initial = clampPosition(stored ?? getDefaultPosition(isDashboard));
-    positionRef.current = initial;
-    setPosition(initial);
-  }, [isDashboard]);
-
-  useEffect(() => {
-    const onResize = () => {
-      setPosition((current) => {
-        if (!current) return current;
-        const next = clampPosition(current);
-        positionRef.current = next;
-        return next;
-      });
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const dismissChat = useCallback(() => {
@@ -416,72 +316,12 @@ export default function ChatWidget() {
     [addBotReply, typing, humanSending, router, t, isDashboard, chatMode, sendHumanMessage]
   );
 
-  const handleLauncherPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || !position) return;
-    const rect = launcherRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    dragState.current = {
-      active: true,
-      moved: false,
-      startX: event.clientX,
-      startY: event.clientY,
-      offsetX: event.clientX - rect.left,
-      offsetY: event.clientY - rect.top,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }, [position]);
-
-  const handleLauncherPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragState.current.active || !position) return;
-
-    const deltaX = Math.abs(event.clientX - dragState.current.startX);
-    const deltaY = Math.abs(event.clientY - dragState.current.startY);
-    if (!dragState.current.moved && deltaX < DRAG_THRESHOLD && deltaY < DRAG_THRESHOLD) {
-      return;
-    }
-
-    dragState.current.moved = true;
-    setDragging(true);
-    const next = clampPosition({
-      x: event.clientX - dragState.current.offsetX,
-      y: event.clientY - dragState.current.offsetY,
-    });
-    positionRef.current = next;
-    setPosition(next);
-  }, [position]);
-
-  const finishLauncherPointer = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!dragState.current.active) return;
-
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-
-      const wasDrag = dragState.current.moved;
-      if (wasDrag && positionRef.current) {
-        savePosition(positionRef.current);
-      } else if (!wasDrag) {
-        setOpen((value) => !value);
-      }
-
-      dragState.current.active = false;
-      dragState.current.moved = false;
-      setDragging(false);
-    },
-    []
-  );
-
   if (isAdmin) return null;
   if (isDashboard && !open) return null;
-  if (!isDashboard && (dismissed || !position)) return null;
+  if (!isDashboard && dismissed) return null;
 
   const panelWidth = Math.min(window.innerWidth - 32, PANEL_WIDTH);
   const panelHeight = Math.min(window.innerHeight * 0.7, PANEL_HEIGHT);
-  const panelPosition = position
-    ? computePanelPosition(position, panelWidth, panelHeight)
-    : { left: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN };
 
   const activeMessages = isDashboard && chatMode === "human" ? humanMessages : messages;
   const isHumanMode = isDashboard && chatMode === "human";
@@ -513,14 +353,12 @@ export default function ChatWidget() {
               "fixed z-[9999] flex flex-col bg-bg-elevated/95 backdrop-blur-xl overflow-hidden",
               isDashboard
                 ? "inset-0 h-[100dvh] w-full safe-area-pb"
-                : "rounded-2xl border border-border shadow-2xl shadow-black/20"
+                : "rounded-2xl border border-border shadow-2xl shadow-black/20 right-4 sm:right-6 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] max-sm:left-4 max-sm:right-4"
             )}
             style={
               isDashboard
                 ? undefined
                 : {
-                    left: panelPosition.left,
-                    top: panelPosition.top,
                     width: panelWidth,
                     height: panelHeight,
                   }
@@ -774,26 +612,17 @@ export default function ChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Launcher — hidden on dashboard and admin */}
-      {!hideLauncher && position && (
+      {/* Launcher — fixed bottom-right on marketing pages */}
+      {!hideLauncher && (
         <div
-          ref={launcherRef}
           className={cn(
-            "fixed z-[9999] touch-none select-none",
-            dragging ? "cursor-grabbing" : "cursor-grab",
+            "fixed z-[9999] right-4 sm:right-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))]",
             open && "pointer-events-none opacity-0"
           )}
-          style={{ left: position.x, top: position.y, width: LAUNCHER_SIZE, height: LAUNCHER_SIZE }}
-          onPointerDown={handleLauncherPointerDown}
-          onPointerMove={handleLauncherPointerMove}
-          onPointerUp={finishLauncherPointer}
-          onPointerCancel={finishLauncherPointer}
-          aria-label={t("chat.dragChat")}
           role="group"
         >
           <button
             type="button"
-            onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
               dismissChat();
@@ -804,15 +633,15 @@ export default function ChatWidget() {
             <X size={11} />
           </button>
 
-          <div
-            className={cn(
-              "relative h-14 w-14 rounded-2xl shadow-brand flex items-center justify-center overflow-hidden transition-transform",
-              !dragging && "hover:scale-105"
-            )}
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="relative h-14 w-14 rounded-2xl shadow-brand flex items-center justify-center overflow-hidden transition-transform hover:scale-105"
+            aria-label={t("chat.ariaLabel")}
           >
             <LogoMark size="sm" className="rounded-2xl w-full h-full" />
             <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-bg-primary" />
-          </div>
+          </button>
         </div>
       )}
     </>
