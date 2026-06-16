@@ -8,7 +8,7 @@ import { createUserNotification } from "@/lib/user-notifications";
 import { sendDepositDecisionEmail } from "@/lib/money-notifications";
 import { formatCurrency } from "@/lib/utils";
 import { buildDepositClearedNotification } from "@/lib/notification-helpers";
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { invalidateAdminCaches } from "@/lib/admin-cache";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -52,7 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const reviewNote = parsed.data.reviewNote?.trim() || null;
     let emailPayload: { userId: string; title: string; message: string } | null = null;
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await runInteractiveTransaction(async (tx) => {
       if (parsed.data.status === "APPROVED" && creditAmount && accountId) {
         await adjustUserBalance(
           {
@@ -61,7 +61,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             adminId: session.user.id,
             type: "CREDIT",
             amount: creditAmount,
-            reason: `Bitcoin deposit approved (TX: ${deposit.txHash ?? "N/A"})`,
+            reason: `Bitcoin deposit approved (${deposit.proofImage ? "proof on file" : `TX: ${deposit.txHash ?? "N/A"}`})`,
             ipAddress: ip,
             skipAuditLog: true,
             skipUserNotification: true,

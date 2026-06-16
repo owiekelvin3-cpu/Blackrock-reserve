@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { runInteractiveTransaction } from "@/lib/prisma";
 import { BalanceAdjustmentType, Prisma } from "@prisma/client";
 import { logAdminAction } from "@/lib/admin-audit";
 import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-notifications";
@@ -107,7 +107,7 @@ export async function adjustUserBalance(
     return { adjustment, updatedAccount, balanceBefore, balanceAfter };
   };
 
-  const result = txClient ? await run(txClient) : await prisma.$transaction(run);
+  const result = txClient ? await run(txClient) : await runInteractiveTransaction(run);
 
   if (!skipUserNotification) {
     const { title, message } =

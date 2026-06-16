@@ -14,6 +14,13 @@ export const SETTING_KEYS = {
   CONTACT_HQ_TITLE: "contact_hq_title",
   CONTACT_HQ_ADDRESS: "contact_hq_address",
   CONTACT_FAQS: "contact_faqs",
+  PHYSICAL_CARD_ORDERS_ENABLED: "physical_card_orders_enabled",
+  PHYSICAL_CARD_REQUIRE_KYC: "physical_card_require_kyc",
+  PHYSICAL_CARD_REQUIRE_INVESTMENT: "physical_card_require_investment",
+  PHYSICAL_CARD_MIN_BALANCE: "physical_card_min_balance",
+  PHYSICAL_CARD_REQUIRE_PHONE: "physical_card_require_phone",
+  PHYSICAL_CARD_REQUIRE_EMAIL: "physical_card_require_email",
+  HIGH_YIELD_SAVINGS_APY: "high_yield_savings_apy",
 } as const;
 
 export type ContactFaq = { question: string; answer: string };
@@ -62,6 +69,13 @@ const DEFAULTS: Record<SettingKey, string> = {
   [SETTING_KEYS.CONTACT_HQ_TITLE]: "New York Headquarters",
   [SETTING_KEYS.CONTACT_HQ_ADDRESS]: "1 Blackrock Plaza, Suite 400 · New York, NY 10004",
   [SETTING_KEYS.CONTACT_FAQS]: JSON.stringify(DEFAULT_CONTACT_FAQS),
+  [SETTING_KEYS.PHYSICAL_CARD_ORDERS_ENABLED]: "true",
+  [SETTING_KEYS.PHYSICAL_CARD_REQUIRE_KYC]: "true",
+  [SETTING_KEYS.PHYSICAL_CARD_REQUIRE_INVESTMENT]: "false",
+  [SETTING_KEYS.PHYSICAL_CARD_MIN_BALANCE]: "500",
+  [SETTING_KEYS.PHYSICAL_CARD_REQUIRE_PHONE]: "true",
+  [SETTING_KEYS.PHYSICAL_CARD_REQUIRE_EMAIL]: "true",
+  [SETTING_KEYS.HIGH_YIELD_SAVINGS_APY]: "20",
 };
 
 const CACHE_TAG = "platform-settings";

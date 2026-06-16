@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { ensureUserBankAccounts } from "@/lib/dashboard-data";
 import {
   calculateInvestmentFee,
@@ -108,7 +108,7 @@ export async function executeInvestment(
     throw new Error("Duplicate investment detected. Please wait a moment and try again.");
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInteractiveTransaction(async (tx) => {
     const spendableInTx = await getSpendableBalanceInTx(tx, userId);
     if (spendableInTx < totalCost) {
       throw new Error("Insufficient wallet balance");

@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AdminActionModal from "@/components/admin/AdminActionModal";
-import { AdminPageHeader } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminFilterTabs,
+  AdminFormPanel,
+  AdminDataCard,
+  AdminTableScroll,
+  AdminMobileList,
+  AdminMobileCard,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { formatCurrency } from "@/lib/utils";
@@ -251,42 +261,33 @@ export default function AdminWithdrawalChargesPage() {
   };
 
   return (
-    <div>
+    <AdminPage>
       <AdminPageHeader
         title="Withdrawal Charges"
         description="Set per-user or global withdrawal processing charges (fixed or percentage) and verify charge payments"
         action={
-          <button
-            type="button"
+          <AdminRefreshButton
             onClick={() => {
               refresh();
               paymentsFetch.refresh();
             }}
-            className="admin-btn-ghost text-xs px-4 py-2"
-          >
-            Refresh
-          </button>
+          />
         }
       />
 
-      <div className="flex gap-2 mb-6 overflow-x-auto">
-        {(["charges", "payments"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${tab === t ? "admin-btn-primary" : "admin-btn-ghost"}`}
-          >
-            {t === "charges"
-              ? "User Charges"
-              : `Charge Payments${pendingPaymentCount > 0 ? ` (${pendingPaymentCount})` : ""}`}
-          </button>
-        ))}
-      </div>
+      <AdminFilterTabs
+        value={tab}
+        onChange={(v) => setTab(v as Tab)}
+        tabs={[
+          { id: "charges", label: "User charges" },
+          { id: "payments", label: "Charge payments", count: pendingPaymentCount || undefined },
+        ]}
+      />
 
       {tab === "charges" && (
         <>
-          <form onSubmit={handleSaveChargeSubmit} className="admin-card p-5 mb-6 space-y-4">
+          <AdminFormPanel title="Configure charge" description="Apply a fixed USD amount or percentage of the withdrawal.">
+            <form onSubmit={handleSaveChargeSubmit} className="space-y-4">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-xs text-[var(--admin-muted)] mb-1.5">Charge type</label>
@@ -361,9 +362,10 @@ export default function AdminWithdrawalChargesPage() {
                 ? "Fixed charges bill the same USD amount on every withdrawal request."
                 : "Percentage charges are calculated from the withdrawal amount when the user submits a request."}
             </p>
-          </form>
+            </form>
+          </AdminFormPanel>
 
-          <div className="admin-card overflow-hidden">
+          <AdminDataCard noPadding>
             <AdminFetchState
               loading={loading}
               error={error}
@@ -372,7 +374,7 @@ export default function AdminWithdrawalChargesPage() {
               isEmpty={!loading && charges.length === 0}
               emptyMessage="No withdrawal charges configured"
             >
-              <div className="overflow-x-auto">
+              <AdminTableScroll>
                 <table className="admin-table w-full min-w-[720px]">
                   <thead>
                     <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
@@ -412,14 +414,14 @@ export default function AdminWithdrawalChargesPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </AdminTableScroll>
             </AdminFetchState>
-          </div>
+          </AdminDataCard>
         </>
       )}
 
       {tab === "payments" && (
-        <div className="admin-card overflow-hidden">
+        <AdminDataCard noPadding>
           <AdminFetchState
             loading={paymentsFetch.loading}
             error={paymentsFetch.error}
@@ -428,7 +430,44 @@ export default function AdminWithdrawalChargesPage() {
             isEmpty={!paymentsFetch.loading && payments.length === 0}
             emptyMessage="No charge payments yet"
           >
-            <div className="overflow-x-auto">
+            <AdminMobileList>
+              {payments.map((p) => (
+                <AdminMobileCard key={p.id}>
+                  <p className="text-sm font-medium">{p.userName}</p>
+                  <p className="text-[10px] text-[var(--admin-muted)]">{p.userEmail}</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs mt-2 mb-3">
+                    <div>
+                      <p className="text-[var(--admin-muted)]">Withdrawal</p>
+                      <p>{formatCurrency(p.withdrawalAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[var(--admin-muted)]">Charge</p>
+                      <p className="font-medium">{formatCurrency(p.amountUsd)}</p>
+                    </div>
+                  </div>
+                  {p.status === "PENDING_VERIFICATION" && (
+                    <div className="flex gap-2">
+                      <button
+                        disabled={reviewing === p.id}
+                        onClick={() => setPendingPaymentAction({ id: p.id, status: "PAID" })}
+                        className="admin-btn-primary text-xs py-1 px-3 flex-1"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        disabled={reviewing === p.id}
+                        onClick={() => setPendingPaymentAction({ id: p.id, status: "REJECTED" })}
+                        className="admin-btn-ghost text-xs text-red-400 py-1 px-3 flex-1"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </AdminMobileCard>
+              ))}
+            </AdminMobileList>
+
+            <AdminTableScroll className="admin-desktop-table">
               <table className="admin-table w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
@@ -487,9 +526,9 @@ export default function AdminWithdrawalChargesPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </AdminTableScroll>
           </AdminFetchState>
-        </div>
+        </AdminDataCard>
       )}
 
       {confirmSaveSingle && selectedUser && (
@@ -592,6 +631,6 @@ export default function AdminWithdrawalChargesPage() {
           <PaymentSummary payment={selectedPayment} />
         </AdminActionModal>
       )}
-    </div>
+    </AdminPage>
   );
 }

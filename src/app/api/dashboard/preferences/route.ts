@@ -4,6 +4,12 @@ import { getSessionUserId, unauthorizedResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { LOCALE_CODES } from "@/lib/i18n/locales";
 import { parseNotificationPrefs, type NotificationPrefs } from "@/lib/notification-prefs";
+import { ensureUserPrimaryAccountNumber } from "@/lib/bank-account-number";
+import {
+  bankAccountNumberSelect,
+  getDbSchemaCapabilities,
+  userVerificationBadgeSelect,
+} from "@/lib/db-schema-capabilities";
 
 const notificationPrefsSchema = z.object({
   transactions: z.boolean(),
@@ -22,28 +28,83 @@ const patchSchema = z.object({
   notificationPrefs: notificationPrefsSchema.optional(),
 });
 
+const BANK_ACCOUNT_CORE_SELECT = {
+  id: true,
+  name: true,
+  type: true,
+  currency: true,
+} as const;
+
 export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) return unauthorizedResponse();
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      preferredLocale: true,
-      profileImage: true,
-      name: true,
-      phone: true,
-      notificationPrefs: true,
-    },
-  });
+  try {
+    const caps = await getDbSchemaCapabilities();
 
-  return NextResponse.json({
-    preferredLocale: user?.preferredLocale ?? "en",
-    profileImage: user?.profileImage ?? null,
-    name: user?.name ?? null,
-    phone: user?.phone ?? null,
-    notificationPrefs: parseNotificationPrefs(user?.notificationPrefs),
-  });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        preferredLocale: true,
+        profileImage: true,
+        name: true,
+        phone: true,
+        notificationPrefs: true,
+        createdAt: true,
+        ...userVerificationBadgeSelect(caps),
+      },
+    });
+
+    if (caps.bankAccountNumbers) {
+      await ensureUserPrimaryAccountNumber(userId);
+    }
+
+    const bankAccountsRaw = await prisma.bankAccount.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        ...BANK_ACCOUNT_CORE_SELECT,
+        ...bankAccountNumberSelect(caps),
+      },
+    });
+
+    const primaryCheckingId = bankAccountsRaw.find((a) => a.type === "checking")?.id;
+    const bankAccounts = bankAccountsRaw.map((account) => ({
+      ...account,
+      accountNumber:
+        caps.bankAccountNumbers && account.id === primaryCheckingId
+          ? account.accountNumber
+          : null,
+    }));
+
+    const userWithBadge = user as typeof user & { verificationBadge?: string };
+
+    return NextResponse.json({
+      preferredLocale: user?.preferredLocale ?? "en",
+      profileImage: user?.profileImage ?? null,
+      name: user?.name ?? null,
+      phone: user?.phone ?? null,
+      notificationPrefs: parseNotificationPrefs(user?.notificationPrefs),
+      verificationBadge: userWithBadge?.verificationBadge ?? "NONE",
+      memberSince: user?.createdAt ?? null,
+      bankAccounts,
+    });
+  } catch (error) {
+    console.error("Preferences GET error:", error);
+    return NextResponse.json(
+      {
+        preferredLocale: "en",
+        profileImage: null,
+        name: null,
+        phone: null,
+        notificationPrefs: parseNotificationPrefs(null),
+        verificationBadge: "NONE",
+        memberSince: null,
+        bankAccounts: [],
+      },
+      { status: 200 }
+    );
+  }
 }
 
 export async function PATCH(request: Request) {

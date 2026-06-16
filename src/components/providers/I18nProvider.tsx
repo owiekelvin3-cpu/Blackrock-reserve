@@ -97,10 +97,7 @@ export function I18nProvider({
   initialLocale?: LocaleCode;
 }) {
   const { data: session, status } = useSession();
-  const [locale, setLocaleState] = useState<LocaleCode>(() => {
-    if (typeof window === "undefined") return initialLocale;
-    return resolveClientLocale(initialLocale);
-  });
+  const [locale, setLocaleState] = useState<LocaleCode>(initialLocale);
 
   useEffect(() => {
     const resolved = resolveClientLocale(initialLocale);

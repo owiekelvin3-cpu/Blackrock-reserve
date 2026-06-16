@@ -37,6 +37,7 @@ export type AdminAlertCounts = {
   pendingTransactions: number;
   pendingTaxVerifications: number;
   pendingLoans: number;
+  pendingCardRequests: number;
 };
 
 /** One round-trip for all admin dashboard counters */
@@ -81,7 +82,8 @@ export async function getAdminAlertCounts(): Promise<AdminAlertCounts> {
       (SELECT COUNT(*)::int FROM "ContactMessage") AS "contactMessages",
       (SELECT COUNT(*)::int FROM "Transaction" t INNER JOIN "User" u ON t."userId" = u.id WHERE t.status = 'PENDING' AND u.${VC}) AS "pendingTransactions",
       (SELECT COUNT(*)::int FROM "TaxRefundVerification" tr INNER JOIN "User" u ON tr."userId" = u.id WHERE tr.status IN ('PENDING', 'DOCUMENTS_REQUESTED') AND u.${VC}) AS "pendingTaxVerifications",
-      (SELECT COUNT(*)::int FROM "LoanApplication" la INNER JOIN "User" u ON la."userId" = u.id WHERE la.status IN ('SUBMITTED', 'UNDER_REVIEW', 'APPROVED') AND u.${VC}) AS "pendingLoans"
+      (SELECT COUNT(*)::int FROM "LoanApplication" la INNER JOIN "User" u ON la."userId" = u.id WHERE la.status IN ('SUBMITTED', 'UNDER_REVIEW', 'APPROVED') AND u.${VC}) AS "pendingLoans",
+      (SELECT COUNT(*)::int FROM "CardRequest" cr INNER JOIN "User" u ON cr."userId" = u.id WHERE cr.status IN ('PENDING_REVIEW', 'UNDER_VERIFICATION') AND u.${VC}) AS "pendingCardRequests"
   `);
   return { ...row, unreadSupportChats: await countUnreadSupportChats() };
 }

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { ensureUserBankAccounts } from "@/lib/dashboard-data";
 import {
   calculateInvestmentFee,
@@ -103,7 +103,7 @@ export async function executeSell(input: ExecuteSellInput): Promise<ExecuteSellR
     throw new Error("Duplicate sale detected. Please wait a moment and try again.");
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInteractiveTransaction(async (tx) => {
     const bankAccount = await tx.bankAccount.findFirst({
       where: { id: account.id, userId },
     });

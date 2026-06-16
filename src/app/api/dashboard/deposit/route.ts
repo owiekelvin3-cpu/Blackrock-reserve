@@ -5,10 +5,12 @@ import { DEPOSIT_SUCCESS_MESSAGE, formatDepositStatus } from "@/lib/deposit-stat
 import { getPublicDepositSettings } from "@/lib/platform-settings";
 import { ensureUserBankAccounts } from "@/lib/dashboard-data";
 import { depositSubmitSchema } from "@/lib/validations";
+import { validateDepositProofImageDataUrl } from "@/lib/deposit-proof-image";
 import { requireTransactionPin } from "@/lib/transaction-pin";
 import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-notifications";
 import { formatCurrency } from "@/lib/utils";
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
+import { createDepositRequest, listUserDepositRequests } from "@/lib/deposit-request-data";
 import QRCode from "qrcode";
 
 const getBitcoinQr = unstable_cache(
@@ -35,21 +37,7 @@ export async function GET() {
     const settings = await getPublicDepositSettings();
     const [accounts, deposits] = await Promise.all([
       ensureUserBankAccounts(userId),
-      prisma.depositRequest.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 15,
-      select: {
-        id: true,
-        amountUsd: true,
-        bitcoinWalletAddress: true,
-        txHash: true,
-        proofNote: true,
-        status: true,
-        reviewNote: true,
-        createdAt: true,
-      },
-    }),
+      listUserDepositRequests(userId),
     ]);
 
     let qrCodeDataUrl = "";
@@ -76,6 +64,7 @@ export async function GET() {
         amountUsd: d.amountUsd ? Number(d.amountUsd) : null,
         bitcoinWalletAddress: d.bitcoinWalletAddress,
         txHash: d.txHash,
+        hasProofImage: Boolean(d.proofImage),
         proofNote: d.proofNote,
         status: d.status,
         statusLabel: formatDepositStatus(d.status),
@@ -127,65 +116,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No bank account available to credit" }, { status: 400 });
     }
 
-    const txHash = parsed.data.txHash?.trim() || null;
-
-    if (txHash) {
-      const duplicate = await prisma.depositRequest.findFirst({
-        where: {
-          txHash,
-          status: { in: ["PENDING", "APPROVED"] },
-          NOT: { userId },
-        },
-      });
-      if (duplicate) {
-        return NextResponse.json(
-          { error: "This transaction reference was already submitted by another user" },
-          { status: 409 }
-        );
-      }
-
-      const ownDuplicate = await prisma.depositRequest.findFirst({
-        where: {
-          userId,
-          txHash,
-          status: { in: ["PENDING", "APPROVED"] },
-        },
-      });
-      if (ownDuplicate) {
-        return NextResponse.json(
-          { error: "You already submitted a deposit with this transaction reference" },
-          { status: 409 }
-        );
-      }
+    const proofCheck = validateDepositProofImageDataUrl(parsed.data.proofImage);
+    if (!proofCheck.ok) {
+      return NextResponse.json({ error: proofCheck.error }, { status: 400 });
     }
 
     const successMessage = resolveSuccessMessage(settings.depositConfirmationMessage);
-    const amountLabel =
-      parsed.data.amountUsd != null ? formatCurrency(parsed.data.amountUsd) : "Amount pending verification";
+    const amountLabel = formatCurrency(parsed.data.amountUsd);
 
     const depositTitle = "Deposit request submitted";
     const depositMessage = `Your Bitcoin deposit request (${amountLabel}) is pending admin approval. You will be notified once it is reviewed.`;
 
-    const deposit = await prisma.$transaction(async (tx) => {
-      const row = await tx.depositRequest.create({
-        data: {
+    const deposit = await runInteractiveTransaction(async (tx) => {
+      const row = await createDepositRequest(
+        {
           userId,
           accountId: account.id,
           amountUsd: parsed.data.amountUsd,
           bitcoinWalletAddress: settings.bitcoinWalletAddress,
-          txHash,
+          proofImage: parsed.data.proofImage,
           proofNote: parsed.data.proofNote?.trim() || null,
-          status: "PENDING",
         },
-        select: {
-          id: true,
-          status: true,
-          createdAt: true,
-          amountUsd: true,
-          bitcoinWalletAddress: true,
-          txHash: true,
-        },
-      });
+        tx
+      );
 
       await createUserNotification(
         {
@@ -217,7 +170,7 @@ export async function POST(req: NextRequest) {
         statusLabel: formatDepositStatus(deposit.status),
         amountUsd: deposit.amountUsd ? Number(deposit.amountUsd) : null,
         bitcoinWalletAddress: deposit.bitcoinWalletAddress,
-        txHash: deposit.txHash,
+        hasProofImage: Boolean(deposit.proofImage),
         createdAt: deposit.createdAt.toISOString(),
       },
     });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { registerApiSchema } from "@/lib/validations";
 import { sendEmail } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
@@ -8,6 +8,15 @@ import { parseLocaleCode } from "@/lib/i18n/locales";
 import { getServerLocale } from "@/lib/i18n/server";
 import { getClientIp } from "@/lib/admin-audit";
 import { captureUserLocationAsync } from "@/lib/user-location";
+import { allocateUniqueBankAccountNumber } from "@/lib/bank-account-number";
+
+async function buildDefaultBankAccounts(userId: string) {
+  const checkingNumber = await allocateUniqueBankAccountNumber();
+  return [
+    { userId, name: "Primary Checking", type: "checking", accountNumber: checkingNumber, currency: "USD", balance: 0 },
+    { userId, name: "High-Yield Savings", type: "savings", currency: "USD", balance: 0 },
+  ];
+}
 
 async function deliverWelcomeEmail(name: string, email: string, preferredLocale: string | null) {
   const locale = parseLocaleCode(preferredLocale) ?? (await getServerLocale());
@@ -69,14 +78,11 @@ export async function POST(req: Request) {
       const accountCount = await prisma.bankAccount.count({ where: { userId } });
       if (accountCount === 0) {
         await prisma.bankAccount.createMany({
-          data: [
-            { userId, name: "Primary Checking", type: "checking", currency: "USD", balance: 0 },
-            { userId, name: "High-Yield Savings", type: "savings", currency: "USD", balance: 0 },
-          ],
+          data: await buildDefaultBankAccounts(userId),
         });
       }
     } else {
-      const created = await prisma.$transaction(async (tx) => {
+      const created = await runInteractiveTransaction(async (tx) => {
         const user = await tx.user.create({
           data: {
             name: fullName,
@@ -95,10 +101,7 @@ export async function POST(req: Request) {
         });
 
         await tx.bankAccount.createMany({
-          data: [
-            { userId: user.id, name: "Primary Checking", type: "checking", currency: "USD", balance: 0 },
-            { userId: user.id, name: "High-Yield Savings", type: "savings", currency: "USD", balance: 0 },
-          ],
+          data: await buildDefaultBankAccounts(user.id),
         });
 
         return user;

@@ -105,3 +105,12 @@ export function clearAdminFetchCache(url?: string) {
   if (url) responseCache.delete(url);
   else responseCache.clear();
 }
+
+export function clearAdminFetchCacheByPrefix(prefix: string) {
+  Array.from(responseCache.keys()).forEach((key) => {
+    if (key.startsWith(prefix)) responseCache.delete(key);
+  });
+  Array.from(inflight.keys()).forEach((key) => {
+    if (key.startsWith(prefix)) inflight.delete(key);
+  });
+}

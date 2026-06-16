@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
@@ -14,9 +13,35 @@ export default function ThemeToggle({ className, size = "md" }: ThemeToggleProps
   const { theme, toggleTheme, mounted } = useTheme();
   const isDark = theme === "dark";
 
-  const dims = size === "sm"
-    ? { track: "h-8 w-[3.25rem]", thumb: "h-6 w-6", icon: 13, pad: "p-1" }
-    : { track: "h-9 w-[4.25rem]", thumb: "h-7 w-7", icon: 15, pad: "p-1" };
+  const dims =
+    size === "sm"
+      ? { track: "h-8 w-[3.25rem]", thumb: "h-6 w-6", icon: 13, pad: "p-1", offset: 20 }
+      : { track: "h-9 w-[4.25rem]", thumb: "h-7 w-7", icon: 15, pad: "p-1", offset: 26 };
+
+  if (!mounted) {
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={false}
+        aria-label="Switch theme"
+        className={cn(
+          "theme-toggle relative inline-flex shrink-0 items-center rounded-full border border-white/10 bg-white/5",
+          dims.track,
+          dims.pad,
+          className
+        )}
+        disabled
+      >
+        <span
+          className={cn(
+            "relative z-10 flex items-center justify-center rounded-full bg-gradient-to-br from-[#2a2a32] to-[#1a1a20]",
+            dims.thumb
+          )}
+        />
+      </button>
+    );
+  }
 
   return (
     <button
@@ -45,37 +70,22 @@ export default function ThemeToggle({ className, size = "md" }: ThemeToggleProps
         )}
       />
 
-      <motion.span
-        layout
-        transition={{ type: "spring", stiffness: 520, damping: 34 }}
+      <span
         className={cn(
-          "relative z-10 flex items-center justify-center rounded-full shadow-md",
+          "relative z-10 flex items-center justify-center rounded-full shadow-md transition-transform duration-300 ease-out",
           dims.thumb,
           isDark
             ? "bg-gradient-to-br from-[#2a2a32] to-[#1a1a20] shadow-black/40"
             : "bg-gradient-to-br from-white to-[#f8fafc] shadow-slate-300/60"
         )}
-        animate={{ x: isDark ? 0 : size === "sm" ? 20 : 26 }}
+        style={{ transform: isDark ? "translateX(0px)" : `translateX(${dims.offset}px)` }}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          {mounted && (
-            <motion.span
-              key={isDark ? "moon" : "sun"}
-              initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
-              animate={{ opacity: 1, rotate: 0, scale: 1 }}
-              exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="flex items-center justify-center"
-            >
-              {isDark ? (
-                <Moon size={dims.icon} className="text-accent-brand" strokeWidth={2.25} />
-              ) : (
-                <Sun size={dims.icon} className="text-amber-500" strokeWidth={2.25} />
-              )}
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </motion.span>
+        {isDark ? (
+          <Moon size={dims.icon} className="text-accent-brand" strokeWidth={2.25} />
+        ) : (
+          <Sun size={dims.icon} className="text-amber-500" strokeWidth={2.25} />
+        )}
+      </span>
 
       <span className="sr-only">{isDark ? "Dark mode active" : "Light mode active"}</span>
     </button>

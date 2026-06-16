@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Wallet, ArrowUpFromLine, LineChart, TrendingUp } from "lucide-react";
+import { Wallet, ArrowUpFromLine, Send, Receipt } from "lucide-react";
 import { useI18n } from "@/components/providers/I18nProvider";
 
 const actions = [
   { href: "/dashboard/deposit", labelKey: "nav.deposit", icon: Wallet },
+  { href: "/dashboard/transfer", labelKey: "nav.transfer", icon: Send },
   { href: "/dashboard/withdrawals", labelKey: "nav.withdraw", icon: ArrowUpFromLine },
-  { href: "/dashboard/capital-markets", labelKey: "nav.markets", icon: LineChart },
-  { href: "/dashboard/investments", labelKey: "nav.investments", icon: TrendingUp },
+  { href: "/dashboard/transactions", labelKey: "nav.transactions", icon: Receipt },
 ] as const;
 
 export default function DashboardQuickActions() {

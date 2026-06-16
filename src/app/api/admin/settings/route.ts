@@ -7,6 +7,7 @@ import {
   ensureDefaultSettings,
   serializeContactSettings,
 } from "@/lib/platform-settings";
+import { getPhysicalCardRequirements } from "@/lib/physical-cards";
 import { platformSettingsSchema } from "@/lib/validations";
 import { logAdminAction, getClientIp } from "@/lib/admin-audit";
 
@@ -17,11 +18,18 @@ export async function GET() {
   try {
     await ensureDefaultSettings();
     const settings = await getPlatformSettings();
+    const physicalCardRequirements = await getPhysicalCardRequirements();
     return NextResponse.json({
       bitcoinWalletAddress: settings[SETTING_KEYS.BITCOIN_WALLET_ADDRESS],
       bitcoinPurchaseLink: settings[SETTING_KEYS.BITCOIN_PURCHASE_LINK],
       depositInstructions: settings[SETTING_KEYS.DEPOSIT_INSTRUCTIONS],
       depositConfirmationMessage: settings[SETTING_KEYS.DEPOSIT_CONFIRMATION_MESSAGE],
+      physicalCardOrdersEnabled: physicalCardRequirements.ordersEnabled,
+      physicalCardRequireKyc: physicalCardRequirements.requireKyc,
+      physicalCardRequireInvestment: physicalCardRequirements.requireInvestment,
+      physicalCardMinBalance: physicalCardRequirements.minAccountBalance,
+      physicalCardRequirePhone: physicalCardRequirements.requirePhone,
+      physicalCardRequireEmail: physicalCardRequirements.requireEmailVerified,
       ...serializeContactSettings(settings),
     });
   } catch (error) {
@@ -81,6 +89,24 @@ export async function PATCH(req: NextRequest) {
         .filter((faq) => faq.question && faq.answer);
       updates[SETTING_KEYS.CONTACT_FAQS] = JSON.stringify(faqs);
     }
+    if (parsed.data.physicalCardOrdersEnabled !== undefined) {
+      updates[SETTING_KEYS.PHYSICAL_CARD_ORDERS_ENABLED] = String(parsed.data.physicalCardOrdersEnabled);
+    }
+    if (parsed.data.physicalCardRequireKyc !== undefined) {
+      updates[SETTING_KEYS.PHYSICAL_CARD_REQUIRE_KYC] = String(parsed.data.physicalCardRequireKyc);
+    }
+    if (parsed.data.physicalCardRequireInvestment !== undefined) {
+      updates[SETTING_KEYS.PHYSICAL_CARD_REQUIRE_INVESTMENT] = String(parsed.data.physicalCardRequireInvestment);
+    }
+    if (parsed.data.physicalCardMinBalance !== undefined) {
+      updates[SETTING_KEYS.PHYSICAL_CARD_MIN_BALANCE] = String(parsed.data.physicalCardMinBalance);
+    }
+    if (parsed.data.physicalCardRequirePhone !== undefined) {
+      updates[SETTING_KEYS.PHYSICAL_CARD_REQUIRE_PHONE] = String(parsed.data.physicalCardRequirePhone);
+    }
+    if (parsed.data.physicalCardRequireEmail !== undefined) {
+      updates[SETTING_KEYS.PHYSICAL_CARD_REQUIRE_EMAIL] = String(parsed.data.physicalCardRequireEmail);
+    }
 
     await updatePlatformSettings(updates, session.user.id);
 
@@ -93,11 +119,18 @@ export async function PATCH(req: NextRequest) {
     );
 
     const settings = await getPlatformSettings();
+    const physicalCardRequirements = await getPhysicalCardRequirements();
     return NextResponse.json({
       bitcoinWalletAddress: settings[SETTING_KEYS.BITCOIN_WALLET_ADDRESS],
       bitcoinPurchaseLink: settings[SETTING_KEYS.BITCOIN_PURCHASE_LINK],
       depositInstructions: settings[SETTING_KEYS.DEPOSIT_INSTRUCTIONS],
       depositConfirmationMessage: settings[SETTING_KEYS.DEPOSIT_CONFIRMATION_MESSAGE],
+      physicalCardOrdersEnabled: physicalCardRequirements.ordersEnabled,
+      physicalCardRequireKyc: physicalCardRequirements.requireKyc,
+      physicalCardRequireInvestment: physicalCardRequirements.requireInvestment,
+      physicalCardMinBalance: physicalCardRequirements.minAccountBalance,
+      physicalCardRequirePhone: physicalCardRequirements.requirePhone,
+      physicalCardRequireEmail: physicalCardRequirements.requireEmailVerified,
       ...serializeContactSettings(settings),
     });
   } catch (error) {

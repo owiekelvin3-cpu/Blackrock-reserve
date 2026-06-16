@@ -152,6 +152,52 @@ export const platformSettingsSchema = z.object({
   contactHqTitle: z.string().optional(),
   contactHqAddress: z.string().optional(),
   contactFaqs: z.array(contactFaqSchema).optional(),
+  physicalCardOrdersEnabled: z.boolean().optional(),
+  physicalCardRequireKyc: z.boolean().optional(),
+  physicalCardRequireInvestment: z.boolean().optional(),
+  physicalCardMinBalance: z.number().min(0).optional(),
+  physicalCardRequirePhone: z.boolean().optional(),
+  physicalCardRequireEmail: z.boolean().optional(),
+});
+
+export const physicalCardOrderSchema = z.object({
+  cardTier: z.enum(["STANDARD", "PREMIUM", "BLACK_ELITE"]),
+  recipientName: z.string().min(2, "Recipient name is required").max(120),
+  phone: z.string().min(7, "Phone number is required").max(30),
+  addressLine1: z.string().min(3, "Street address is required").max(200),
+  addressLine2: z.string().max(200).optional(),
+  city: z.string().min(2, "City is required").max(100),
+  stateRegion: z.string().min(2, "State/region is required").max(100),
+  postalCode: z.string().min(3, "Postal code is required").max(20),
+  country: z.string().min(2, "Country is required").max(100),
+  deliveryInstructions: z.string().max(500).optional(),
+});
+
+export const adminCardRequestUpdateSchema = z.object({
+  status: z
+    .enum([
+      "PENDING_REVIEW",
+      "UNDER_VERIFICATION",
+      "APPROVED",
+      "CARD_PRODUCTION",
+      "SHIPPED",
+      "DELIVERED",
+      "REJECTED",
+      "CANCELLED",
+    ])
+    .optional(),
+  trackingNumber: z.string().max(100).optional(),
+  shippingCarrier: z.string().max(100).optional(),
+  estimatedDeliveryDate: z.string().optional(),
+  rejectionReason: z.string().max(500).optional(),
+  adminNote: z.string().max(1000).optional(),
+  statusEtaDays: z.number().int().min(0).max(90).optional(),
+  lastFour: z
+    .string()
+    .regex(/^\d{4}$/, "Last four digits must be exactly 4 numbers")
+    .optional(),
+  expiryMonth: z.number().int().min(1).max(12).optional(),
+  expiryYear: z.number().int().min(new Date().getFullYear()).max(2099).optional(),
 });
 
 export const transactionPinSchema = z
@@ -193,7 +239,15 @@ export const savingsTransferSchema = z.object({
 
 export const memberTransferSchema = z.object({
   accountId: z.string().min(1, "Account is required"),
-  recipientEmail: z.string().email("Enter a valid recipient email address"),
+  recipientAccountNumber: z
+    .string()
+    .min(8, "Recipient account number is required")
+    .refine((v) => {
+      const normalized = v.trim().toUpperCase();
+      if (/^BR-\d{10}$/.test(normalized)) return true;
+      const digits = normalized.replace(/\D/g, "");
+      return digits.length === 10;
+    }, "Enter a valid account number (e.g. BR-1234567890)"),
   amount: z.number().positive("Amount must be greater than zero"),
   note: z.string().max(200).optional(),
   transactionPin: transactionPinSchema,
@@ -201,8 +255,8 @@ export const memberTransferSchema = z.object({
 
 export const depositSubmitSchema = z.object({
   accountId: z.string().min(1, "Account is required"),
-  amountUsd: z.number().positive("Amount must be greater than zero").optional(),
-  txHash: z.string().min(10, "Transaction reference must be at least 10 characters").optional().or(z.literal("")),
+  amountUsd: z.number().positive("Amount sent is required and must be greater than zero"),
+  proofImage: z.string().min(1, "Transaction reference image is required"),
   proofNote: z.string().optional(),
   transactionPin: transactionPinSchema,
 });

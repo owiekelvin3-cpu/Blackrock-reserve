@@ -63,6 +63,8 @@ Resend takes priority over Gmail when `RESEND_API_KEY` is set. Gmail vars are op
 
 ## 5. Database & admin setup
 
+Set `DATABASE_URL` and `DIRECT_URL` in Vercel **before the first deploy** so build-time schema scripts can run (`npm run build` applies idempotent SQL migrations).
+
 ```bash
 # From your machine with production DATABASE_URL in .env
 npm run db:push
@@ -71,19 +73,25 @@ npm run admin:create
 
 Then sign in at `https://yourdomain.com/admin/login`.
 
-Configure **Admin → Settings** (Bitcoin wallet, deposit messages) before customers use deposits.
+Configure **Admin → Settings** before customers go live:
+
+- Bitcoin wallet and deposit instructions
+- Physical card ordering requirements (KYC, minimum balance, investment account)
 
 ## 6. Pre-launch verification
 
-- [ ] `npm run build` passes locally
+- [ ] `npm run lint` and `npm run build` pass locally
+- [ ] `GET /api/health` returns `"ok": true` with `database.connected` and `auth.configured`
 - [ ] Register → verify email → login works
-- [ ] Dashboard, Deposit, Withdraw pages load
+- [ ] Dashboard, Deposit, Transfer, Withdrawals, Cards, and Transactions load
+- [ ] Physical card request submits and appears in **Admin → Card Requests**
 - [ ] Contact form saves messages
 - [ ] Admin can credit balance and customer gets notification
-- [ ] `NEXTAUTH_URL` uses `https://` (not `http://`)
+- [ ] `NEXTAUTH_URL` and `NEXT_PUBLIC_SITE_URL` use `https://` (not `http://`)
 - [ ] Resend domain verified and `RESEND_API_KEY` set in Vercel
-- [ ] Test register → verification email arrives from `@theblackrockreserve.com`
+- [ ] Test register → verification email arrives from your domain
 - [ ] Supabase project is **not paused**
+- [ ] `ADMIN_PASSWORDLESS` is **not** set to `true` in production
 
 ## 7. Optional: Google OAuth
 

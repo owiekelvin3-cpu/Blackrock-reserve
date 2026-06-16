@@ -6,7 +6,7 @@ import { getAvailableBalance } from "@/lib/withdrawal-balance";
 import { getWithdrawalMethodLabel } from "@/lib/withdrawal-methods";
 import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-notifications";
 import { formatCurrency } from "@/lib/utils";
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { invalidateAdminCaches } from "@/lib/admin-cache";
 import { assertWithdrawalCanBeApproved } from "@/lib/withdrawal-charge";
 import { reduceProfitBalanceOnSpend } from "@/lib/spendable-balance";
@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         );
       }
 
-      await prisma.$transaction(async (tx) => {
+      await runInteractiveTransaction(async (tx) => {
         const account = await tx.bankAccount.findFirst({
           where: { id: withdrawal.accountId, userId: withdrawal.userId },
         });
@@ -105,7 +105,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         emailPayload = { userId: withdrawal.userId, title, message };
       });
     } else {
-      await prisma.$transaction(async (tx) => {
+      await runInteractiveTransaction(async (tx) => {
         await tx.withdrawalRequest.update({
           where: { id: params.id },
           data: {

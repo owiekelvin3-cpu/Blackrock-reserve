@@ -285,6 +285,15 @@ const extensions = {
     live: "Live",
     customerSite: "Customer Site",
   },
+  pwa: {
+    installTitle: "Install BlackrockReserve",
+    installDescription:
+      "Add the app to your home screen for faster access, standalone mode, and an app-like experience on any device.",
+    installApp: "Install App",
+    iosInstallHint: "Tap Share, then Add to Home Screen to install on iPhone or iPad.",
+    verifiedAccount: "Verified account",
+    verifiedAccountDesc: "Your verification badge is shown beside your name across the platform.",
+  },
   admin: {
     brand: "Blackrock Reserve",
     badge: "Admin · Live",
@@ -292,6 +301,7 @@ const extensions = {
     overview: "Overview",
     dashboard: "Dashboard",
     users: "Users",
+    verificationBadges: "Verification Badges",
     money: "Money",
     deposits: "Deposits",
     withdrawals: "Withdrawals",
@@ -308,6 +318,8 @@ const extensions = {
     review: "Review",
     kycReview: "KYC Review",
     kycShort: "KYC",
+    cardRequests: "Card Requests",
+    cardsShort: "Cards",
     taxVerification: "Tax Verification",
     taxShort: "Tax",
     loanManagement: "Loan Management",

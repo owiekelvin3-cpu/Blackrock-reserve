@@ -2,8 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Search } from "lucide-react";
-import { AdminPageHeader, AdminKycBadge, AdminStatusBadge } from "@/components/admin/AdminUi";
+import { MapPin } from "lucide-react";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminToolbar,
+  AdminSearchField,
+  AdminSelectFilter,
+  AdminDataCard,
+  AdminTableScroll,
+  AdminMobileList,
+  AdminMobileCard,
+  AdminKycBadge,
+  AdminStatusBadge,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { formatCurrency } from "@/lib/utils";
@@ -30,12 +43,24 @@ function LocationCell({ location, ip }: { location: string | null; ip: string | 
   return (
     <div className="min-w-0">
       {location && (
-        <p className="text-xs text-white flex items-center gap-1">
+        <p className="text-xs flex items-center gap-1">
           <MapPin size={12} className="text-accent-brand shrink-0" />
           <span className="truncate">{location}</span>
         </p>
       )}
       {ip && <p className="text-[10px] text-[var(--admin-muted)] font-mono truncate">{ip}</p>}
+    </div>
+  );
+}
+
+function UserBadges({ u }: { u: UserRow }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <AdminStatusBadge status={u.status} />
+      <AdminKycBadge status={u.kycStatus} />
+      <span className={`admin-badge text-[10px] ${u.emailVerified ? "admin-badge-verified" : "admin-badge-submitted"}`}>
+        {u.emailVerified ? "Verified" : "Unverified"}
+      </span>
     </div>
   );
 }
@@ -64,43 +89,30 @@ export default function AdminUsersPage() {
   const users = data?.users ?? [];
 
   return (
-    <div>
+    <AdminPage>
       <AdminPageHeader
         title="User Management"
         description="Registered customers — credentials, location, balances, and fund controls"
-        action={
-          <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
-            Refresh
-          </button>
-        }
+        action={<AdminRefreshButton onClick={refresh} />}
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1 max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]" />
-          <input
-            type="search"
-            placeholder="Search name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="admin-input pl-9"
-          />
-        </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="admin-input w-full sm:w-auto min-w-[140px]">
+      <AdminToolbar>
+        <AdminSearchField value={search} onChange={setSearch} placeholder="Search name or email..." />
+        <AdminSelectFilter value={statusFilter} onChange={setStatusFilter}>
           <option value="">All statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="SUSPENDED">Suspended</option>
-        </select>
-        <select value={kycFilter} onChange={(e) => setKycFilter(e.target.value)} className="admin-input w-full sm:w-auto min-w-[140px]">
+        </AdminSelectFilter>
+        <AdminSelectFilter value={kycFilter} onChange={setKycFilter}>
           <option value="">All KYC</option>
           <option value="PENDING">Pending</option>
           <option value="SUBMITTED">Submitted</option>
           <option value="VERIFIED">Verified</option>
           <option value="REJECTED">Rejected</option>
-        </select>
-      </div>
+        </AdminSelectFilter>
+      </AdminToolbar>
 
-      <div className="admin-card overflow-hidden">
+      <AdminDataCard noPadding>
         <AdminFetchState
           loading={loading}
           error={error}
@@ -109,82 +121,74 @@ export default function AdminUsersPage() {
           isEmpty={!loading && !error && users.length === 0}
           emptyMessage="No users match your filters"
         >
-          {/* Mobile card list */}
-          <div className="lg:hidden divide-y divide-[var(--admin-border)]/50">
+          <AdminMobileList>
             {users.map((u) => (
-              <div key={u.id} className="p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
+              <AdminMobileCard key={u.id}>
+                <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
-                    <p className="text-white font-medium text-sm truncate">{u.name}</p>
+                    <p className="font-medium text-sm truncate">{u.name}</p>
                     <p className="text-[10px] text-[var(--admin-muted)] truncate">{u.email}</p>
                   </div>
                   <Link href={`/admin/users/${u.id}`} className="admin-btn-primary text-xs py-1.5 px-3 shrink-0">
                     Manage
                   </Link>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <AdminStatusBadge status={u.status} />
-                  <AdminKycBadge status={u.kycStatus} />
-                  <span className={`admin-badge text-[10px] ${u.emailVerified ? "admin-badge-verified" : "admin-badge-submitted"}`}>
-                    {u.emailVerified ? "Verified" : "Unverified"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <UserBadges u={u} />
+                <div className="grid grid-cols-2 gap-2 text-xs mt-3">
                   <div>
                     <p className="text-[var(--admin-muted)]">Balance</p>
                     <p className="admin-amount">{formatCurrency(u.totalBalance)}</p>
                   </div>
                   <div>
                     <p className="text-[var(--admin-muted)]">Joined</p>
-                    <p className="text-white">{new Date(u.createdAt).toLocaleDateString()}</p>
+                    <p>{new Date(u.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-[var(--admin-muted)] mb-0.5">Location</p>
                     <LocationCell location={u.location} ip={u.lastLoginIp} />
                   </div>
                 </div>
-              </div>
+              </AdminMobileCard>
             ))}
-          </div>
+          </AdminMobileList>
 
-          {/* Desktop table */}
-          <div className="hidden lg:block overflow-x-auto">
+          <AdminTableScroll className="admin-desktop-table">
             <table className="admin-table w-full">
               <thead>
-                <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
-                  <th className="text-left py-3 px-5">User</th>
-                  <th className="text-left py-3 px-5">Location</th>
-                  <th className="text-left py-3 px-5">Phone</th>
-                  <th className="text-left py-3 px-5">Status</th>
-                  <th className="text-left py-3 px-5">KYC</th>
-                  <th className="text-left py-3 px-5">Email</th>
-                  <th className="text-right py-3 px-5">Balance</th>
-                  <th className="text-right py-3 px-5">Joined</th>
-                  <th className="text-right py-3 px-5">Actions</th>
+                <tr>
+                  <th className="text-left">User</th>
+                  <th className="text-left">Location</th>
+                  <th className="text-left">Phone</th>
+                  <th className="text-left">Status</th>
+                  <th className="text-left">KYC</th>
+                  <th className="text-left">Email</th>
+                  <th className="text-right">Balance</th>
+                  <th className="text-right">Joined</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.id} className="border-b border-[var(--admin-border)]/50 hover:bg-white/[0.02]">
-                    <td className="py-3 px-5">
-                      <p className="text-white font-medium text-sm">{u.name}</p>
+                  <tr key={u.id}>
+                    <td>
+                      <p className="font-medium text-sm">{u.name}</p>
                       <p className="text-[10px] text-[var(--admin-muted)]">{u.email}</p>
                       <p className="text-[10px] text-[var(--admin-muted)]">{u.accountType}</p>
                     </td>
-                    <td className="py-3 px-5 max-w-[180px]">
+                    <td className="max-w-[180px]">
                       <LocationCell location={u.location} ip={u.lastLoginIp} />
                     </td>
-                    <td className="py-3 px-5 text-xs text-[var(--admin-muted)]">{u.phone ?? "—"}</td>
-                    <td className="py-3 px-5"><AdminStatusBadge status={u.status} /></td>
-                    <td className="py-3 px-5"><AdminKycBadge status={u.kycStatus} /></td>
-                    <td className="py-3 px-5">
+                    <td className="text-xs text-[var(--admin-muted)]">{u.phone ?? "—"}</td>
+                    <td><AdminStatusBadge status={u.status} /></td>
+                    <td><AdminKycBadge status={u.kycStatus} /></td>
+                    <td>
                       <span className={`admin-badge text-[10px] ${u.emailVerified ? "admin-badge-verified" : "admin-badge-submitted"}`}>
                         {u.emailVerified ? "Verified" : "Unverified"}
                       </span>
                     </td>
-                    <td className="py-3 px-5 text-right admin-amount text-sm">{formatCurrency(u.totalBalance)}</td>
-                    <td className="py-3 px-5 text-right text-xs text-[var(--admin-muted)]">{new Date(u.createdAt).toLocaleDateString()}</td>
-                    <td className="py-3 px-5 text-right">
+                    <td className="text-right admin-amount text-sm">{formatCurrency(u.totalBalance)}</td>
+                    <td className="text-right text-xs text-[var(--admin-muted)]">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="text-right">
                       <Link href={`/admin/users/${u.id}`} className="admin-btn-primary text-xs py-1.5 px-3 inline-block">
                         Manage
                       </Link>
@@ -193,9 +197,9 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableScroll>
         </AdminFetchState>
-      </div>
-    </div>
+      </AdminDataCard>
+    </AdminPage>
   );
 }

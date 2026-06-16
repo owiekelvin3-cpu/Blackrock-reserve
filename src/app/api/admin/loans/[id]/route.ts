@@ -6,7 +6,7 @@ import { notifyLoanDecision } from "@/lib/loan-notifications";
 import { invalidateAdminCaches } from "@/lib/admin-cache";
 import { estimateMonthlyPayment, generateApplicationNumber } from "@/lib/loan-products";
 import { formatCurrency } from "@/lib/utils";
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { ensureUserBankAccounts } from "@/lib/dashboard-data";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const account = accounts[0];
       if (!account) return NextResponse.json({ error: "User has no bank account" }, { status: 400 });
 
-      await prisma.$transaction(async (tx) => {
+      await runInteractiveTransaction(async (tx) => {
         const balanceBefore = Number(
           (await tx.bankAccount.findUnique({ where: { id: account.id } }))?.balance ?? 0
         );
@@ -128,7 +128,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const nextDue = new Date();
       nextDue.setMonth(nextDue.getMonth() + 1);
 
-      await prisma.$transaction(async (tx) => {
+      await runInteractiveTransaction(async (tx) => {
         await tx.loanApplication.update({
           where: { id: application.id },
           data: {

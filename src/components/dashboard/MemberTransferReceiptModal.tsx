@@ -11,15 +11,16 @@ import {
   downloadTextFile,
   formatReferenceId,
 } from "@/lib/transaction-receipt";
+import { formatBankAccountNumberDisplay } from "@/lib/bank-account-number";
 import { toast } from "sonner";
 
 export type MemberTransferReceiptData = {
   id: string;
   amount: number;
-  recipientEmail: string;
+  recipientAccountNumber: string;
   recipientName: string;
   senderName: string;
-  senderEmail: string;
+  senderAccountNumber?: string | null;
   accountName: string;
   note?: string | null;
   createdAt: string;
@@ -129,7 +130,7 @@ function MemberTransferReceiptView({
       referenceId,
       status: t("withdrawals.memberTransfer.receipt.completed"),
       amount: formatCurrency(receipt.amount),
-      destination: receipt.recipientEmail,
+      destination: formatBankAccountNumberDisplay(receipt.recipientAccountNumber),
       destinationExtra: receipt.note,
       paymentMethod: t("withdrawals.memberTransfer.title"),
       dateTime: fullDateTime,
@@ -203,12 +204,16 @@ function MemberTransferReceiptView({
           <DetailItem
             label={t("withdrawals.memberTransfer.receipt.sender")}
             value={receipt.senderName}
-            sub={receipt.senderEmail}
+            sub={
+              receipt.senderAccountNumber
+                ? formatBankAccountNumberDisplay(receipt.senderAccountNumber)
+                : undefined
+            }
           />
           <DetailItem
-            label={t("withdrawals.memberTransfer.receipt.recipient")}
+            label={t("withdrawals.memberTransfer.receipt.beneficiary")}
             value={receipt.recipientName}
-            sub={receipt.recipientEmail}
+            sub={formatBankAccountNumberDisplay(receipt.recipientAccountNumber)}
           />
           {receipt.note && (
             <DetailItem label={t("withdrawals.memberTransfer.memoOptional")} value={receipt.note} />

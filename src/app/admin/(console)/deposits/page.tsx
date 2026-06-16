@@ -3,7 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { AdminPageHeader } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminFilterTabs,
+  AdminDataCard,
+  AdminTableScroll,
+  AdminMobileList,
+  AdminMobileCard,
+  AdminModal,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { formatCurrency } from "@/lib/utils";
@@ -18,6 +28,8 @@ interface DepositRow {
   amountUsd: number | null;
   bitcoinWalletAddress: string | null;
   txHash: string | null;
+  proofImage: string | null;
+  hasProofImage: boolean;
   proofNote: string | null;
   status: string;
   statusLabel: string;
@@ -31,6 +43,73 @@ function resolveCreditAmount(row: DepositRow, creditAmount: Record<string, strin
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+function DepositStatusBadge({ status, label }: { status: string; label: string }) {
+  const cls =
+    status === "PENDING"
+      ? "admin-badge-submitted"
+      : status === "APPROVED"
+        ? "admin-badge-verified"
+        : "admin-badge-rejected";
+  return <span className={`admin-badge ${cls}`}>{label}</span>;
+}
+
+function DepositActions({
+  d,
+  reviewing,
+  creditAmount,
+  setCreditAmount,
+  onApprove,
+  onReject,
+}: {
+  d: DepositRow;
+  reviewing: string | null;
+  creditAmount: Record<string, string>;
+  setCreditAmount: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  if (d.status !== "PENDING") {
+    return d.status === "REJECTED" && d.reviewNote ? (
+      <p className="text-[10px] text-red-400">{d.reviewNote}</p>
+    ) : null;
+  }
+  return (
+    <div className="flex items-center justify-end gap-2 flex-wrap">
+      <input
+        type="number"
+        placeholder="Credit $"
+        className="admin-input w-24 text-xs py-1"
+        value={creditAmount[d.id] ?? d.amountUsd?.toString() ?? ""}
+        onChange={(e) => setCreditAmount((p) => ({ ...p, [d.id]: e.target.value }))}
+      />
+      <button onClick={onApprove} disabled={reviewing === d.id} className="admin-btn-primary text-xs py-1 px-3">
+        Approve
+      </button>
+      <button onClick={onReject} disabled={reviewing === d.id} className="admin-btn-ghost text-xs text-red-400 py-1 px-3">
+        Reject
+      </button>
+    </div>
+  );
+}
+
+function DepositProofCell({ d, onView }: { d: DepositRow; onView: () => void }) {
+  if (d.proofImage) {
+    return (
+      <button type="button" onClick={onView} className="admin-link text-xs">
+        View screenshot
+      </button>
+    );
+  }
+  if (d.txHash) {
+    return (
+      <span className="font-mono text-xs max-w-[120px] truncate block" title={d.txHash}>
+        {d.txHash}
+      </span>
+    );
+  }
+  return <span className="text-[var(--admin-muted)]">—</span>;
+}
+
 export default function AdminDepositsPage() {
   const { data, error, loading, refresh, lastUpdated } = useAdminFetch<{ deposits: DepositRow[] }>("/api/admin/deposits");
   const deposits = data?.deposits ?? [];
@@ -39,7 +118,9 @@ export default function AdminDepositsPage() {
   const [filter, setFilter] = useState<"all" | "pending">("pending");
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [proofPreview, setProofPreview] = useState<DepositRow | null>(null);
 
+  const pendingCount = deposits.filter((d) => d.status === "PENDING").length;
   const filtered = filter === "pending" ? deposits.filter((d) => d.status === "PENDING") : deposits;
 
   const review = async (id: string, status: "APPROVED" | "REJECTED", reviewNote?: string) => {
@@ -90,35 +171,23 @@ export default function AdminDepositsPage() {
   };
 
   return (
-    <div>
+    <AdminPage>
       <AdminPageHeader
         title="Deposit Management"
         description="Review Bitcoin deposit requests — approve to credit user balances and notify customers"
-        action={
-          <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
-            Refresh
-          </button>
-        }
+        action={<AdminRefreshButton onClick={refresh} />}
       />
 
-      <div className="flex gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => setFilter("pending")}
-          className={`text-xs px-4 py-2 rounded-lg border ${filter === "pending" ? "admin-btn-primary border-transparent" : "admin-btn-ghost"}`}
-        >
-          Pending ({deposits.filter((d) => d.status === "PENDING").length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilter("all")}
-          className={`text-xs px-4 py-2 rounded-lg border ${filter === "all" ? "admin-btn-primary border-transparent" : "admin-btn-ghost"}`}
-        >
-          All ({deposits.length})
-        </button>
-      </div>
+      <AdminFilterTabs
+        value={filter}
+        onChange={(v) => setFilter(v as "all" | "pending")}
+        tabs={[
+          { id: "pending", label: "Pending", count: pendingCount },
+          { id: "all", label: "All", count: deposits.length },
+        ]}
+      />
 
-      <div className="admin-card overflow-hidden">
+      <AdminDataCard noPadding>
         <AdminFetchState
           loading={loading}
           error={error}
@@ -127,127 +196,164 @@ export default function AdminDepositsPage() {
           isEmpty={!loading && !error && filtered.length === 0}
           emptyMessage={filter === "pending" ? "No pending deposit requests" : "No deposit requests in the database"}
         >
-          <div className="overflow-x-auto">
-            <table className="admin-table w-full">
+          <AdminMobileList>
+            {filtered.map((d) => (
+              <AdminMobileCard key={d.id}>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <Link href={`/admin/users/${d.userId}`} className="admin-link text-sm font-medium">
+                      {d.userName}
+                    </Link>
+                    <p className="text-[10px] text-[var(--admin-muted)] truncate">{d.userEmail}</p>
+                  </div>
+                  <DepositStatusBadge status={d.status} label={d.statusLabel} />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div>
+                    <p className="text-[var(--admin-muted)]">Amount</p>
+                    <p className="admin-amount">{d.amountUsd != null ? formatCurrency(d.amountUsd) : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[var(--admin-muted)]">Submitted</p>
+                    <p>{new Date(d.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-[var(--admin-muted)]">Proof</p>
+                    <DepositProofCell d={d} onView={() => setProofPreview(d)} />
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-[var(--admin-muted)]">Account</p>
+                    <p>{d.accountName ?? "—"}</p>
+                  </div>
+                </div>
+                <DepositActions
+                  d={d}
+                  reviewing={reviewing}
+                  creditAmount={creditAmount}
+                  setCreditAmount={setCreditAmount}
+                  onApprove={() => review(d.id, "APPROVED")}
+                  onReject={() => {
+                    setRejectId(d.id);
+                    setRejectReason("");
+                  }}
+                />
+              </AdminMobileCard>
+            ))}
+          </AdminMobileList>
+
+          <AdminTableScroll className="admin-desktop-table">
+            <table className="admin-table w-full min-w-[960px]">
               <thead>
-                <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
-                  <th className="text-left py-3 px-5">User</th>
-                  <th className="text-left py-3 px-5">User ID</th>
-                  <th className="text-left py-3 px-5">Amount</th>
-                  <th className="text-left py-3 px-5">Account</th>
-                  <th className="text-left py-3 px-5">Note</th>
-                  <th className="text-left py-3 px-5">BTC Wallet</th>
-                  <th className="text-left py-3 px-5">TX Reference</th>
-                  <th className="text-left py-3 px-5">Status</th>
-                  <th className="text-left py-3 px-5">Submitted</th>
-                  <th className="text-right py-3 px-5">Actions</th>
+                <tr>
+                  <th className="text-left">User</th>
+                  <th className="text-left">Amount</th>
+                  <th className="text-left">Account</th>
+                  <th className="text-left">Note</th>
+                  <th className="text-left">BTC Wallet</th>
+                  <th className="text-left">Proof</th>
+                  <th className="text-left">Status</th>
+                  <th className="text-left">Submitted</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((d) => (
-                  <tr key={d.id} className="border-b border-[var(--admin-border)]/50">
-                    <td className="py-3 px-5">
+                  <tr key={d.id}>
+                    <td>
                       <Link href={`/admin/users/${d.userId}`} className="admin-link text-sm">
                         {d.userName}
                       </Link>
                       <p className="text-[10px] text-[var(--admin-muted)]">{d.userEmail}</p>
                     </td>
-                    <td className="py-3 px-5 font-mono text-[10px] text-[var(--admin-muted)] max-w-[100px] truncate" title={d.userId}>
-                      {d.userId}
-                    </td>
-                    <td className="py-3 px-5 text-sm">{d.amountUsd != null ? formatCurrency(d.amountUsd) : "—"}</td>
-                    <td className="py-3 px-5 text-xs text-[var(--admin-muted)]">{d.accountName ?? "—"}</td>
-                    <td className="py-3 px-5 text-xs text-[var(--admin-muted)] max-w-[120px] truncate" title={d.proofNote ?? ""}>
+                    <td>{d.amountUsd != null ? formatCurrency(d.amountUsd) : "—"}</td>
+                    <td className="text-xs text-[var(--admin-muted)]">{d.accountName ?? "—"}</td>
+                    <td className="text-xs text-[var(--admin-muted)] max-w-[120px] truncate" title={d.proofNote ?? ""}>
                       {d.proofNote ?? "—"}
                     </td>
-                    <td className="py-3 px-5 font-mono text-[10px] max-w-[120px] truncate" title={d.bitcoinWalletAddress ?? ""}>
+                    <td className="font-mono text-[10px] max-w-[120px] truncate" title={d.bitcoinWalletAddress ?? ""}>
                       {d.bitcoinWalletAddress ?? "—"}
                     </td>
-                    <td className="py-3 px-5 font-mono text-xs max-w-[120px] truncate" title={d.txHash ?? ""}>
-                      {d.txHash ?? "—"}
+                    <td>
+                      <DepositProofCell d={d} onView={() => setProofPreview(d)} />
                     </td>
-                    <td className="py-3 px-5">
-                      <span
-                        className={`admin-badge ${
-                          d.status === "PENDING"
-                            ? "admin-badge-submitted"
-                            : d.status === "APPROVED"
-                              ? "admin-badge-verified"
-                              : "admin-badge-rejected"
-                        }`}
-                      >
-                        {d.statusLabel}
-                      </span>
+                    <td>
+                      <DepositStatusBadge status={d.status} label={d.statusLabel} />
                     </td>
-                    <td className="py-3 px-5 text-xs text-[var(--admin-muted)]">{new Date(d.createdAt).toLocaleString()}</td>
-                    <td className="py-3 px-5 text-right">
-                      {d.status === "PENDING" && (
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
-                          <input
-                            type="number"
-                            placeholder="Credit $"
-                            className="admin-input w-24 text-xs py-1"
-                            value={creditAmount[d.id] ?? d.amountUsd?.toString() ?? ""}
-                            onChange={(e) => setCreditAmount((p) => ({ ...p, [d.id]: e.target.value }))}
-                          />
-                          <button
-                            onClick={() => review(d.id, "APPROVED")}
-                            disabled={reviewing === d.id}
-                            className="admin-btn-primary text-xs py-1 px-3"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRejectId(d.id);
-                              setRejectReason("");
-                            }}
-                            disabled={reviewing === d.id}
-                            className="admin-btn-ghost text-xs text-red-400 py-1 px-3"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                      {d.status === "REJECTED" && d.reviewNote && (
-                        <p className="text-[10px] text-red-400 max-w-[140px] ml-auto text-right">{d.reviewNote}</p>
-                      )}
+                    <td className="text-xs text-[var(--admin-muted)]">{new Date(d.createdAt).toLocaleString()}</td>
+                    <td className="text-right">
+                      <DepositActions
+                        d={d}
+                        reviewing={reviewing}
+                        creditAmount={creditAmount}
+                        setCreditAmount={setCreditAmount}
+                        onApprove={() => review(d.id, "APPROVED")}
+                        onReject={() => {
+                          setRejectId(d.id);
+                          setRejectReason("");
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableScroll>
         </AdminFetchState>
-      </div>
+      </AdminDataCard>
 
-      {rejectId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="admin-card max-w-md w-full p-6 space-y-4">
-            <h3 className="text-white font-semibold">Reject deposit request</h3>
-            <p className="text-sm text-[var(--admin-muted)]">Provide a reason — the user will be notified.</p>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="admin-input w-full min-h-[100px] text-sm"
-              placeholder="Reason for rejection..."
-            />
-            <div className="flex justify-end gap-2">
-              <button type="button" className="admin-btn-ghost text-xs px-4 py-2" onClick={() => setRejectId(null)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="admin-btn-ghost text-xs text-red-400 px-4 py-2"
-                onClick={submitReject}
-                disabled={reviewing === rejectId}
-              >
-                Confirm rejection
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <AdminModal
+        open={!!rejectId}
+        onClose={() => setRejectId(null)}
+        title="Reject deposit request"
+        description="Provide a reason — the user will be notified."
+        footer={
+          <>
+            <button type="button" className="admin-btn-ghost text-xs px-4 py-2" onClick={() => setRejectId(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="admin-btn-ghost text-xs text-red-400 px-4 py-2"
+              onClick={submitReject}
+              disabled={reviewing === rejectId}
+            >
+              Confirm rejection
+            </button>
+          </>
+        }
+      >
+        <textarea
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          className="admin-input w-full min-h-[100px] text-sm"
+          placeholder="Reason for rejection..."
+        />
+      </AdminModal>
+
+      <AdminModal
+        open={!!proofPreview?.proofImage}
+        onClose={() => setProofPreview(null)}
+        title="Transaction proof"
+        description={
+          proofPreview
+            ? `${proofPreview.userName} · ${proofPreview.amountUsd != null ? formatCurrency(proofPreview.amountUsd) : "Amount not set"}`
+            : undefined
+        }
+        footer={
+          <button type="button" className="admin-btn-ghost text-xs px-4 py-2" onClick={() => setProofPreview(null)}>
+            Close
+          </button>
+        }
+      >
+        {proofPreview?.proofImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={proofPreview.proofImage}
+            alt="Transaction proof"
+            className="w-full max-h-[70vh] object-contain rounded-lg border border-[var(--admin-border)]"
+          />
+        )}
+      </AdminModal>
+    </AdminPage>
   );
 }

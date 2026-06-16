@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Check, ExternalLink, Bitcoin, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Copy, Check, ExternalLink, Bitcoin, Upload, AlertCircle, CheckCircle2, X, ImageIcon } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -25,6 +25,7 @@ interface DepositData {
     id: string;
     amountUsd: number | null;
     txHash: string | null;
+    hasProofImage?: boolean;
     status: string;
     statusLabel?: string;
     reviewNote: string | null;
@@ -47,7 +48,8 @@ export default function DepositPage() {
   const [copied, setCopied] = useState(false);
   const [accountId, setAccountId] = useState("");
   const [amountUsd, setAmountUsd] = useState("");
-  const [txHash, setTxHash] = useState("");
+  const [proofImage, setProofImage] = useState<string | null>(null);
+  const [proofFileName, setProofFileName] = useState("");
   const [proofNote, setProofNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<SuccessState | null>(null);
@@ -86,10 +88,41 @@ export default function DepositPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleProofImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error(t("deposit.proofImageTooLarge"));
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProofImage(reader.result as string);
+      setProofFileName(file.name);
+      toast.success(t("deposit.proofImageUploaded"));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearProofImage = () => {
+    setProofImage(null);
+    setProofFileName("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accountId) {
       toast.error(t("deposit.selectAccount"));
+      return;
+    }
+    const amount = Number(amountUsd);
+    if (!amountUsd || Number.isNaN(amount) || amount <= 0) {
+      toast.error(t("deposit.amountRequired"));
+      return;
+    }
+    if (!proofImage) {
+      toast.error(t("deposit.proofImageRequired"));
       return;
     }
     requestPin(async (transactionPin) => {
@@ -101,8 +134,8 @@ export default function DepositPage() {
           credentials: "include",
           body: JSON.stringify({
             accountId,
-            amountUsd: amountUsd ? Number(amountUsd) : undefined,
-            txHash: txHash.trim() || undefined,
+            amountUsd: amount,
+            proofImage,
             proofNote: proofNote || undefined,
             transactionPin,
           }),
@@ -114,7 +147,7 @@ export default function DepositPage() {
           title: json.title ?? t("deposit.submitSuccessTitle"),
           message: json.message ?? data?.successMessage ?? "",
         });
-        setTxHash("");
+        clearProofImage();
         setProofNote("");
         setAmountUsd("");
         load(true);
@@ -129,6 +162,11 @@ export default function DepositPage() {
   };
 
   const depositData = data;
+  const canSubmit =
+    Boolean(accountId) &&
+    Boolean(depositData?.accounts.length) &&
+    Boolean(amountUsd && Number(amountUsd) > 0) &&
+    Boolean(proofImage);
 
   return (
     <DashboardGate isLoading={loading}>
@@ -262,30 +300,69 @@ export default function DepositPage() {
                 <p className="text-sm text-accent-red">{t("deposit.noAccount")}</p>
               )}
               <Input
-                label={t("deposit.amountOptional")}
+                label={t("deposit.amountSent")}
                 type="number"
                 value={amountUsd}
                 onChange={(e) => setAmountUsd(e.target.value)}
-                placeholder="0.00"
+                placeholder={t("deposit.amountPlaceholder")}
                 min="0"
                 step="0.01"
+                required
               />
-              <Input
-                label={t("deposit.txReference")}
-                value={txHash}
-                onChange={(e) => setTxHash(e.target.value)}
-                placeholder={t("deposit.txPlaceholder")}
-              />
+              <div>
+                <label className="block text-sm text-text-secondary mb-2">
+                  {t("deposit.txReference")} <span className="text-accent-red">*</span>
+                </label>
+                <p className="text-xs text-text-muted mb-2">{t("deposit.txReferenceHint")}</p>
+                {proofImage ? (
+                  <div className="relative rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-16 w-16 rounded-lg overflow-hidden bg-bg-primary shrink-0 flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={proofImage} alt="" className="h-full w-full object-cover" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-white truncate flex items-center gap-1.5">
+                          <ImageIcon size={14} className="text-accent-brand shrink-0" />
+                          {proofFileName || t("deposit.proofSubmitted")}
+                        </p>
+                        <p className="text-xs text-accent-green mt-0.5">{t("deposit.proofImageUploaded")}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearProofImage}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-white hover:bg-white/10 transition-colors"
+                        aria-label="Remove image"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="block border border-dashed border-white/15 rounded-xl p-4 hover:border-accent-brand/40 transition-colors cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={handleProofImageChange}
+                    />
+                    <div className="flex items-center gap-2 text-text-muted text-sm">
+                      <Upload size={16} />
+                      <span>{t("deposit.txReferenceHint")}</span>
+                    </div>
+                  </label>
+                )}
+              </div>
               <Input
                 label={t("deposit.noteOptional")}
                 value={proofNote}
                 onChange={(e) => setProofNote(e.target.value)}
                 placeholder={t("deposit.notePlaceholder")}
               />
-              <Button
-                type="submit"
-                disabled={submitting || depositData.accounts.length === 0 || !accountId}
-              >
+              {!canSubmit && depositData.accounts.length > 0 && (
+                <p className="text-xs text-text-muted">{t("deposit.requiredToSubmit")}</p>
+              )}
+              <Button type="submit" disabled={submitting || !canSubmit}>
                 {submitting ? t("deposit.submitting") : t("deposit.confirmSent")}
               </Button>
             </form>
@@ -308,7 +385,9 @@ export default function DepositPage() {
                     <p className="text-sm text-white font-medium">
                       {d.amountUsd != null ? formatCurrency(d.amountUsd) : t("deposit.amountPending")}
                     </p>
-                    <p className="text-xs text-text-muted font-mono truncate">{d.txHash ?? "—"}</p>
+                    <p className="text-xs text-text-muted font-mono truncate">
+                      {d.hasProofImage ? t("deposit.proofSubmitted") : d.txHash ?? "—"}
+                    </p>
                     <p className="text-xs text-text-muted">{new Date(d.createdAt).toLocaleString()}</p>
                     {d.reviewNote && d.status === "REJECTED" && (
                       <p className="text-xs text-accent-red mt-1">{t("deposit.rejectionReason", { note: d.reviewNote })}</p>

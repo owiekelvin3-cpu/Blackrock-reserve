@@ -685,3 +685,63 @@ body {
     display: none;
   }
 }
+
+/* Verification rosette badge — color variants from shared asset */
+.vbadge-filter-black {
+  filter: grayscale(1) brightness(0.28) contrast(1.35);
+}
+
+.vbadge-filter-green {
+  filter: hue-rotate(88deg) saturate(1.65) brightness(0.92) contrast(1.08);
+}
+
+.vbadge-filter-gold {
+  filter: none;
+}
+
+/* Social-style verified badge on profile avatars */
+.verified-profile-avatar {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.verified-profile-avatar-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 9999px;
+  background: var(--bg-primary, #0a0a0b);
+  border: 2px solid var(--bg-primary, #0a0a0b);
+  line-height: 0;
+  z-index: 2;
+}
+
+[data-theme="light"] .verified-profile-avatar-badge {
+  background: #fff;
+  border-color: #fff;
+}
+
+.verified-profile-avatar-badge-gold {
+  padding: 1px;
+  box-shadow: 0 2px 8px rgba(212, 160, 23, 0.45);
+}
+
+.verified-profile-avatar-xs .verified-profile-avatar-badge,
+.verified-profile-avatar-sm .verified-profile-avatar-badge {
+  right: -2px;
+  bottom: 0;
+  padding: 1px;
+  border-width: 1.5px;
+}
+
+.verified-profile-avatar-xl .verified-profile-avatar-badge,
+.verified-profile-avatar-2xl .verified-profile-avatar-badge {
+  right: -2px;
+  bottom: 4px;
+  padding: 3px;
+}

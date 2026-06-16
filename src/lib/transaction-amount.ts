@@ -1,6 +1,6 @@
 import type { TransactionType } from "@prisma/client";
 
-const INCOMING_TRANSFER_RE = /^(member transfer from|deposit from)\b/i;
+export const INCOMING_TRANSFER_RE = /^(member transfer from|transfer from|deposit from)\b/i;
 
 /** Signed amount for UI: credits positive, debits negative. */
 export function getSignedTransactionAmount(

@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { isDatabaseUnavailable, warnAndSkip } from "./schema-migration-utils.mjs";
 
 const prisma = new PrismaClient();
 
@@ -49,7 +50,10 @@ async function main() {
 
 main()
   .catch((e) => {
+    if (isDatabaseUnavailable(e)) {
+      warnAndSkip("Support chat schema apply (database unavailable)", e);
+      return;
+    }
     console.warn("Support chat schema apply skipped or partial:", e.message ?? e);
-    process.exit(0);
   })
   .finally(() => prisma.$disconnect());

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/profile-image";
 
-type Size = "xs" | "sm" | "md" | "lg" | "xl";
+type Size = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 
 const SIZE: Record<Size, string> = {
   xs: "h-8 w-8 text-xs",
@@ -12,6 +12,7 @@ const SIZE: Record<Size, string> = {
   md: "h-10 w-10 text-sm",
   lg: "h-16 w-16 text-lg",
   xl: "h-24 w-24 text-2xl",
+  "2xl": "h-28 w-28 text-3xl",
 };
 
 interface ProfileAvatarProps {

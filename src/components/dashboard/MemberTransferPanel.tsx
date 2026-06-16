@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Send, Users } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -29,7 +29,9 @@ type Props = {
 export default function MemberTransferPanel({ accounts, onSuccess, className }: Props) {
   const { t, formatCurrency } = useI18n();
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipientAccountNumber, setRecipientAccountNumber] = useState("");
+  const [beneficiaryName, setBeneficiaryName] = useState<string | null>(null);
+  const [lookupState, setLookupState] = useState<"idle" | "loading" | "found" | "not_found" | "error">("idle");
   const [amountUsd, setAmountUsd] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -38,6 +40,38 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
 
   const selectedAccount = accounts.find((a) => a.id === accountId);
   const { open: pinOpen, loading: pinLoading, error: pinError, requestPin, closePin, confirmPin } = useTransactionPin();
+
+  useEffect(() => {
+    const trimmed = recipientAccountNumber.trim();
+    if (trimmed.length < 8) {
+      setBeneficiaryName(null);
+      setLookupState("idle");
+      return;
+    }
+
+    setLookupState("loading");
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/dashboard/transfers/lookup?accountNumber=${encodeURIComponent(trimmed)}`,
+          { credentials: "include" }
+        );
+        const json = await res.json();
+        if (!res.ok || !json.found) {
+          setBeneficiaryName(null);
+          setLookupState("not_found");
+          return;
+        }
+        setBeneficiaryName(json.name as string);
+        setLookupState("found");
+      } catch {
+        setBeneficiaryName(null);
+        setLookupState("error");
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [recipientAccountNumber]);
 
   const submitTransfer = async (transactionPin: string) => {
     setSubmitting(true);
@@ -48,7 +82,7 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
         credentials: "include",
         body: JSON.stringify({
           accountId,
-          recipientEmail: recipientEmail.trim().toLowerCase(),
+          recipientAccountNumber: recipientAccountNumber.trim(),
           amount: Number(amountUsd),
           note: note.trim() || undefined,
           transactionPin,
@@ -63,7 +97,9 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
       } else {
         toast.success(json.message || t("withdrawals.memberTransfer.success"));
       }
-      setRecipientEmail("");
+      setRecipientAccountNumber("");
+      setBeneficiaryName(null);
+      setLookupState("idle");
       setAmountUsd("");
       setNote("");
       onSuccess?.();
@@ -81,8 +117,12 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
       toast.error(t("withdrawals.errors.noAccount"));
       return;
     }
-    if (!recipientEmail.trim()) {
-      toast.error(t("withdrawals.memberTransfer.emailRequired"));
+    if (!recipientAccountNumber.trim()) {
+      toast.error(t("withdrawals.memberTransfer.accountNumberRequired"));
+      return;
+    }
+    if (lookupState !== "found" || !beneficiaryName) {
+      toast.error(t("withdrawals.memberTransfer.beneficiaryRequired"));
       return;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -101,6 +141,17 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
   };
 
   if (accounts.length === 0) return null;
+
+  const beneficiaryHint =
+    lookupState === "loading"
+      ? t("withdrawals.memberTransfer.verifyingBeneficiary")
+      : lookupState === "found" && beneficiaryName
+        ? `${t("withdrawals.memberTransfer.beneficiaryName")}: ${beneficiaryName}`
+        : lookupState === "not_found"
+          ? t("withdrawals.memberTransfer.beneficiaryNotFound")
+          : lookupState === "error"
+            ? t("withdrawals.memberTransfer.beneficiaryLookupFailed")
+            : null;
 
   return (
     <>
@@ -136,14 +187,25 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
             </select>
           </div>
 
-          <Input
-            label={t("withdrawals.memberTransfer.recipientEmail")}
-            type="email"
-            value={recipientEmail}
-            onChange={(e) => setRecipientEmail(e.target.value)}
-            placeholder="member@gmail.com"
-            required
-          />
+          <div>
+            <Input
+              label={t("withdrawals.memberTransfer.recipientAccountNumber")}
+              value={recipientAccountNumber}
+              onChange={(e) => setRecipientAccountNumber(e.target.value)}
+              placeholder="BR-1234567890"
+              required
+            />
+            {beneficiaryHint && (
+              <p
+                className={cn(
+                  "text-xs mt-1.5",
+                  lookupState === "found" ? "text-accent-green" : "text-accent-red"
+                )}
+              >
+                {beneficiaryHint}
+              </p>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
@@ -167,7 +229,13 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
           <Button
             type="submit"
             className="w-full sm:w-auto"
-            disabled={submitting || !recipientEmail.trim() || !amountUsd || (selectedAccount?.availableBalance ?? 0) <= 0}
+            disabled={
+              submitting ||
+              !recipientAccountNumber.trim() ||
+              lookupState !== "found" ||
+              !amountUsd ||
+              (selectedAccount?.availableBalance ?? 0) <= 0
+            }
             isLoading={submitting}
           >
             <Send size={16} className="mr-2" />

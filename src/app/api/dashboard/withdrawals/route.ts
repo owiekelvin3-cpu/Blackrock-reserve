@@ -14,7 +14,7 @@ import { withdrawalRequestSchema } from "@/lib/validations";
 import { requireTransactionPin } from "@/lib/transaction-pin";
 import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-notifications";
 import { formatCurrency } from "@/lib/utils";
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import QRCode from "qrcode";
 
 export async function GET() {
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
 
     const hasCharge = !!activeCharge && chargeAmount != null && chargeAmount > 0;
 
-    const withdrawal = await prisma.$transaction(async (tx) => {
+    const withdrawal = await runInteractiveTransaction(async (tx) => {
       const created = await tx.withdrawalRequest.create({
         data: {
           userId,

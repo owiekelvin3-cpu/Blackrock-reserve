@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSignedTransactionAmount } from "@/lib/transaction-amount";
-import type { TransactionStatus, TransactionType } from "@prisma/client";
+import { loadCounterpartiesForTransactions } from "@/lib/transaction-counterparty";
+import type { TransactionStatus, TransactionType, VerificationBadgeType } from "@prisma/client";
 
 export type ActivityCategory =
   | "deposits"
@@ -97,20 +98,32 @@ export async function queryActivities(params: ActivityQuery) {
         description: true,
         status: true,
         createdAt: true,
+        counterpartyUserId: true,
+        counterparty: {
+          select: { id: true, name: true, verificationBadge: true },
+        },
       },
     }),
   ]);
 
-  const items = rows.map((t) => ({
-    id: t.id,
-    name: t.description,
-    orderId: `#${t.id.slice(-8).toUpperCase()}`,
-    date: t.createdAt.toISOString(),
-    amount: getSignedTransactionAmount(t.type, t.amount, t.description),
-    status: t.status,
-    type: t.type,
-    category: categoryForType(t.type),
-  }));
+  const counterpartyMap = await loadCounterpartiesForTransactions(rows);
+
+  const items = rows.map((t) => {
+    const counterparty = counterpartyMap.get(t.id);
+    return {
+      id: t.id,
+      name: t.description,
+      orderId: `#${t.id.slice(-8).toUpperCase()}`,
+      date: t.createdAt.toISOString(),
+      amount: getSignedTransactionAmount(t.type, t.amount, t.description),
+      status: t.status,
+      type: t.type,
+      category: categoryForType(t.type),
+      counterpartyName: counterparty?.name ?? null,
+      counterpartyVerificationBadge: (counterparty?.verificationBadge ?? null) as VerificationBadgeType | null,
+      counterpartyRelation: counterparty?.relation ?? null,
+    };
+  });
 
   return {
     items,
@@ -135,6 +148,10 @@ export async function getActivityById(userId: string, id: string) {
       description: true,
       status: true,
       createdAt: true,
+      counterpartyUserId: true,
+      counterparty: {
+        select: { id: true, name: true, verificationBadge: true },
+      },
       account: {
         select: { id: true, name: true, currency: true },
       },
@@ -144,6 +161,8 @@ export async function getActivityById(userId: string, id: string) {
   if (!row) return null;
 
   const amount = getSignedTransactionAmount(row.type, row.amount, row.description);
+  const counterpartyMap = await loadCounterpartiesForTransactions([row]);
+  const counterparty = counterpartyMap.get(row.id) ?? null;
 
   return {
     id: row.id,
@@ -156,6 +175,9 @@ export async function getActivityById(userId: string, id: string) {
     status: row.status,
     statusLabel: formatTransactionStatus(row.status),
     date: row.createdAt.toISOString(),
+    counterpartyName: counterparty?.name ?? null,
+    counterpartyVerificationBadge: counterparty?.verificationBadge ?? null,
+    counterpartyRelation: counterparty?.relation ?? null,
     account: {
       id: row.account.id,
       name: row.account.name,

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { logAdminAction } from "@/lib/admin-audit";
 import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-notifications";
 import { ensureUserBankAccounts } from "@/lib/dashboard-data";
@@ -40,7 +40,7 @@ export async function addUserProfit(params: {
   const profitAfter = Math.round((profitBefore + amount) * 100) / 100;
   const balanceAfter = Math.round((balanceBefore + amount) * 100) / 100;
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInteractiveTransaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
       data: { profitBalance: profitAfter },
@@ -165,7 +165,7 @@ export async function removeUserProfit(params: {
   const profitAfter = Math.round((profitBefore - amount) * 100) / 100;
   const balanceAfter = Math.round((balanceBefore - amount) * 100) / 100;
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await runInteractiveTransaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
       data: { profitBalance: profitAfter },

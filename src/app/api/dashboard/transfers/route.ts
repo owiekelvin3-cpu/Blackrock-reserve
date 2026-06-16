@@ -3,6 +3,36 @@ import { getSessionUserId, unauthorizedResponse } from "@/lib/api-auth";
 import { memberTransferSchema } from "@/lib/validations";
 import { transferToMember } from "@/lib/member-transfer-service";
 import { requireTransactionPin } from "@/lib/transaction-pin";
+import { getAvailableBalancesMap } from "@/lib/withdrawal-balance";
+import { prisma } from "@/lib/prisma";
+
+export async function GET() {
+  const userId = await getSessionUserId();
+  if (!userId) return unauthorizedResponse();
+
+  try {
+    const accounts = await prisma.bankAccount.findMany({
+      where: { userId },
+      select: { id: true, name: true, currency: true, balance: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const availableMap = await getAvailableBalancesMap(userId, accounts);
+
+    return NextResponse.json({
+      accounts: accounts.map((a) => ({
+        id: a.id,
+        name: a.name,
+        currency: a.currency,
+        balance: Number(a.balance),
+        availableBalance: availableMap[a.id] ?? Number(a.balance),
+      })),
+    });
+  } catch (error) {
+    console.error("Transfers GET error:", error);
+    return NextResponse.json({ error: "Failed to load transfer info" }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   const userId = await getSessionUserId();

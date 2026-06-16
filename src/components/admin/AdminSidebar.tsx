@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck,
   Mail, Building2, LogOut, ChevronRight, Bitcoin, Wallet,
-  Settings, ArrowUpFromLine, Menu, X, LineChart, TrendingUp, DollarSign, Landmark, FileCheck, Receipt,
+  Settings, ArrowUpFromLine, Menu, X, LineChart, TrendingUp, DollarSign, Landmark, FileCheck, Receipt, BadgeCheck, CreditCard,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
@@ -18,7 +18,7 @@ type NavItem = {
   labelKey: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
-  countKey?: "pendingDeposits" | "pendingWithdrawals" | "pendingTransactions" | "pendingKyc" | "contactMessages" | "unreadSupportChats" | "pendingTaxVerifications" | "pendingLoans" | null;
+  countKey?: "pendingDeposits" | "pendingWithdrawals" | "pendingTransactions" | "pendingKyc" | "contactMessages" | "unreadSupportChats" | "pendingTaxVerifications" | "pendingLoans" | "pendingCardRequests" | null;
 };
 
 const navGroups: { titleKey: string; items: NavItem[] }[] = [
@@ -27,6 +27,7 @@ const navGroups: { titleKey: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin", labelKey: "admin.dashboard", icon: LayoutDashboard, exact: true, countKey: null },
       { href: "/admin/users", labelKey: "admin.users", icon: Users, countKey: null },
+      { href: "/admin/verification-badges", labelKey: "admin.verificationBadges", icon: BadgeCheck, countKey: null },
     ],
   },
   {
@@ -52,6 +53,7 @@ const navGroups: { titleKey: string; items: NavItem[] }[] = [
     titleKey: "admin.review",
     items: [
       { href: "/admin/kyc", labelKey: "admin.kycReview", icon: ShieldCheck, countKey: "pendingKyc" },
+      { href: "/admin/card-requests", labelKey: "admin.cardRequests", icon: CreditCard, countKey: "pendingCardRequests" },
       { href: "/admin/tax-verifications", labelKey: "admin.taxVerification", icon: FileCheck, countKey: "pendingTaxVerifications" },
       { href: "/admin/loans", labelKey: "admin.loanManagement", icon: Landmark, countKey: "pendingLoans" },
       { href: "/admin/messages", labelKey: "admin.messages", icon: Mail, countKey: "unreadSupportChats" },

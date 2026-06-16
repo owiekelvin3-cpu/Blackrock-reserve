@@ -312,18 +312,17 @@ In your dashboard, you will complete this step on the Pay Processing Charge page
       "member transfer",
       "send to friend",
       "send to user",
-      "gmail",
-      "email transfer",
+      "account number",
       "another member",
       "another account",
     ],
     patterns: [
-      /\b(send|transfer).*(money|funds|cash).*(email|member|user|gmail)/i,
+      /\b(send|transfer).*(money|funds|cash).*(account|member|user)/i,
       /\btransfer to\b/i,
       /\bmember transfer/i,
     ],
     message:
-      "To send money to another member, go to Dashboard → Withdraw → Bank Transfers and use Transfer to Member at the top. Enter the recipient's registered email (Gmail works), amount, and confirm with your Transaction PIN. Funds arrive instantly in their Primary Checking account.",
+      "To send money to another member, go to Dashboard → Withdraw → Bank Transfers and use Transfer to Member at the top. Enter the recipient's account number (found on their Settings → Profile page), amount, and confirm with your Transaction PIN. Funds arrive instantly in the matching account.",
     suggestions: [
       { label: "Transaction PIN", value: "What is the Transaction PIN?" },
       { label: "Withdraw externally", value: "How do withdrawals work?" },

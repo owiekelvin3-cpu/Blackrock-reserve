@@ -6,11 +6,13 @@ import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard, ArrowUpFromLine, Wallet,
   RefreshCw, Settings, Search, Zap, X, LineChart, Users, Landmark, LogOut, MessageCircle,
+  Send, Receipt, CreditCard,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useDashboardLayout } from "@/components/dashboard/DashboardLayoutContext";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
+import UserDisplayName from "@/components/ui/UserDisplayName";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { useProfileImage } from "@/components/providers/ProfileImageProvider";
@@ -18,7 +20,10 @@ import { useChat } from "@/components/providers/ChatProvider";
 const mainNav = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard, badge: null },
   { href: "/dashboard/deposit", labelKey: "nav.deposit", icon: Wallet, badge: null },
+  { href: "/dashboard/transfer", labelKey: "nav.transfer", icon: Send, badge: null },
   { href: "/dashboard/withdrawals", labelKey: "nav.withdraw", icon: ArrowUpFromLine, badge: null },
+  { href: "/dashboard/transactions", labelKey: "nav.transactions", icon: Receipt, badge: null },
+  { href: "/dashboard/cards", labelKey: "nav.cards", icon: CreditCard, badge: null },
   { href: "/dashboard/analytics", labelKey: "nav.loans", icon: Landmark, badge: null },
   { href: "/dashboard/capital-markets", labelKey: "nav.markets", icon: LineChart, badge: null },
   { href: "/dashboard/joint-accounts", labelKey: "nav.jointAccounts", icon: Users, badge: null },
@@ -37,7 +42,7 @@ export default function DashboardSidebar() {
   const { data: session } = useSession();
   const { sidebarOpen, closeSidebar, openSidebar } = useDashboardLayout();
   const { t } = useI18n();
-  const { image: profileImage } = useProfileImage();
+  const { image: profileImage, verificationBadge } = useProfileImage();
   const { openChat } = useChat();
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -240,7 +245,13 @@ export default function DashboardSidebar() {
           <div className="flex items-center gap-3 mb-3 px-1">
             <ProfileAvatar name={session?.user?.name} image={profileImage} size="md" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-text-primary truncate">{session?.user?.name ?? t("common.account")}</p>
+              <UserDisplayName
+                name={session?.user?.name ?? t("common.account")}
+                verificationBadge={verificationBadge}
+                as="p"
+                nameClassName="text-sm font-semibold text-text-primary truncate"
+                badgeSize="xs"
+              />
               <p className="text-xs text-text-muted truncate">{session?.user?.email}</p>
             </div>
           </div>

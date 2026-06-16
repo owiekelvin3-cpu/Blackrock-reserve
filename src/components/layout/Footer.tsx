@@ -7,6 +7,7 @@ import { Twitter, Linkedin, Instagram, ChevronDown } from "lucide-react";
 import Logo, { LogoWordmark } from "./Logo";
 import { fadeUp, stagger } from "@/components/ui/AnimateIn";
 import { useI18n } from "@/components/providers/I18nProvider";
+import InstallAppPrompt from "@/components/pwa/InstallAppPrompt";
 import { cn } from "@/lib/utils";
 
 type FooterLink = { labelKey: string; href: string };
@@ -199,6 +200,9 @@ export default function Footer() {
             >
               <LogoWordmark className="footer-wordmark opacity-90" />
             </motion.div>
+            <div className="mt-4 flex justify-center">
+              <InstallAppPrompt variant="inline" />
+            </div>
             <p className="mt-0 sm:mt-6 text-xs sm:text-sm text-text-muted text-balance">
               {t("footer.copyright", { year: new Date().getFullYear() })}
             </p>

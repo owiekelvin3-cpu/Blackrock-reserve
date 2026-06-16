@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getSignedTransactionAmount } from "@/lib/transaction-amount";
+import { loadCounterpartiesForTransactions } from "@/lib/transaction-counterparty";
 import { getInvestedBalance, getProfitBalance } from "@/lib/user-balances";
 import { ensureCheckingAndSavingsAccounts, getSavingsSummary } from "@/lib/savings-service";
+import { bankAccountNumberSelect, getDbSchemaCapabilities } from "@/lib/db-schema-capabilities";
 
 import { currencyFlag } from "@/lib/currency-flags";
 
@@ -12,12 +14,24 @@ export { currencyFlag };
 /** Ensure checking + savings accounts exist (legacy signups, admin users, etc.) */
 export async function ensureUserBankAccounts(userId: string) {
   const { checking, savings } = await ensureCheckingAndSavingsAccounts(userId);
+  const caps = await getDbSchemaCapabilities();
   const extra = await prisma.bankAccount.findMany({
     where: {
       userId,
       id: { notIn: [checking.id, savings.id] },
     },
     orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      userId: true,
+      name: true,
+      type: true,
+      currency: true,
+      balance: true,
+      createdAt: true,
+      updatedAt: true,
+      ...bankAccountNumberSelect(caps),
+    },
   });
   return [checking, savings, ...extra];
 }
@@ -59,7 +73,10 @@ export async function getTransactions(userId: string, type?: string, limit = 20)
     },
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: { account: true },
+    include: {
+      account: true,
+      counterparty: { select: { id: true, name: true, verificationBadge: true } },
+    },
   });
 }
 
@@ -109,23 +126,39 @@ export async function getDashboardOverview(userId: string) {
     return { month, value: monthTotal, inflow, outflow, tooltipDate };
   });
 
-  const activities = recentTransactions.map((t) => ({
-    id: t.id,
-    name: t.description,
-    orderId: `#${t.id.slice(-8).toUpperCase()}`,
-    date: new Date(t.createdAt).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }),
-    time: new Date(t.createdAt).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }),
-    price: getSignedTransactionAmount(t.type, t.amount, t.description),
-    status: t.status.charAt(0) + t.status.slice(1).toLowerCase(),
-    type: t.type,
-  }));
+  const counterpartyMap = await loadCounterpartiesForTransactions(
+    recentTransactions.map((t) => ({
+      id: t.id,
+      type: t.type,
+      description: t.description,
+      counterpartyUserId: t.counterpartyUserId ?? null,
+      counterparty: t.counterparty ?? null,
+    }))
+  );
+
+  const activities = recentTransactions.map((t) => {
+    const counterparty = counterpartyMap.get(t.id);
+    return {
+      id: t.id,
+      name: t.description,
+      orderId: `#${t.id.slice(-8).toUpperCase()}`,
+      date: new Date(t.createdAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      time: new Date(t.createdAt).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      price: getSignedTransactionAmount(t.type, t.amount, t.description),
+      status: t.status.charAt(0) + t.status.slice(1).toLowerCase(),
+      type: t.type,
+      counterpartyName: counterparty?.name ?? null,
+      counterpartyVerificationBadge: counterparty?.verificationBadge ?? null,
+      counterpartyRelation: counterparty?.relation ?? null,
+    };
+  });
 
   return {
     totalBalance,

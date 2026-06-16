@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -23,7 +24,17 @@ type ActivityItem = {
   category: ActivityCategory;
 };
 
-const PAGE_SIZE = 2;
+const DEFAULT_PAGE_SIZE = 2;
+
+type PanelVariant = "default" | "mobile" | "page";
+
+type RecentActivityPanelProps = {
+  variant?: PanelVariant;
+  pageSize?: number;
+  titleKey?: string;
+  showTotal?: boolean;
+  showViewAllLink?: boolean;
+};
 
 const ICONS: Record<string, typeof Wallet> = {
   DEPOSIT: ArrowDownLeft,
@@ -51,8 +62,15 @@ function ActivitySkeleton() {
   );
 }
 
-export default function RecentActivityPanel({ variant = "default" }: { variant?: "default" | "mobile" }) {
+export default function RecentActivityPanel({
+  variant = "default",
+  pageSize = DEFAULT_PAGE_SIZE,
+  titleKey = "dashboard.recentActivity",
+  showTotal = false,
+  showViewAllLink = false,
+}: RecentActivityPanelProps) {
   const isMobile = variant === "mobile";
+  const isPage = variant === "page";
   const { t, formatCurrency, formatDate, formatTime } = useI18n();
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [page, setPage] = useState(1);
@@ -73,7 +91,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
     async (pageNum: number, append: boolean) => {
       const params = new URLSearchParams({
         page: String(pageNum),
-        limit: String(PAGE_SIZE),
+        limit: String(pageSize),
         category,
         status,
       });
@@ -90,7 +108,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
       setTotal(json.total);
       setPage(pageNum);
     },
-    [category, status, debouncedSearch, from, to]
+    [category, status, debouncedSearch, from, to, pageSize]
   );
 
   useEffect(() => {
@@ -128,13 +146,16 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
   ];
 
   return (
-    <div className={cn("dash-panel", isMobile ? "dash-activity-panel-mobile p-4" : "p-5")}>
+    <div className={cn("dash-panel", isMobile ? "dash-activity-panel-mobile p-4" : isPage ? "p-0 border-0 bg-transparent shadow-none" : "p-5")}>
       <div className={cn("flex justify-between gap-3 mb-4", isMobile ? "items-center" : "flex-col sm:flex-row sm:items-center mb-5")}>
         <div>
           <h2 className={cn("font-semibold text-text-primary", isMobile ? "text-[0.9375rem]" : "text-base")}>
-            {t("dashboard.recentActivity")}
+            {t(titleKey)}
           </h2>
-          {!loading && total > 0 && !isMobile && (
+          {!loading && total > 0 && (showTotal || !isMobile) && !isPage && (
+            <p className="text-xs text-text-muted mt-0.5">{total} total</p>
+          )}
+          {!loading && total > 0 && showTotal && isPage && (
             <p className="text-xs text-text-muted mt-0.5">{total} total</p>
           )}
         </div>
@@ -217,7 +238,7 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
 
       {loading ? (
         <div className="space-y-2">
-          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+          {Array.from({ length: pageSize > 5 ? 5 : pageSize }).map((_, i) => (
             <ActivitySkeleton key={i} />
           ))}
         </div>
@@ -306,6 +327,15 @@ export default function RecentActivityPanel({ variant = "default" }: { variant?:
             </motion.button>
           )}
         </>
+      )}
+
+      {showViewAllLink && !isPage && (
+        <Link
+          href="/dashboard/transactions"
+          className="mt-4 block w-full text-center text-sm font-medium text-accent-brand hover:text-accent-brand/80 transition-colors py-2"
+        >
+          {t("dashboard.viewAllTransactions")}
+        </Link>
       )}
 
       <TransactionDetailModal

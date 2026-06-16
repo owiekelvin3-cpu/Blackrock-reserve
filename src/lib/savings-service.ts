@@ -1,32 +1,88 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { currencyFlag } from "@/lib/currency-flags";
+import { getPlatformSettings, SETTING_KEYS } from "@/lib/platform-settings";
+import {
+  allocateUniqueBankAccountNumber,
+  ensureUserPrimaryAccountNumber,
+} from "@/lib/bank-account-number";
+import {
+  bankAccountNumberSelect,
+  getDbSchemaCapabilities,
+} from "@/lib/db-schema-capabilities";
 
 const CHECKING_NAME = "Primary Checking";
 const SAVINGS_NAME = "High-Yield Savings";
 
+export async function getHighYieldSavingsApy(): Promise<number> {
+  const settings = await getPlatformSettings();
+  const raw = Number(settings[SETTING_KEYS.HIGH_YIELD_SAVINGS_APY] || "20");
+  if (!Number.isFinite(raw) || raw <= 0) return 20;
+  return Math.round(raw * 100) / 100;
+}
+
+const BANK_ACCOUNT_CORE_SELECT = {
+  id: true,
+  userId: true,
+  name: true,
+  type: true,
+  currency: true,
+  balance: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+type BankAccountRow = {
+  id: string;
+  userId: string;
+  name: string;
+  type: string;
+  currency: string;
+  balance: { toString(): string } | number;
+  createdAt: Date;
+  updatedAt: Date;
+  accountNumber?: string | null;
+};
+
 export async function ensureCheckingAndSavingsAccounts(userId: string) {
-  const existing = await prisma.bankAccount.findMany({
+  const caps = await getDbSchemaCapabilities();
+  const select = {
+    ...BANK_ACCOUNT_CORE_SELECT,
+    ...bankAccountNumberSelect(caps),
+  };
+
+  const existing = (await prisma.bankAccount.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
-  });
+    select,
+  })) as BankAccountRow[];
 
   let checking = existing.find((a) => a.type === "checking");
   let savings = existing.find((a) => a.type === "savings");
 
   if (!checking) {
-    checking = await prisma.bankAccount.create({
+    checking = (await prisma.bankAccount.create({
       data: {
         userId,
         name: CHECKING_NAME,
         type: "checking",
         currency: "USD",
         balance: 0,
+        ...(caps.bankAccountNumbers
+          ? { accountNumber: await allocateUniqueBankAccountNumber() }
+          : {}),
       },
-    });
+      select,
+    })) as BankAccountRow;
+  } else if (caps.bankAccountNumbers && !checking.accountNumber) {
+    checking = (await prisma.bankAccount.update({
+      where: { id: checking.id },
+      data: { accountNumber: await allocateUniqueBankAccountNumber() },
+      select,
+    })) as BankAccountRow;
   }
 
   if (!savings) {
-    savings = await prisma.bankAccount.create({
+    savings = (await prisma.bankAccount.create({
       data: {
         userId,
         name: SAVINGS_NAME,
@@ -34,22 +90,39 @@ export async function ensureCheckingAndSavingsAccounts(userId: string) {
         currency: "USD",
         balance: 0,
       },
-    });
+      select,
+    })) as BankAccountRow;
+  }
+
+  if (caps.bankAccountNumbers) {
+    await ensureUserPrimaryAccountNumber(userId);
+    const refreshed = (await prisma.bankAccount.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+      select,
+    })) as BankAccountRow[];
+    checking = refreshed.find((a) => a.type === "checking") ?? checking;
+    savings = refreshed.find((a) => a.type === "savings") ?? savings;
   }
 
   return { checking, savings };
 }
 
 export async function getSavingsSummary(userId: string) {
-  const { checking, savings } = await ensureCheckingAndSavingsAccounts(userId);
+  const [{ checking, savings }, apyAnnualPercent] = await Promise.all([
+    ensureCheckingAndSavingsAccounts(userId),
+    getHighYieldSavingsApy(),
+  ]);
 
   const checkingBalance = Math.round(Number(checking.balance) * 100) / 100;
   const savingsBalance = Math.round(Number(savings.balance) * 100) / 100;
+  const projectedAnnualYield = Math.round(savingsBalance * (apyAnnualPercent / 100) * 100) / 100;
 
   return {
     checking: {
       id: checking.id,
       name: checking.name,
+      accountNumber: checking.accountNumber ?? null,
       currency: checking.currency,
       balance: checkingBalance,
       flag: currencyFlag(checking.currency),
@@ -57,12 +130,15 @@ export async function getSavingsSummary(userId: string) {
     savings: {
       id: savings.id,
       name: savings.name,
+      accountNumber: null,
       currency: savings.currency,
       balance: savingsBalance,
       flag: currencyFlag(savings.currency),
     },
     availableToSave: checkingBalance,
     savingsBalance,
+    apyAnnualPercent,
+    projectedAnnualYield,
   };
 }
 
@@ -91,12 +167,20 @@ export async function transferSavings(
     );
   }
 
-  await prisma.$transaction(async (tx) => {
+  const caps = await getDbSchemaCapabilities();
+  const select = {
+    ...BANK_ACCOUNT_CORE_SELECT,
+    ...bankAccountNumberSelect(caps),
+  };
+
+  await runInteractiveTransaction(async (tx) => {
     const fromAccount = await tx.bankAccount.findFirst({
       where: { id: from.id, userId },
+      select,
     });
     const toAccount = await tx.bankAccount.findFirst({
       where: { id: to.id, userId },
+      select,
     });
 
     if (!fromAccount || !toAccount) throw new Error("Account not found");

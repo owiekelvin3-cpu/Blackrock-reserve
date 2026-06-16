@@ -3,7 +3,20 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Search, TrendingUp, TrendingDown, History } from "lucide-react";
-import { AdminPageHeader } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminFormPanel,
+  AdminStatGrid,
+  AdminStatCard,
+  AdminDataCard,
+  AdminTableScroll,
+  AdminMobileList,
+  AdminMobileCard,
+  AdminToolbar,
+  AdminSearchField,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { formatCurrency } from "@/lib/utils";
@@ -117,36 +130,37 @@ export default function AdminProfitManagementPage() {
   };
 
   return (
-    <div>
+    <AdminPage>
       <AdminPageHeader
         title="Profit Management"
-        description="Credit or remove investment profits — updates user profit balance, main balance, transactions, and sends email notifications"
-        action={
-          <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
-            Refresh records
-          </button>
-        }
+        description="Credit or remove investment profits — updates balances, transactions, and sends notifications"
+        action={<AdminRefreshButton onClick={refresh} label="Refresh records" />}
       />
 
-      <div className="admin-card p-5 mb-6">
-        <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
-          <Search size={18} /> Find User
-        </h2>
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <input
-            className="admin-input flex-1"
-            placeholder="Search by name or email…"
+      <AdminFormPanel
+        title="Find user"
+        description="Search by name or email to adjust profit balances."
+      >
+        <AdminToolbar className="mb-4">
+          <AdminSearchField
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && runSearch()}
+            onChange={setSearch}
+            placeholder="Search by name or email…"
+            className="flex-1 max-w-none"
           />
-          <button type="button" onClick={runSearch} disabled={searching} className="admin-btn-primary px-6 py-2 text-sm">
+          <button
+            type="button"
+            onClick={runSearch}
+            disabled={searching}
+            className="admin-btn-primary px-6 py-2 text-sm inline-flex items-center gap-2 min-h-[40px]"
+          >
+            <Search size={16} />
             {searching ? "Searching…" : "Search"}
           </button>
-        </div>
+        </AdminToolbar>
 
         {users.length > 0 && (
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
             {users.map((u) => (
               <button
                 key={u.id}
@@ -158,10 +172,10 @@ export default function AdminProfitManagementPage() {
                 className={`w-full text-left p-3 rounded-xl border transition-colors ${
                   selected?.id === u.id
                     ? "border-accent-brand bg-accent-brand/10"
-                    : "border-white/10 hover:border-white/20"
+                    : "border-[var(--admin-border)] hover:border-accent-brand/30"
                 }`}
               >
-                <p className="font-medium text-white">{u.name}</p>
+                <p className="font-medium">{u.name}</p>
                 <p className="text-xs text-[var(--admin-muted)]">{u.email}</p>
                 <div className="flex flex-wrap gap-3 mt-2 text-xs font-mono">
                   <span className="text-[var(--admin-muted)]">Main: {formatCurrency(u.mainBalance)}</span>
@@ -174,23 +188,14 @@ export default function AdminProfitManagementPage() {
         )}
 
         {selected && (
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <h3 className="font-semibold text-white mb-3">Adjust profit for {selected.name}</h3>
-            <div className="grid sm:grid-cols-3 gap-3 mb-4 text-sm">
-              <div className="admin-card p-3">
-                <p className="text-[var(--admin-muted)] text-xs">Main Balance</p>
-                <p className="font-mono font-bold text-white">{formatCurrency(selected.mainBalance)}</p>
-              </div>
-              <div className="admin-card p-3">
-                <p className="text-[var(--admin-muted)] text-xs">Invested Balance</p>
-                <p className="font-mono font-bold text-white">{formatCurrency(selected.investedBalance)}</p>
-              </div>
-              <div className="admin-card p-3">
-                <p className="text-[var(--admin-muted)] text-xs">Profit Balance</p>
-                <p className="font-mono font-bold text-emerald-400">{formatCurrency(selected.profitBalance)}</p>
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-3 mb-4">
+          <div className="pt-4 border-t border-[var(--admin-border)]">
+            <h3 className="font-semibold mb-3">Adjust profit for {selected.name}</h3>
+            <AdminStatGrid cols={3}>
+              <AdminStatCard label="Main balance" value={formatCurrency(selected.mainBalance)} />
+              <AdminStatCard label="Invested" value={formatCurrency(selected.investedBalance)} accent="brand" />
+              <AdminStatCard label="Profit balance" value={formatCurrency(selected.profitBalance)} accent="green" />
+            </AdminStatGrid>
+            <div className="grid sm:grid-cols-2 gap-3 mt-4 mb-4">
               <input
                 className="admin-input"
                 type="number"
@@ -240,14 +245,39 @@ export default function AdminProfitManagementPage() {
             </div>
           </div>
         )}
+      </AdminFormPanel>
+
+      <div className="flex items-center gap-2">
+        <History size={18} className="text-accent-brand" />
+        <h2 className="font-semibold">Profit records</h2>
       </div>
 
-      <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
-        <History size={18} /> Profit Records
-      </h2>
-      <AdminFetchState loading={loading} error={error} isEmpty={!loading && records.length === 0} onRetry={refresh} lastUpdated={lastUpdated}>
-        <div className="admin-card overflow-hidden">
-          <div className="overflow-x-auto">
+      <AdminDataCard noPadding>
+        <AdminFetchState
+          loading={loading}
+          error={error}
+          isEmpty={!loading && records.length === 0}
+          onRetry={refresh}
+          lastUpdated={lastUpdated}
+          emptyMessage="No profit records yet"
+        >
+          <AdminMobileList>
+            {records.map((r) => (
+              <AdminMobileCard key={r.id}>
+                <p className="font-medium">{r.userName}</p>
+                <p className="text-xs text-[var(--admin-muted)]">{r.userEmail}</p>
+                <div className="flex gap-2 mt-2 mb-2">
+                  <span className={r.type === "CREDIT" ? "text-emerald-400" : "text-red-400"}>{r.type}</span>
+                  <span className="font-mono">{formatCurrency(r.amount)}</span>
+                </div>
+                <p className="text-[10px] text-[var(--admin-muted)]">
+                  {new Date(r.createdAt).toLocaleString()} · {r.adminName}
+                </p>
+              </AdminMobileCard>
+            ))}
+          </AdminMobileList>
+
+          <AdminTableScroll className="admin-desktop-table">
             <table className="admin-table w-full min-w-[900px]">
               <thead>
                 <tr>
@@ -287,9 +317,9 @@ export default function AdminProfitManagementPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      </AdminFetchState>
-    </div>
+          </AdminTableScroll>
+        </AdminFetchState>
+      </AdminDataCard>
+    </AdminPage>
   );
 }

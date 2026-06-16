@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/providers/I18nProvider";
 import TransactionPinModal from "@/components/dashboard/TransactionPinModal";
+import SavingsApyBadge from "@/components/dashboard/SavingsApyBadge";
 import { useTransactionPin } from "@/hooks/use-transaction-pin";
 
 export interface SavingsData {
@@ -25,6 +26,8 @@ export interface SavingsData {
   };
   availableToSave: number;
   savingsBalance: number;
+  apyAnnualPercent: number;
+  projectedAnnualYield: number;
 }
 
 const QUICK_AMOUNTS = [100, 500, 1000] as const;
@@ -87,8 +90,16 @@ export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
 
   return (
     <div className="dash-panel dash-savings-panel p-4 sm:p-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5">
-        <h2 className="text-[0.9375rem] sm:text-base font-semibold text-text-primary">{t("dashboard.savings")}</h2>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4 sm:mb-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-[0.9375rem] sm:text-base font-semibold text-text-primary">
+              {t("dashboard.highYieldSavings")}
+            </h2>
+            <SavingsApyBadge rate={data.apyAnnualPercent} size="sm" />
+          </div>
+          <p className="text-xs text-text-muted mt-1 leading-relaxed">{t("dashboard.savingsApyDesc")}</p>
+        </div>
         <div className="dash-period-toggle self-start sm:self-auto shrink-0">
           <button
             type="button"
@@ -108,18 +119,23 @@ export default function SavingsPanel({ data, onUpdated }: SavingsPanelProps) {
         </div>
       </div>
 
-      <div className="dash-wallet-tile p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="dash-wallet-tile dash-savings-wallet p-4 mb-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
           <span className="text-2xl leading-none">{data.savings.flag}</span>
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent-green/15 text-accent-green">
-            {t("dashboard.active")}
-          </span>
+          <SavingsApyBadge rate={data.apyAnnualPercent} />
         </div>
-        <p className="text-xs text-text-muted font-medium">{data.savings.currency}</p>
-        <p className="text-2xl font-bold text-text-primary mt-0.5 tracking-tight">
+        <p className="text-xs text-text-muted font-medium uppercase tracking-wide">{data.savings.currency}</p>
+        <p className="text-2xl sm:text-3xl font-bold text-text-primary mt-0.5 tracking-tight">
           {formatCurrency(data.savings.balance, data.savings.currency)}
         </p>
         <p className="text-[10px] text-text-muted mt-2 truncate">{data.savings.name}</p>
+        {data.savings.balance > 0 && (
+          <p className="dash-savings-yield-estimate mt-3">
+            {t("dashboard.savingsProjectedYield", {
+              amount: formatCurrency(data.projectedAnnualYield, data.savings.currency),
+            })}
+          </p>
+        )}
       </div>
 
       <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4 space-y-4">

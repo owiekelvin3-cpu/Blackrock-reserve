@@ -3,7 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check, X } from "lucide-react";
-import { AdminPageHeader, AdminKycBadge } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminReviewQueue,
+  AdminReviewCard,
+  AdminKycBadge,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { toast } from "sonner";
@@ -42,15 +49,11 @@ export default function AdminKycPage() {
   };
 
   return (
-    <div>
+    <AdminPage>
       <AdminPageHeader
         title="KYC Review"
-        description="Identity verification queue from Supabase — auto-refreshes every 30s"
-        action={
-          <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
-            Refresh
-          </button>
-        }
+        description="Identity verification queue — auto-refreshes every 30s"
+        action={<AdminRefreshButton onClick={refresh} />}
       />
 
       <AdminFetchState
@@ -61,15 +64,15 @@ export default function AdminKycPage() {
         isEmpty={!loading && !error && queue.length === 0}
         emptyMessage="No pending KYC reviews in the database"
       >
-        <div className="space-y-4">
+        <AdminReviewQueue>
           {queue.map((u) => (
-            <div key={u.id} className="admin-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <Link href={`/admin/users/${u.id}`} className="text-white font-medium hover:text-accent-brand">
+            <AdminReviewCard key={u.id}>
+              <div className="min-w-0">
+                <Link href={`/admin/users/${u.id}`} className="font-medium hover:text-accent-brand transition-colors">
                   {u.name}
                 </Link>
                 <p className="text-sm text-[var(--admin-muted)]">{u.email}</p>
-                <div className="mt-2 flex items-center gap-3">
+                <div className="mt-2 flex items-center gap-3 flex-wrap">
                   <AdminKycBadge status={u.kycStatus} />
                   <span className="text-[10px] text-[var(--admin-muted)]">
                     Updated {new Date(u.updatedAt).toLocaleDateString()}
@@ -92,10 +95,10 @@ export default function AdminKycPage() {
                   <X size={14} /> Reject
                 </button>
               </div>
-            </div>
+            </AdminReviewCard>
           ))}
-        </div>
+        </AdminReviewQueue>
       </AdminFetchState>
-    </div>
+    </AdminPage>
   );
 }

@@ -5,7 +5,14 @@ import { toast } from "sonner";
 import {
   GripVertical, Pencil, Pin, Star, Power, PowerOff, Trash2, Upload, X, Plus,
 } from "lucide-react";
-import { AdminPageHeader } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminDataCard,
+  AdminTableScroll,
+  AdminFormPanel,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -302,7 +309,7 @@ export default function AdminMarketAssetsManager() {
   const labelCls = "block text-[10px] font-semibold uppercase tracking-wider text-[var(--admin-muted)] mb-1";
 
   return (
-    <div className="space-y-6">
+    <AdminPage>
       <AdminPageHeader
         title="Market Assets"
         description="Institutional-grade control over securities, pricing, returns, branding, and marketplace display order"
@@ -311,25 +318,23 @@ export default function AdminMarketAssetsManager() {
             <button type="button" onClick={openCreate} className="admin-btn-primary text-xs px-4 py-2 inline-flex items-center gap-1.5">
               <Plus size={14} /> Add Asset
             </button>
-            <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
-              Refresh
-            </button>
+            <AdminRefreshButton onClick={refresh} />
           </div>
         }
       />
 
       {panel && (
-        <div className="admin-card admin-card-glow overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-            <h2 className="text-sm font-semibold text-white">
-              {panel === "create" ? "Create New Asset" : `Edit ${form.symbol}`}
-            </h2>
+        <AdminFormPanel
+          title={panel === "create" ? "Create new asset" : `Edit ${form.symbol}`}
+          className="overflow-hidden"
+        >
+          <div className="flex justify-end -mt-2 mb-2">
             <button type="button" onClick={closePanel} className="p-1.5 rounded-lg hover:bg-white/10 text-[var(--admin-muted)]">
               <X size={18} />
             </button>
           </div>
 
-          <form onSubmit={saveAsset} className="p-5 space-y-6 max-h-[70vh] overflow-y-auto">
+          <form onSubmit={saveAsset} className="space-y-6 max-h-[70vh] overflow-y-auto -mx-1 px-1">
             <section>
               <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--admin-accent)] mb-3">Identity</h3>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -490,19 +495,19 @@ export default function AdminMarketAssetsManager() {
               </button>
             </div>
           </form>
-        </div>
+        </AdminFormPanel>
       )}
 
-      <AdminFetchState loading={loading} error={error} isEmpty={!loading && displayAssets.length === 0} onRetry={refresh} lastUpdated={lastUpdated}>
-        <div className="admin-card overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2">
+      <AdminDataCard noPadding>
+        <AdminFetchState loading={loading} error={error} isEmpty={!loading && displayAssets.length === 0} onRetry={refresh} lastUpdated={lastUpdated}>
+          <div className="px-4 py-3 border-b border-[var(--admin-border)] flex items-center justify-between gap-2">
             <p className="text-xs text-[var(--admin-muted)]">
               <GripVertical size={12} className="inline mr-1" />
               Drag rows to reorder · Pinned assets always appear first on the user marketplace
             </p>
             <span className="text-xs text-[var(--admin-muted)]">{displayAssets.length} assets</span>
           </div>
-          <div className="overflow-x-auto">
+          <AdminTableScroll>
             <table className="admin-table w-full min-w-[1100px]">
               <thead>
                 <tr>
@@ -609,9 +614,9 @@ export default function AdminMarketAssetsManager() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      </AdminFetchState>
-    </div>
+          </AdminTableScroll>
+        </AdminFetchState>
+      </AdminDataCard>
+    </AdminPage>
   );
 }

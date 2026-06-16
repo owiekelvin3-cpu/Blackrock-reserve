@@ -60,9 +60,20 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  applicationName: "BlackrockReserve",
+  appleWebApp: {
+    capable: true,
+    title: "BlackrockReserve",
+    statusBarStyle: "black-translucent",
+  },
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
 };
 

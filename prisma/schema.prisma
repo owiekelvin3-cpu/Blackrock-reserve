@@ -46,6 +46,7 @@ model User {
   profitAdjustments   ProfitAdjustment[] @relation("UserProfitAdjustments")
   adminProfitChanges  ProfitAdjustment[] @relation("AdminProfitAdjustments")
   transactions        Transaction[]
+  counterpartyTransactions Transaction[] @relation("TransactionCounterparty")
   investments         Investment[]
   investmentOrders    InvestmentOrder[]
   sessions            Session[]
@@ -76,6 +77,16 @@ model User {
   reviewedChargePayments   WithdrawalChargePayment[] @relation("ChargePaymentReviewer")
   supportConversation      SupportConversation?
   adminSupportReplies      SupportMessage[]          @relation("AdminSupportReplies")
+  verificationBadge        VerificationBadgeType     @default(NONE)
+  verificationBadgeAt      DateTime?
+  verificationBadgeById    String?
+  verificationBadgeBy      User?                     @relation("UserVerificationGrantedBy", fields: [verificationBadgeById], references: [id], onDelete: SetNull)
+  verificationGrantsReceived User[]                  @relation("UserVerificationGrantedBy")
+  verificationBadgeHistory VerificationBadgeHistory[]
+  verificationBadgeActions VerificationBadgeHistory[] @relation("VerificationBadgeAdmin")
+  bankCards                BankCard[]
+  cardRequests             CardRequest[]
+  cardRequestEvents        CardRequestEvent[] @relation("CardRequestEventAdmin")
 }
 
 model Session {
@@ -87,14 +98,15 @@ model Session {
 }
 
 model BankAccount {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  type      String   @default("checking")
-  currency  String   @default("USD")
-  balance   Decimal  @default(0) @db.Decimal(15, 2)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  type          String   @default("checking")
+  accountNumber String?  @unique
+  currency      String   @default("USD")
+  balance       Decimal  @default(0) @db.Decimal(15, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions       Transaction[]
@@ -123,17 +135,19 @@ model ProfitAdjustment {
 }
 
 model Transaction {
-  id          String            @id @default(cuid())
-  userId      String
-  accountId   String
-  type        TransactionType
-  amount      Decimal           @db.Decimal(15, 2)
-  description String
-  status      TransactionStatus @default(COMPLETED)
-  createdAt   DateTime          @default(now())
+  id                 String            @id @default(cuid())
+  userId             String
+  accountId          String
+  type               TransactionType
+  amount             Decimal           @db.Decimal(15, 2)
+  description        String
+  status             TransactionStatus @default(COMPLETED)
+  counterpartyUserId String?
+  createdAt          DateTime          @default(now())
 
-  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account      BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  counterparty User?       @relation("TransactionCounterparty", fields: [counterpartyUserId], references: [id], onDelete: SetNull)
 }
 
 model Investment {
@@ -262,6 +276,7 @@ model DepositRequest {
   amountUsd            Decimal?             @db.Decimal(15, 2)
   bitcoinWalletAddress String?
   txHash               String?
+  proofImage           String?              @db.Text
   proofNote            String?
   status               DepositRequestStatus @default(PENDING)
   reviewedBy           String?
@@ -625,6 +640,36 @@ model PlatformSetting {
   updatedBy String?
 }
 
+model VerificationBadgeHistory {
+  id            String                  @id @default(cuid())
+  userId        String
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeType     VerificationBadgeType
+  action        VerificationBadgeAction
+  previousBadge VerificationBadgeType?
+  adminId       String
+  admin         User                    @relation("VerificationBadgeAdmin", fields: [adminId], references: [id])
+  note          String?
+  createdAt     DateTime                @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+enum VerificationBadgeType {
+  NONE
+  STANDARD
+  BUSINESS
+  GOLD
+}
+
+enum VerificationBadgeAction {
+  GRANTED
+  REVOKED
+  UPGRADED
+  DOWNGRADED
+}
+
 enum UserRole {
   USER
   ADMIN
@@ -766,4 +811,102 @@ enum LoanProductType {
   BUSINESS
   INVESTMENT
   EMERGENCY
+}
+
+enum BankCardNetwork {
+  VISA
+  MASTERCARD
+  VERVE
+}
+
+enum PhysicalCardTier {
+  STANDARD
+  PREMIUM
+  BLACK_ELITE
+}
+
+enum CardRequestStatus {
+  PENDING_REVIEW
+  UNDER_VERIFICATION
+  APPROVED
+  CARD_PRODUCTION
+  SHIPPED
+  DELIVERED
+  REJECTED
+  CANCELLED
+}
+
+enum BankCardStatus {
+  ACTIVE
+  PENDING_ACTIVATION
+  FROZEN
+  EXPIRED
+  BLOCKED
+}
+
+model BankCard {
+  id             String          @id @default(cuid())
+  userId         String
+  cardRequestId  String?         @unique
+  cardholderName String
+  lastFour       String
+  expiryMonth    Int
+  expiryYear     Int
+  tier           PhysicalCardTier @default(STANDARD)
+  network        BankCardNetwork  @default(VISA)
+  status         BankCardStatus   @default(PENDING_ACTIVATION)
+  frozen         Boolean          @default(false)
+  issuedAt       DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardRequest CardRequest? @relation(fields: [cardRequestId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model CardRequest {
+  id                    String             @id @default(cuid())
+  userId                String
+  cardTier              PhysicalCardTier
+  status                CardRequestStatus  @default(PENDING_REVIEW)
+  recipientName         String
+  phone                 String
+  addressLine1          String
+  addressLine2          String?
+  city                  String
+  stateRegion           String
+  postalCode            String
+  country               String             @default("US")
+  deliveryInstructions  String?
+  trackingNumber        String?
+  shippingCarrier       String?
+  estimatedDeliveryDate DateTime?
+  rejectionReason       String?
+  adminNote             String?
+  statusEtaDays         Int?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankCard BankCard?
+  events   CardRequestEvent[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model CardRequestEvent {
+  id            String            @id @default(cuid())
+  cardRequestId String
+  status        CardRequestStatus
+  note          String?
+  adminId       String?
+  createdAt     DateTime          @default(now())
+
+  cardRequest CardRequest @relation(fields: [cardRequestId], references: [id], onDelete: Cascade)
+  admin       User?       @relation("CardRequestEventAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([cardRequestId, createdAt])
 }

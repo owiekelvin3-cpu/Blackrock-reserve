@@ -11,7 +11,6 @@ import EmptyState from "@/components/dashboard/EmptyState";
 import WithdrawalMethodIcon from "@/components/dashboard/WithdrawalMethodIcon";
 import WithdrawalReceiptModal, { type WithdrawalReceiptData } from "@/components/dashboard/WithdrawalReceiptModal";
 import TransactionPinModal from "@/components/dashboard/TransactionPinModal";
-import MemberTransferPanel from "@/components/dashboard/MemberTransferPanel";
 import { useTransactionPin } from "@/hooks/use-transaction-pin";
 import {
   WITHDRAWAL_CATEGORIES,
@@ -275,13 +274,6 @@ export default function WithdrawalsPage() {
               return (
                 <Card key={category}>
                   <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-4">{category}</p>
-                  {category === "Bank Transfers" && (
-                    <MemberTransferPanel
-                      accounts={withdrawalData.accounts}
-                      onSuccess={() => load(true)}
-                      className="mb-5"
-                    />
-                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {methods.map((m) => {
                       const selected = method === m.id;

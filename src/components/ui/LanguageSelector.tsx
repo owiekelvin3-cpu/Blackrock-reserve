@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Globe, Check } from "lucide-react";
 import { useI18n } from "@/components/providers/I18nProvider";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { LOCALES, type LocaleCode } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ interface LanguageSelectorProps {
 
 export default function LanguageSelector({ variant = "compact", className }: LanguageSelectorProps) {
   const { locale, setLocale, t } = useI18n();
+  const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = LOCALES.find((l) => l.code === locale) ?? LOCALES[0];
@@ -47,12 +49,18 @@ export default function LanguageSelector({ variant = "compact", className }: Lan
         aria-label={t("common.language")}
       >
         <Globe size={16} className="text-accent-brand shrink-0" />
-        <span className="text-base leading-none">{current.flag}</span>
+        <span className="text-base leading-none" suppressHydrationWarning>
+          {hydrated ? current.flag : " "}
+        </span>
         {variant === "full" && (
-          <span className="flex-1 text-left truncate">{current.nativeName}</span>
+          <span className="flex-1 text-left truncate" suppressHydrationWarning>
+            {hydrated ? current.nativeName : ""}
+          </span>
         )}
         {variant === "compact" && (
-          <span className="hidden sm:inline truncate max-w-[5rem]">{current.nativeName}</span>
+          <span className="hidden sm:inline truncate max-w-[5rem]" suppressHydrationWarning>
+            {hydrated ? current.nativeName : ""}
+          </span>
         )}
         <ChevronDown size={14} className={cn("text-text-muted shrink-0 transition-transform", open && "rotate-180")} />
       </button>

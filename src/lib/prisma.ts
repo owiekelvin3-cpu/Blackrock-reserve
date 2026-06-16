@@ -1,7 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  transactionPrisma: PrismaClient | undefined;
 };
 
 function appendParam(url: string, param: string) {
@@ -10,6 +11,47 @@ function appendParam(url: string, param: string) {
 
 function isPoolerUrl(url: string) {
   return url.includes("pgbouncer") || url.includes(":6543") || url.includes("pooler.supabase.com");
+}
+
+/** Transaction pooler (6543 / pgbouncer=true) cannot run interactive Prisma transactions. */
+function isTransactionPoolerUrl(url: string) {
+  return url.includes(":6543") || url.includes("pgbouncer=true");
+}
+
+function isUsableForInteractiveTransactions(url: string) {
+  return Boolean(url) && !isTransactionPoolerUrl(url);
+}
+
+function stripTransactionPoolerParams(url: string) {
+  try {
+    const normalized = url.replace(/^postgresql:/i, "postgres:");
+    const parsed = new URL(normalized);
+    if (parsed.port === "6543") parsed.port = "5432";
+    parsed.searchParams.delete("pgbouncer");
+    if (!parsed.searchParams.has("sslmode")) {
+      parsed.searchParams.set("sslmode", "require");
+    }
+    return parsed.toString().replace(/^postgres:/i, "postgresql:");
+  } catch {
+    return url;
+  }
+}
+
+/** Supabase session pooler (port 5432) supports interactive transactions. */
+function deriveSessionPoolerUrl(databaseUrl: string): string | null {
+  try {
+    const normalized = databaseUrl.replace(/^postgresql:/i, "postgres:");
+    const url = new URL(normalized);
+    if (!url.hostname.includes("pooler.supabase.com")) return null;
+    url.port = "5432";
+    url.searchParams.delete("pgbouncer");
+    if (!url.searchParams.has("sslmode")) {
+      url.searchParams.set("sslmode", "require");
+    }
+    return url.toString().replace(/^postgres:/i, "postgresql:");
+  } catch {
+    return null;
+  }
 }
 
 function withPoolSettings(url: string | undefined) {
@@ -21,11 +63,87 @@ function withPoolSettings(url: string | undefined) {
   if (!result.includes("pool_timeout")) {
     result = appendParam(result, "pool_timeout=30");
   }
-  // Supabase pooler allows ~5 connections — keep Prisma pool small
+  // Supabase pooler allows ~5 connections — keep Prisma pool small but usable in dev
   if (isPoolerUrl(result) && !result.includes("connection_limit")) {
-    result = appendParam(result, "connection_limit=3");
+    result = appendParam(result, "connection_limit=5");
   }
   return result;
+}
+
+function withDirectConnectionSettings(url: string) {
+  let result = url;
+  if (!result.includes("connect_timeout")) {
+    result = appendParam(result, "connect_timeout=10");
+  }
+  return result;
+}
+
+/** Derive Supabase direct host (5432) from a pooler URL when DIRECT_URL is missing or wrong. */
+function deriveSupabaseDirectUrl(poolerUrl: string): string | null {
+  try {
+    const normalized = poolerUrl.replace(/^postgresql:/i, "postgres:");
+    const url = new URL(normalized);
+
+    if (!isPoolerUrl(poolerUrl)) return null;
+
+    const user = decodeURIComponent(url.username);
+    let projectRef: string | null = null;
+    if (user.startsWith("postgres.") && user.length > "postgres.".length) {
+      projectRef = user.slice("postgres.".length);
+    }
+    if (!projectRef) return null;
+
+    url.hostname = `db.${projectRef}.supabase.co`;
+    url.port = "5432";
+    url.searchParams.delete("pgbouncer");
+    if (!url.searchParams.has("sslmode")) {
+      url.searchParams.set("sslmode", "require");
+    }
+
+    return url.toString().replace(/^postgres:/i, "postgresql:");
+  } catch {
+    return null;
+  }
+}
+
+function resolveDirectDatabaseUrl(): string {
+  const direct = process.env.DIRECT_URL?.trim();
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+
+  if (direct && isUsableForInteractiveTransactions(direct)) {
+    return withDirectConnectionSettings(stripTransactionPoolerParams(direct));
+  }
+
+  const sessionPooler = databaseUrl ? deriveSessionPoolerUrl(databaseUrl) : null;
+  if (sessionPooler) {
+    if (process.env.NODE_ENV === "development" && direct && isTransactionPoolerUrl(direct)) {
+      console.warn(
+        "[prisma] DIRECT_URL uses the transaction pooler (6543) — using Supabase session pooler on 5432 for interactive transactions."
+      );
+    }
+    return withDirectConnectionSettings(sessionPooler);
+  }
+
+  const derived = databaseUrl ? deriveSupabaseDirectUrl(databaseUrl) : null;
+  if (derived) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[prisma] Using derived db.[PROJECT_REF].supabase.co connection for interactive transactions."
+      );
+    }
+    return withDirectConnectionSettings(derived);
+  }
+
+  if (direct) {
+    console.warn(
+      "[prisma] DIRECT_URL may not support interactive transactions. Prefer port 5432 (session pooler or direct host), not 6543."
+    );
+    return withDirectConnectionSettings(stripTransactionPoolerParams(direct));
+  }
+
+  throw new Error(
+    "Interactive database transactions require DIRECT_URL on port 5432 (session pooler or direct host), not the transaction pooler on 6543."
+  );
 }
 
 function createPrismaClient() {
@@ -42,8 +160,36 @@ function createPrismaClient() {
   return new PrismaClient(options);
 }
 
+function createTransactionPrismaClient() {
+  return new PrismaClient({
+    datasources: { db: { url: resolveDirectDatabaseUrl() } },
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+}
+
+function getTransactionPrisma(): PrismaClient {
+  if (!globalForPrisma.transactionPrisma) {
+    globalForPrisma.transactionPrisma = createTransactionPrismaClient();
+  }
+  return globalForPrisma.transactionPrisma;
+}
+
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
+}
+
+/**
+ * Run an interactive Prisma transaction on a direct Postgres connection.
+ * Required with Supabase PgBouncer (port 6543) — pooled connections cannot hold open transactions.
+ */
+export function runInteractiveTransaction<T>(
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  options?: { maxWait?: number; timeout?: number }
+): Promise<T> {
+  return getTransactionPrisma().$transaction(fn, {
+    maxWait: options?.maxWait ?? 15_000,
+    timeout: options?.timeout ?? 60_000,
+  });
 }

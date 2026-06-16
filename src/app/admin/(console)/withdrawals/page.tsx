@@ -4,7 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import AdminActionModal from "@/components/admin/AdminActionModal";
-import { AdminPageHeader } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminFilterTabs,
+  AdminDataCard,
+  AdminTableScroll,
+  AdminMobileList,
+  AdminMobileCard,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { formatCurrency } from "@/lib/utils";
@@ -253,35 +262,23 @@ export default function AdminWithdrawalsPage() {
   };
 
   return (
-    <div>
+    <AdminPage>
       <AdminPageHeader
         title="Withdrawal Requests"
         description="Confirm charge payments first, then approve withdrawals ready for payout"
-        action={
-          <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
-            Refresh
-          </button>
-        }
+        action={<AdminRefreshButton onClick={refresh} />}
       />
 
-      <div className="flex gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => setFilter("pending")}
-          className={`text-xs px-4 py-2 rounded-lg border ${filter === "pending" ? "admin-btn-primary border-transparent" : "admin-btn-ghost"}`}
-        >
-          Needs action ({actionableCount})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilter("all")}
-          className={`text-xs px-4 py-2 rounded-lg border ${filter === "all" ? "admin-btn-primary border-transparent" : "admin-btn-ghost"}`}
-        >
-          All ({withdrawals.length})
-        </button>
-      </div>
+      <AdminFilterTabs
+        value={filter}
+        onChange={(v) => setFilter(v as "pending" | "all")}
+        tabs={[
+          { id: "pending", label: "Needs action", count: actionableCount },
+          { id: "all", label: "All", count: withdrawals.length },
+        ]}
+      />
 
-      <div className="admin-card overflow-hidden">
+      <AdminDataCard noPadding>
         <AdminFetchState
           loading={loading}
           error={error}
@@ -294,7 +291,52 @@ export default function AdminWithdrawalsPage() {
               : "No withdrawal requests in the database"
           }
         >
-          <div className="hidden lg:block overflow-x-auto">
+          <AdminMobileList>
+            {filtered.map((w) => (
+              <AdminMobileCard key={w.id}>
+                <div className="flex justify-between gap-2 mb-2">
+                  <div>
+                    <Link href={`/admin/users/${w.userId}`} className="admin-link text-sm font-medium">
+                      {w.userName}
+                    </Link>
+                    <p className="text-[10px] text-[var(--admin-muted)]">{w.userEmail}</p>
+                  </div>
+                  <span className="admin-badge admin-badge-submitted text-[10px]">{statusLabel(w.status)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div>
+                    <p className="text-[var(--admin-muted)]">Amount</p>
+                    <p className="font-medium">{formatCurrency(w.amountUsd)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[var(--admin-muted)]">Charge</p>
+                    <p>{w.assignedChargeAmount != null ? formatCurrency(w.assignedChargeAmount) : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[var(--admin-muted)]">Method</p>
+                    <p>{w.methodLabel}</p>
+                  </div>
+                  <div>
+                    <p className="text-[var(--admin-muted)]">Date</p>
+                    <p>{new Date(w.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <WithdrawalActions
+                  withdrawal={w}
+                  reviewing={reviewing}
+                  layout="stack"
+                  onWithdrawalAction={(id, status) =>
+                    setPendingAction({ kind: "withdrawal", id, status })
+                  }
+                  onChargeAction={(chargePaymentId, withdrawalId, status) =>
+                    setPendingAction({ kind: "charge", chargePaymentId, withdrawalId, status })
+                  }
+                />
+              </AdminMobileCard>
+            ))}
+          </AdminMobileList>
+
+          <AdminTableScroll className="admin-desktop-table">
             <table className="admin-table w-full min-w-[960px]">
               <thead>
                 <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
@@ -364,54 +406,9 @@ export default function AdminWithdrawalsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-
-          <div className="lg:hidden divide-y divide-[var(--admin-border)]/50">
-            {filtered.map((w) => (
-              <div key={w.id} className="p-4 space-y-2">
-                <div className="flex justify-between gap-2">
-                  <div>
-                    <Link href={`/admin/users/${w.userId}`} className="admin-link text-sm font-medium">
-                      {w.userName}
-                    </Link>
-                    <p className="text-[10px] text-[var(--admin-muted)]">{w.userEmail}</p>
-                  </div>
-                  <span className="admin-badge admin-badge-submitted text-[10px]">{statusLabel(w.status)}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <p className="text-[var(--admin-muted)]">Amount</p>
-                    <p className="font-medium">{formatCurrency(w.amountUsd)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--admin-muted)]">Charge</p>
-                    <p>{w.assignedChargeAmount != null ? formatCurrency(w.assignedChargeAmount) : "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--admin-muted)]">Method</p>
-                    <p>{w.methodLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--admin-muted)]">Date</p>
-                    <p>{new Date(w.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                <WithdrawalActions
-                  withdrawal={w}
-                  reviewing={reviewing}
-                  layout="stack"
-                  onWithdrawalAction={(id, status) =>
-                    setPendingAction({ kind: "withdrawal", id, status })
-                  }
-                  onChargeAction={(chargePaymentId, withdrawalId, status) =>
-                    setPendingAction({ kind: "charge", chargePaymentId, withdrawalId, status })
-                  }
-                />
-              </div>
-            ))}
-          </div>
+          </AdminTableScroll>
         </AdminFetchState>
-      </div>
+      </AdminDataCard>
 
       {selectedWithdrawal && pendingAction?.kind === "withdrawal" && pendingAction.status === "APPROVED" && (
         <AdminActionModal
@@ -476,6 +473,6 @@ export default function AdminWithdrawalsPage() {
           <WithdrawalSummary withdrawal={selectedWithdrawal} />
         </AdminActionModal>
       )}
-    </div>
+    </AdminPage>
   );
 }

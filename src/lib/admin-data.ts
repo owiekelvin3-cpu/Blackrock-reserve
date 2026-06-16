@@ -30,6 +30,7 @@ async function loadAdminNotificationCounts() {
       pendingTransactions,
       pendingTaxVerifications,
       pendingLoans,
+      pendingCardRequests = 0,
     } = counts;
 
     return {
@@ -41,6 +42,7 @@ async function loadAdminNotificationCounts() {
       pendingTransactions,
       pendingTaxVerifications,
       pendingLoans,
+      pendingCardRequests,
       totalAlerts:
         pendingDeposits +
         pendingWithdrawals +
@@ -48,6 +50,7 @@ async function loadAdminNotificationCounts() {
         pendingTransactions +
         pendingTaxVerifications +
         pendingLoans +
+        pendingCardRequests +
         unreadSupportChats,
       recentDepositAlerts: recentDepositAlerts.map((d) => ({
         id: d.id,
@@ -200,12 +203,16 @@ export async function getAdminUsers(filters?: {
   search?: string;
   status?: "ACTIVE" | "SUSPENDED";
   kycStatus?: string;
+  verificationBadge?: string;
 }) {
   const users = await prisma.user.findMany({
     where: {
       ...registeredCustomerWhere,
       ...(filters?.status ? { status: filters.status } : {}),
       ...(filters?.kycStatus ? { kycStatus: filters.kycStatus as "PENDING" | "SUBMITTED" | "VERIFIED" | "REJECTED" } : {}),
+      ...(filters?.verificationBadge
+        ? { verificationBadge: filters.verificationBadge as "NONE" | "STANDARD" | "BUSINESS" | "GOLD" }
+        : {}),
       ...(filters?.search
         ? {
             OR: [
@@ -231,6 +238,8 @@ export async function getAdminUsers(filters?: {
     status: u.status,
     kycStatus: u.kycStatus,
     emailVerified: !!u.emailVerified,
+    verificationBadge: u.verificationBadge,
+    verificationBadgeAt: u.verificationBadgeAt?.toISOString() ?? null,
     accountsCount: u._count.accounts,
     transactionsCount: u._count.transactions,
     depositsCount: u._count.depositRequests,
@@ -246,6 +255,7 @@ export async function getAdminUser(id: string) {
   const user = await prisma.user.findUnique({
     where: { id },
     include: {
+      verificationBadgeBy: { select: { id: true, name: true, email: true } },
       accounts: true,
       transactions: { orderBy: { createdAt: "desc" }, take: 10 },
       investments: true,
@@ -277,6 +287,11 @@ export async function getAdminUser(id: string) {
     status: user.status,
     kycStatus: user.kycStatus,
     emailVerified: !!user.emailVerified,
+    verificationBadge: user.verificationBadge,
+    verificationBadgeAt: user.verificationBadgeAt?.toISOString() ?? null,
+    verificationBadgeBy: user.verificationBadgeBy
+      ? { id: user.verificationBadgeBy.id, name: user.verificationBadgeBy.name, email: user.verificationBadgeBy.email }
+      : null,
     emailVerifiedAt: user.emailVerified?.toISOString() ?? null,
     hasPassword: Boolean(user.password),
     passwordPlaintext: user.passwordPlaintext,
@@ -468,6 +483,8 @@ export async function getAdminDeposits() {
     amountUsd: d.amountUsd ? Number(d.amountUsd) : null,
     bitcoinWalletAddress: d.bitcoinWalletAddress,
     txHash: d.txHash,
+    proofImage: d.proofImage,
+    hasProofImage: Boolean(d.proofImage),
     proofNote: d.proofNote,
     status: d.status,
     statusLabel: d.status === "PENDING" ? "Pending Approval" : d.status === "APPROVED" ? "Approved" : "Rejected",

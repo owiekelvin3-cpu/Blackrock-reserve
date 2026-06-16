@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowUpRight, TrendingUp } from "lucide-react";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
+import SavingsApyBadge from "@/components/dashboard/SavingsApyBadge";
 import { useProfileImage } from "@/components/providers/ProfileImageProvider";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { getFirstName } from "@/lib/greeting";
@@ -18,6 +19,7 @@ type DashboardMobileHeroProps = {
   profitBalance: number;
   savingsBalance: number;
   savingsCurrency?: string;
+  savingsApy?: number;
 };
 
 function maskAmount(formatted: string) {
@@ -30,6 +32,7 @@ export default function DashboardMobileHero({
   profitBalance,
   savingsBalance,
   savingsCurrency,
+  savingsApy = 20,
 }: DashboardMobileHeroProps) {
   const { data: session } = useSession();
   const { image: profileImage } = useProfileImage();
@@ -103,8 +106,11 @@ export default function DashboardMobileHero({
         </p>
 
         <div className="dash-mobile-balance-footer">
-          <div>
-            <p className="dash-mobile-balance-sub-label">{t("dashboard.highYieldSavings")}</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="dash-mobile-balance-sub-label">{t("dashboard.highYieldSavings")}</p>
+              <SavingsApyBadge rate={savingsApy} size="sm" />
+            </div>
             <p className="dash-mobile-balance-sub-value">
               {balanceVisible ? formattedSavings : maskAmount(formattedSavings)}
             </p>

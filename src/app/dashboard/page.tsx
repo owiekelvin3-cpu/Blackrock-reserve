@@ -57,6 +57,7 @@ export default function DashboardPage() {
             profitBalance={data.profitBalance}
             savingsBalance={data.savings.savingsBalance}
             savingsCurrency={data.savings.savings.currency}
+            savingsApy={data.savings.apyAnnualPercent}
           />
 
           <DashboardQuickActions />
@@ -87,7 +88,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <RecentActivityPanel variant="mobile" />
+          <div className="lg:hidden">
+            <RecentActivityPanel variant="mobile" showViewAllLink />
+          </div>
+          <div className="hidden lg:block">
+            <RecentActivityPanel showViewAllLink />
+          </div>
         </div>
       )}
     </DashboardGate>

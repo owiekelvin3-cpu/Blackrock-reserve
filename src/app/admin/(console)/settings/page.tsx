@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { AdminPageHeader } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminFormPanel,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import type { ContactFaq } from "@/lib/platform-settings";
@@ -13,6 +18,12 @@ interface Settings {
   bitcoinPurchaseLink: string;
   depositInstructions: string;
   depositConfirmationMessage: string;
+  physicalCardOrdersEnabled: boolean;
+  physicalCardRequireKyc: boolean;
+  physicalCardRequireInvestment: boolean;
+  physicalCardMinBalance: number;
+  physicalCardRequirePhone: boolean;
+  physicalCardRequireEmail: boolean;
   contactEmail: string;
   contactPhone: string;
   contactAddressLine1: string;
@@ -116,15 +127,11 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div>
+    <AdminPage>
       <AdminPageHeader
         title="Platform Settings"
         description="Deposit configuration and public contact page content"
-        action={
-          <button type="button" onClick={handleRefresh} className="admin-btn-ghost text-xs px-4 py-2">
-            Refresh
-          </button>
-        }
+        action={<AdminRefreshButton onClick={handleRefresh} />}
       />
 
       <AdminFetchState loading={loading} error={error} onRetry={handleRefresh} lastUpdated={lastUpdated}>
@@ -136,14 +143,10 @@ export default function AdminSettingsPage() {
               </p>
             )}
 
-            <section className="admin-card admin-card-glow p-6 space-y-6">
-              <div>
-                <h2 className="text-sm font-semibold text-white">Deposit Settings</h2>
-                <p className="text-xs text-[var(--admin-muted)] mt-1">
-                  Shown on customer Dashboard → Deposit
-                </p>
-              </div>
-
+            <AdminFormPanel
+              title="Deposit settings"
+              description="Shown on customer Dashboard → Deposit"
+            >
               <div>
                 <label className="block text-xs font-medium text-[var(--admin-muted)] mb-1.5">
                   Bitcoin Wallet Address
@@ -194,16 +197,89 @@ export default function AdminSettingsPage() {
                   }}
                 />
               </div>
-            </section>
+            </AdminFormPanel>
 
-            <section className="admin-card admin-card-glow p-6 space-y-6">
+            <AdminFormPanel
+              title="Physical card requirements"
+              description="Controls eligibility shown on Dashboard → Cards before clients can order"
+            >
+              <label className="flex items-center justify-between gap-3 py-2">
+                <span className="text-sm text-white">Accept new card orders</span>
+                <input
+                  type="checkbox"
+                  checked={settings.physicalCardOrdersEnabled}
+                  onChange={(e) => {
+                    markDirty();
+                    setSettings({ ...settings, physicalCardOrdersEnabled: e.target.checked });
+                  }}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 py-2">
+                <span className="text-sm text-white">Require verified KYC</span>
+                <input
+                  type="checkbox"
+                  checked={settings.physicalCardRequireKyc}
+                  onChange={(e) => {
+                    markDirty();
+                    setSettings({ ...settings, physicalCardRequireKyc: e.target.checked });
+                  }}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 py-2">
+                <span className="text-sm text-white">Require active investment</span>
+                <input
+                  type="checkbox"
+                  checked={settings.physicalCardRequireInvestment}
+                  onChange={(e) => {
+                    markDirty();
+                    setSettings({ ...settings, physicalCardRequireInvestment: e.target.checked });
+                  }}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 py-2">
+                <span className="text-sm text-white">Require verified email</span>
+                <input
+                  type="checkbox"
+                  checked={settings.physicalCardRequireEmail}
+                  onChange={(e) => {
+                    markDirty();
+                    setSettings({ ...settings, physicalCardRequireEmail: e.target.checked });
+                  }}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 py-2">
+                <span className="text-sm text-white">Require phone on profile</span>
+                <input
+                  type="checkbox"
+                  checked={settings.physicalCardRequirePhone}
+                  onChange={(e) => {
+                    markDirty();
+                    setSettings({ ...settings, physicalCardRequirePhone: e.target.checked });
+                  }}
+                />
+              </label>
               <div>
-                <h2 className="text-sm font-semibold text-white">Contact Page</h2>
-                <p className="text-xs text-[var(--admin-muted)] mt-1">
-                  Contact information and FAQs shown on the public /contact page
-                </p>
+                <label className="block text-xs font-medium text-[var(--admin-muted)] mb-1.5">
+                  Minimum account balance (USD)
+                </label>
+                <input
+                  className="admin-input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={settings.physicalCardMinBalance}
+                  onChange={(e) => {
+                    markDirty();
+                    setSettings({ ...settings, physicalCardMinBalance: Number(e.target.value) || 0 });
+                  }}
+                />
               </div>
+            </AdminFormPanel>
 
+            <AdminFormPanel
+              title="Contact page"
+              description="Contact information and FAQs shown on the public /contact page"
+            >
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-[var(--admin-muted)] mb-1.5">Support Email</label>
@@ -323,7 +399,7 @@ export default function AdminSettingsPage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </AdminFormPanel>
 
             <button type="submit" disabled={saving} className="admin-btn-primary disabled:opacity-50">
               {saving ? "Saving..." : "Save Settings"}
@@ -331,6 +407,6 @@ export default function AdminSettingsPage() {
           </form>
         )}
       </AdminFetchState>
-    </div>
+    </AdminPage>
   );
 }

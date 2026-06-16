@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { getAccounts } from "@/lib/dashboard-data";
 import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-notifications";
 import { getMarketAssetBySymbol, calculateInvestmentFee } from "@/lib/market-assets";
@@ -83,7 +83,7 @@ export async function createJointInvitation(params: {
 }) {
   const inviter = await prisma.user.findUnique({
     where: { id: params.inviterId },
-    select: { id: true, name: true, email: true, status: true, emailVerified: true, kycStatus: true },
+    select: { id: true, name: true, email: true, status: true, emailVerified: true, kycStatus: true, verificationBadge: true },
   });
   if (!inviter) throw new Error("Inviter not found");
 
@@ -191,12 +191,12 @@ export async function getUserJointInvitations(userId: string) {
     prisma.jointAccountInvitation.findMany({
       where: { inviteeId: userId },
       orderBy: { createdAt: "desc" },
-      include: { inviter: { select: { id: true, name: true, email: true } } },
+      include: { inviter: { select: { id: true, name: true, email: true, verificationBadge: true } } },
     }),
     prisma.jointAccountInvitation.findMany({
       where: { inviterId: userId },
       orderBy: { createdAt: "desc" },
-      include: { invitee: { select: { id: true, name: true, email: true } } },
+      include: { invitee: { select: { id: true, name: true, email: true, verificationBadge: true } } },
     }),
   ]);
 
@@ -239,8 +239,8 @@ export async function respondToInvitation(params: {
   const invitation = await prisma.jointAccountInvitation.findFirst({
     where: { id: params.invitationId, inviteeId: params.userId },
     include: {
-      inviter: { select: { id: true, name: true, email: true, status: true, emailVerified: true, kycStatus: true } },
-      invitee: { select: { id: true, name: true, email: true, status: true, emailVerified: true, kycStatus: true } },
+      inviter: { select: { id: true, name: true, email: true, status: true, emailVerified: true, kycStatus: true, verificationBadge: true } },
+      invitee: { select: { id: true, name: true, email: true, status: true, emailVerified: true, kycStatus: true, verificationBadge: true } },
     },
   });
 
@@ -282,7 +282,7 @@ export async function respondToInvitation(params: {
     attempts++;
   }
 
-  const jointAccount = await prisma.$transaction(async (tx) => {
+  const jointAccount = await runInteractiveTransaction(async (tx) => {
     const account = await tx.jointAccount.create({
       data: {
         accountNumber,
@@ -337,7 +337,7 @@ export async function getUserJointAccounts(userId: string) {
       jointAccount: {
         include: {
           members: {
-            include: { user: { select: { id: true, name: true, email: true } } },
+            include: { user: { select: { id: true, name: true, email: true, verificationBadge: true } } },
           },
           investments: true,
         },
@@ -365,6 +365,7 @@ export async function getUserJointAccounts(userId: string) {
         name: mem.user.name,
         email: mem.user.email,
         role: mem.role,
+        verificationBadge: mem.user.verificationBadge,
       })),
       portfolioValue: Math.round(portfolioValue * 100) / 100,
       positionsCount: ja.investments.length,
@@ -379,7 +380,7 @@ export async function getJointAccountDetail(jointAccountId: string, userId: stri
     include: {
       jointAccount: {
         include: {
-          members: { include: { user: { select: { id: true, name: true, email: true } } } },
+          members: { include: { user: { select: { id: true, name: true, email: true, verificationBadge: true } } } },
           transactions: { orderBy: { createdAt: "desc" }, take: 50 },
           investments: true,
           investmentOrders: { orderBy: { createdAt: "desc" }, take: 50 },
@@ -421,7 +422,13 @@ export async function getJointAccountDetail(jointAccountId: string, userId: stri
     status: ja.status,
     ownershipType: ja.ownershipType,
     role: membership.role,
-    members: ja.members.map((m) => ({ id: m.user.id, name: m.user.name, email: m.user.email, role: m.role })),
+    members: ja.members.map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+      email: m.user.email,
+      role: m.role,
+      verificationBadge: m.user.verificationBadge,
+    })),
     portfolioValue: Math.round(portfolioValue * 100) / 100,
     holdings: assets,
     transactions: ja.transactions.map((t) => ({
@@ -490,7 +497,7 @@ export async function depositToJointAccount(params: {
   if (!personal) throw new Error("No personal account found");
   if (personal.balance < params.amount) throw new Error("Insufficient personal balance");
 
-  await prisma.$transaction(async (tx) => {
+  await runInteractiveTransaction(async (tx) => {
     const bank = await tx.bankAccount.findFirst({ where: { id: personal.id, userId: params.userId } });
     if (!bank || Number(bank.balance) < params.amount) throw new Error("Insufficient balance");
 
@@ -609,7 +616,7 @@ async function executeJointWithdrawal(params: {
     accounts[0];
   if (!personal) throw new Error("No personal account found");
 
-  await prisma.$transaction(async (tx) => {
+  await runInteractiveTransaction(async (tx) => {
     const joint = await tx.jointAccount.findUnique({ where: { id: params.jointAccountId } });
     if (!joint || Number(joint.balance) < params.amount) throw new Error("Insufficient joint balance");
 
@@ -817,7 +824,7 @@ async function executeJointInvestment(params: {
   price: number;
   ipAddress?: string;
 }) {
-  await prisma.$transaction(async (tx) => {
+  await runInteractiveTransaction(async (tx) => {
     const joint = await tx.jointAccount.findUnique({ where: { id: params.jointAccountId } });
     if (!joint || Number(joint.balance) < params.totalCost) throw new Error("Insufficient joint balance");
 

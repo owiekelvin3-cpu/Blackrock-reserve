@@ -2,7 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AdminPageHeader } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminFormPanel,
+  AdminDataCard,
+  AdminTableScroll,
+  AdminMobileList,
+  AdminMobileCard,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import AdminBalanceAdjustForm from "@/components/admin/AdminBalanceAdjustForm";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
@@ -74,25 +83,22 @@ export default function AdminBalanceAdjustmentsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <AdminPage>
       <AdminPageHeader
         title="Balance Adjustments"
         description="Add or remove customer funds and review adjustment history"
-        action={
-          <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
-            Refresh
-          </button>
-        }
+        action={<AdminRefreshButton onClick={refresh} />}
       />
 
-      <div className="admin-card admin-card-glow p-5">
-        <h2 className="font-semibold text-white mb-1">Adjust Customer Balance</h2>
-        <p className="text-xs text-[var(--admin-muted)] mb-4">Select a user, then add or remove funds from their account.</p>
+      <AdminFormPanel
+        title="Adjust customer balance"
+        description="Select a user, then add or remove funds from their account."
+      >
         <div className="grid lg:grid-cols-2 gap-6">
           <div>
             <label className="block text-xs text-[var(--admin-muted)] mb-1.5">Customer</label>
             <select
-              className="admin-input"
+              className="admin-input w-full"
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
             >
@@ -131,9 +137,9 @@ export default function AdminBalanceAdjustmentsPage() {
             )}
           </div>
         </div>
-      </div>
+      </AdminFormPanel>
 
-      <div className="admin-card overflow-hidden">
+      <AdminDataCard noPadding>
         <AdminFetchState
           loading={loading}
           error={error}
@@ -142,45 +148,66 @@ export default function AdminBalanceAdjustmentsPage() {
           isEmpty={!loading && !error && adjustments.length === 0}
           emptyMessage="No balance adjustments in the database"
         >
-          <div className="overflow-x-auto">
-            <table className="admin-table w-full">
+          <AdminMobileList>
+            {adjustments.map((a) => (
+              <AdminMobileCard key={a.id}>
+                <Link href={`/admin/users/${a.user.id}`} className="admin-link text-sm font-medium">
+                  {a.user.name}
+                </Link>
+                <p className="text-[10px] text-[var(--admin-muted)]">{a.user.email}</p>
+                <div className="flex flex-wrap gap-2 mt-2 mb-2">
+                  <span className={`admin-badge ${a.type === "CREDIT" ? "admin-badge-verified" : "admin-badge-rejected"}`}>
+                    {a.type}
+                  </span>
+                  <span className="admin-amount text-sm">{formatCurrency(a.amount, a.account.currency)}</span>
+                </div>
+                <p className="text-xs text-[var(--admin-muted)]">{a.reason}</p>
+                <p className="text-[10px] text-[var(--admin-muted)] mt-2">
+                  {new Date(a.createdAt).toLocaleString()} · {a.admin.name}
+                </p>
+              </AdminMobileCard>
+            ))}
+          </AdminMobileList>
+
+          <AdminTableScroll className="admin-desktop-table">
+            <table className="admin-table w-full min-w-[800px]">
               <thead>
-                <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
-                  <th className="text-left py-3 px-5">User</th>
-                  <th className="text-left py-3 px-5">Type</th>
-                  <th className="text-right py-3 px-5">Amount</th>
-                  <th className="text-left py-3 px-5">Reason</th>
-                  <th className="text-left py-3 px-5">Admin</th>
-                  <th className="text-right py-3 px-5">Before → After</th>
-                  <th className="text-right py-3 px-5">Date</th>
+                <tr>
+                  <th className="text-left">User</th>
+                  <th className="text-left">Type</th>
+                  <th className="text-right">Amount</th>
+                  <th className="text-left">Reason</th>
+                  <th className="text-left">Admin</th>
+                  <th className="text-right">Before → After</th>
+                  <th className="text-right">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {adjustments.map((a) => (
-                  <tr key={a.id} className="border-b border-[var(--admin-border)]/50 hover:bg-white/[0.02]">
-                    <td className="py-3 px-5">
+                  <tr key={a.id}>
+                    <td>
                       <Link href={`/admin/users/${a.user.id}`} className="admin-link text-sm">{a.user.name}</Link>
                       <p className="text-[10px] text-[var(--admin-muted)]">{a.user.email}</p>
                     </td>
-                    <td className="py-3 px-5">
+                    <td>
                       <span className={`admin-badge ${a.type === "CREDIT" ? "admin-badge-verified" : "admin-badge-rejected"}`}>{a.type}</span>
                     </td>
-                    <td className="py-3 px-5 text-right admin-amount">{formatCurrency(a.amount, a.account.currency)}</td>
-                    <td className="py-3 px-5 text-sm text-[var(--admin-muted)] max-w-[200px]">{a.reason}</td>
-                    <td className="py-3 px-5 text-xs text-[var(--admin-muted)]">{a.admin.name}</td>
-                    <td className="py-3 px-5 text-right text-xs font-mono text-[var(--admin-muted)]">
+                    <td className="text-right admin-amount">{formatCurrency(a.amount, a.account.currency)}</td>
+                    <td className="text-sm text-[var(--admin-muted)] max-w-[200px]">{a.reason}</td>
+                    <td className="text-xs text-[var(--admin-muted)]">{a.admin.name}</td>
+                    <td className="text-right text-xs font-mono text-[var(--admin-muted)]">
                       {formatCurrency(a.balanceBefore)} → {formatCurrency(a.balanceAfter)}
                     </td>
-                    <td className="py-3 px-5 text-right text-xs text-[var(--admin-muted)]">
+                    <td className="text-right text-xs text-[var(--admin-muted)]">
                       {new Date(a.createdAt).toLocaleString()}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableScroll>
         </AdminFetchState>
-      </div>
-    </div>
+      </AdminDataCard>
+    </AdminPage>
   );
 }

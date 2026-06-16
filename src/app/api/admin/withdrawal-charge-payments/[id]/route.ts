@@ -5,7 +5,7 @@ import { withdrawalChargePaymentReviewSchema } from "@/lib/validations";
 import { markChargePaymentPaid } from "@/lib/withdrawal-charge";
 import { createUserNotification, sendUserNotificationEmail } from "@/lib/user-notifications";
 import { formatCurrency } from "@/lib/utils";
-import { prisma } from "@/lib/prisma";
+import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { invalidateAdminCaches } from "@/lib/admin-cache";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     let emailPayload: { userId: string; title: string; message: string } | null = null;
 
     if (parsed.data.status === "PAID") {
-      await prisma.$transaction(async (tx) => {
+      await runInteractiveTransaction(async (tx) => {
         const result = await markChargePaymentPaid(params.id, session.user.id, parsed.data.reviewNote, tx);
         const title = "Withdrawal charge verified";
         const message = `Your withdrawal charge payment of ${formatCurrency(Number(result.amountUsd))} has been verified. Your withdrawal request is now pending admin review.`;
@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         emailPayload = { userId: result.userId, title, message };
       });
     } else if (parsed.data.status === "REJECTED") {
-      await prisma.$transaction(async (tx) => {
+      await runInteractiveTransaction(async (tx) => {
         await tx.withdrawalChargePayment.update({
           where: { id: params.id },
           data: {

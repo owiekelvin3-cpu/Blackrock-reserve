@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { sendEmail } from "@/lib/email";
 import { userNotificationEmail } from "@/lib/email-templates";
 import { getSiteUrl } from "@/lib/site-url";
+import { parseMemberTransferSenderName } from "@/lib/transaction-counterparty";
+import { serializeVerificationBadge } from "@/lib/verification-badge";
 
 type Tx = Prisma.TransactionClient;
 
@@ -75,18 +77,40 @@ export async function getUserNotifications(userId: string, limit = 20, since?: D
     take: limit,
   });
 
-  return rows.map((n) => ({
-    id: n.id,
-    type: n.type,
-    title: n.title,
-    message: n.message,
-    read: n.read,
-    depositId: n.depositId,
-    invitationId: n.invitationId,
-    jointAccountId: n.jointAccountId,
-    approvalId: n.approvalId,
-    createdAt: n.createdAt.toISOString(),
-  }));
+  const senderNames = rows
+    .filter((n) => n.type === "MEMBER_TRANSFER")
+    .map((n) => parseMemberTransferSenderName(n.message))
+    .filter((name): name is string => !!name);
+
+  const sendersByName =
+    senderNames.length > 0
+      ? new Map(
+          (
+            await prisma.user.findMany({
+              where: { name: { in: Array.from(new Set(senderNames)) }, role: "USER" },
+              select: { name: true, verificationBadge: true },
+            })
+          ).map((u) => [u.name, serializeVerificationBadge(u.verificationBadge)])
+        )
+      : new Map<string, ReturnType<typeof serializeVerificationBadge>>();
+
+  return rows.map((n) => {
+    const senderName = n.type === "MEMBER_TRANSFER" ? parseMemberTransferSenderName(n.message) : null;
+    return {
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      read: n.read,
+      depositId: n.depositId,
+      invitationId: n.invitationId,
+      jointAccountId: n.jointAccountId,
+      approvalId: n.approvalId,
+      createdAt: n.createdAt.toISOString(),
+      actorName: senderName,
+      actorVerificationBadge: senderName ? sendersByName.get(senderName) ?? "NONE" : null,
+    };
+  });
 }
 
 export async function getUnreadNotificationCount(userId: string) {

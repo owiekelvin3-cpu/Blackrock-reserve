@@ -1,7 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { AdminPageHeader, AdminKycBadge } from "@/components/admin/AdminUi";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminStatGrid,
+  AdminStatCard,
+  AdminDataCard,
+  AdminTableScroll,
+  AdminMobileList,
+  AdminMobileCard,
+  AdminKycBadge,
+} from "@/components/admin/AdminUi";
 import AdminFetchState from "@/components/admin/AdminFetchState";
 import { useAdminFetch } from "@/hooks/use-admin-fetch";
 import { formatCurrency } from "@/lib/utils";
@@ -25,18 +36,23 @@ export default function AdminAccountsPage() {
   const totalAum = accounts.reduce((s, a) => s + a.balance, 0);
 
   return (
-    <div>
+    <AdminPage>
       <AdminPageHeader
         title="Bank Accounts"
-        description={`${accounts.length} accounts · ${formatCurrency(totalAum)} total balance — adjust funds from each user profile`}
-        action={
-          <button type="button" onClick={refresh} className="admin-btn-ghost text-xs px-4 py-2">
-            Refresh
-          </button>
-        }
+        description="All customer accounts — adjust funds from each user profile"
+        action={<AdminRefreshButton onClick={refresh} />}
       />
 
-      <div className="admin-card overflow-hidden">
+      <AdminStatGrid cols={3}>
+        <AdminStatCard label="Total accounts" value={accounts.length} />
+        <AdminStatCard label="Total balance" value={formatCurrency(totalAum)} accent="gold" />
+        <AdminStatCard
+          label="Average balance"
+          value={accounts.length ? formatCurrency(totalAum / accounts.length) : "—"}
+        />
+      </AdminStatGrid>
+
+      <AdminDataCard noPadding>
         <AdminFetchState
           loading={loading}
           error={error}
@@ -45,36 +61,60 @@ export default function AdminAccountsPage() {
           isEmpty={!loading && !error && accounts.length === 0}
           emptyMessage="No bank accounts in the database"
         >
-          <div className="overflow-x-auto">
+          <AdminMobileList>
+            {accounts.map((a) => (
+              <AdminMobileCard key={a.id}>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p className="font-medium text-sm">{a.name}</p>
+                    <p className="text-[10px] text-[var(--admin-muted)]">{a.type}</p>
+                  </div>
+                  <AdminKycBadge status={a.userKyc} />
+                </div>
+                <Link href={`/admin/users/${a.userId}`} className="admin-link text-xs">
+                  {a.userName}
+                </Link>
+                <p className="text-[10px] text-[var(--admin-muted)]">{a.userEmail}</p>
+                <div className="flex items-center justify-between mt-3">
+                  <p className="admin-amount">{formatCurrency(a.balance, a.currency)}</p>
+                  <Link href={`/admin/users/${a.userId}`} className="admin-btn-primary text-xs py-1.5 px-3">
+                    Adjust
+                  </Link>
+                </div>
+              </AdminMobileCard>
+            ))}
+          </AdminMobileList>
+
+          <AdminTableScroll className="admin-desktop-table">
             <table className="admin-table w-full">
               <thead>
-                <tr className="border-b border-[var(--admin-border)] bg-white/[0.02]">
-                  <th className="text-left py-3 px-5">Account</th>
-                  <th className="text-left py-3 px-5">Owner</th>
-                  <th className="text-left py-3 px-5">Type</th>
-                  <th className="text-left py-3 px-5">KYC</th>
-                  <th className="text-right py-3 px-5">Balance</th>
-                  <th className="text-right py-3 px-5">Opened</th>
-                  <th className="text-right py-3 px-5">Actions</th>
+                <tr>
+                  <th className="text-left">Account</th>
+                  <th className="text-left">Owner</th>
+                  <th className="text-left">Type</th>
+                  <th className="text-left">KYC</th>
+                  <th className="text-right">Balance</th>
+                  <th className="text-right">Opened</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {accounts.map((a) => (
-                  <tr key={a.id} className="border-b border-[var(--admin-border)]/50 hover:bg-white/[0.02]">
-                    <td className="py-3 px-5 text-sm text-white">{a.name}</td>
-                    <td className="py-3 px-5">
+                  <tr key={a.id}>
+                    <td className="text-sm">{a.name}</td>
+                    <td>
                       <Link href={`/admin/users/${a.userId}`} className="admin-link">{a.userName}</Link>
                       <p className="text-[10px] text-[var(--admin-muted)]">{a.userEmail}</p>
                     </td>
-                    <td className="py-3 px-5 text-xs text-[var(--admin-muted)]">{a.type}</td>
-                    <td className="py-3 px-5"><AdminKycBadge status={a.userKyc} /></td>
-                    <td className="py-3 px-5 text-right admin-amount text-sm">
+                    <td className="text-xs text-[var(--admin-muted)]">{a.type}</td>
+                    <td><AdminKycBadge status={a.userKyc} /></td>
+                    <td className="text-right admin-amount text-sm">
                       {formatCurrency(a.balance, a.currency)}
                     </td>
-                    <td className="py-3 px-5 text-right text-xs text-[var(--admin-muted)]">
+                    <td className="text-right text-xs text-[var(--admin-muted)]">
                       {new Date(a.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-5 text-right">
+                    <td className="text-right">
                       <Link href={`/admin/users/${a.userId}`} className="admin-btn-primary text-xs py-1.5 px-3 inline-block">
                         Adjust Balance
                       </Link>
@@ -83,9 +123,9 @@ export default function AdminAccountsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableScroll>
         </AdminFetchState>
-      </div>
-    </div>
+      </AdminDataCard>
+    </AdminPage>
   );
 }
