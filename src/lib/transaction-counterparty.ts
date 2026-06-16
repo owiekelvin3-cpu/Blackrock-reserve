@@ -207,3 +207,11 @@ export function parseMemberTransferSenderName(message: string): string | null {
   const match = message.match(/^(.+?)\s+sent you\s+/i);
   return match?.[1]?.trim() ?? null;
 }
+
+/** Returns the portion after the sender name, e.g. "sent you $50.00." */
+export function parseMemberTransferNotificationTail(message: string, senderName: string | null): string {
+  if (!senderName) return message;
+  const prefix = `${senderName} `;
+  if (message.startsWith(prefix)) return message.slice(prefix.length);
+  return message;
+}

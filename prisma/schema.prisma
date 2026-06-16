@@ -295,6 +295,7 @@ model UserNotification {
   title          String
   message        String   @db.Text
   read           Boolean  @default(false)
+  actorUserId    String?
   depositId      String?
   invitationId   String?
   jointAccountId String?

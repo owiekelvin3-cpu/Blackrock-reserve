@@ -25,12 +25,19 @@ export default function Providers({
         <ServiceWorkerRegister />
         {children}
         <Toaster
-          position="top-right"
+          position="top-center"
+          richColors
+          closeButton
+          expand
+          visibleToasts={4}
+          duration={9000}
           toastOptions={{
+            unstyled: false,
             style: {
-              background: "var(--bg-elevated)",
-              border: "1px solid var(--border)",
+              background: "#161618",
+              border: "1px solid rgba(255, 255, 255, 0.16)",
               color: "var(--text-primary)",
+              backdropFilter: "none",
             },
           }}
         />

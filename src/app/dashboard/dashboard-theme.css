@@ -2983,3 +2983,58 @@ html.tx-member-transfer-scroll-lock {
   background: rgba(255, 95, 5, 0.12);
   border: 1px solid rgba(255, 95, 5, 0.25);
 }
+
+/* Notification bell panel — solid, readable */
+.dash-notif-panel {
+  background: #161618;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 95, 5, 0.1);
+}
+
+[data-theme="light"] .dash-notif-panel {
+  background: #ffffff;
+  border-color: rgba(15, 20, 25, 0.12);
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.14);
+}
+
+.dash-notif-panel-head {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #121214;
+}
+
+[data-theme="light"] .dash-notif-panel-head {
+  border-bottom-color: rgba(15, 20, 25, 0.08);
+  background: #f8f9fc;
+}
+
+[data-theme="light"] .dash-notif-panel-head p {
+  color: #0f1419;
+}
+
+.dash-notif-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .dash-notif-item:hover {
+  background: rgba(15, 20, 25, 0.04);
+}
+
+.dash-notif-item-unread {
+  background: rgba(255, 95, 5, 0.1);
+  border-left: 3px solid var(--accent-brand);
+  padding-left: calc(0.875rem - 3px);
+}
+
+[data-theme="light"] .dash-notif-item-unread {
+  background: rgba(255, 95, 5, 0.08);
+}
+
+[data-theme="light"] .dash-notif-item-unread .text-white {
+  color: #0f1419;
+}
+
+.dash-notif-backdrop {
+  backdrop-filter: none;
+}

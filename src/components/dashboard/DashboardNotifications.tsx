@@ -4,9 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
+import UserDisplayName from "@/components/ui/UserDisplayName";
 import { fetchDashboardJson } from "@/lib/fetch-json";
 import { cn } from "@/lib/utils";
 import { getNotificationSoundVariant, isIncomingPaymentNotification } from "@/lib/notification-helpers";
+import { parseMemberTransferNotificationTail } from "@/lib/transaction-counterparty";
+import type { VerificationBadgeType } from "@/lib/verification-badge";
 import {
   playNotificationSound,
   showBrowserNotification,
@@ -23,7 +26,55 @@ type Notification = {
   read: boolean;
   depositId?: string | null;
   createdAt: string;
+  actorName?: string | null;
+  actorVerificationBadge?: VerificationBadgeType | string | null;
 };
+
+function MemberTransferNotificationMessage({
+  message,
+  actorName,
+  actorVerificationBadge,
+}: {
+  message: string;
+  actorName: string;
+  actorVerificationBadge?: VerificationBadgeType | string | null;
+}) {
+  const tail = parseMemberTransferNotificationTail(message, actorName);
+  return (
+    <p className="text-xs text-text-secondary mt-1.5 leading-relaxed">
+      <UserDisplayName
+        name={actorName}
+        verificationBadge={actorVerificationBadge}
+        badgeSize="xs"
+        nameClassName="font-semibold text-white"
+        className="inline-flex max-w-[85%] align-middle"
+      />
+      <span className="text-text-secondary"> {tail}</span>
+    </p>
+  );
+}
+
+function showMemberTransferToast(n: Notification) {
+  if (!n.actorName) {
+    toast.info(n.title, { description: n.message, duration: 10_000, important: true });
+    return;
+  }
+  toast.info(n.title, {
+    description: (
+      <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-1">
+        <UserDisplayName
+          name={n.actorName}
+          verificationBadge={n.actorVerificationBadge}
+          badgeSize="xs"
+          nameClassName="font-semibold"
+        />
+        <span>{parseMemberTransferNotificationTail(n.message, n.actorName)}</span>
+      </span>
+    ),
+    duration: 10_000,
+    important: true,
+  });
+}
 
 function notificationTypeLabel(type: string, t: (key: string) => string) {
   if (isIncomingPaymentNotification(type)) return t("notifications.creditPosted");
@@ -34,17 +85,25 @@ function notificationTypeLabel(type: string, t: (key: string) => string) {
 }
 
 function showNotificationToast(n: Notification) {
-  const opts = { description: n.message, duration: 8000 as const };
+  const opts = {
+    description: n.message,
+    duration: 10_000,
+    important: true,
+  } as const;
 
   if (n.type.includes("REJECTED")) {
     toast.error(n.title, opts);
     return;
   }
   if (isIncomingPaymentNotification(n.type)) {
-    toast.success(n.title, { ...opts, description: n.message });
+    toast.success(n.title, opts);
     return;
   }
-  toast(n.title, opts);
+  if (n.type === "MEMBER_TRANSFER" && n.actorName) {
+    showMemberTransferToast(n);
+    return;
+  }
+  toast.info(n.title, opts);
 }
 
 export default function DashboardNotifications() {
@@ -154,19 +213,26 @@ export default function DashboardNotifications() {
       </button>
 
       {open && (
-        <div className="fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+3.5rem)] sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 w-auto sm:w-80 max-h-[min(70vh,24rem)] overflow-y-auto rounded-xl border border-white/10 bg-bg-secondary shadow-2xl z-50">
-          <div className="p-3 border-b border-white/10 flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-white">{t("notifications.title")}</p>
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                onClick={() => markRead()}
-                className="text-[10px] text-accent-brand hover:text-white transition-colors"
-              >
-                {t("notifications.markAllRead")}
-              </button>
-            )}
-          </div>
+        <>
+          <div
+            className="dash-notif-backdrop fixed inset-0 z-40 bg-black/50 sm:hidden"
+            aria-hidden
+            onClick={() => setOpen(false)}
+          />
+          <div className="dash-notif-panel fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+3.5rem)] sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 w-auto sm:w-[22rem] max-h-[min(75vh,28rem)] overflow-hidden rounded-2xl z-50 flex flex-col shadow-2xl">
+            <div className="dash-notif-panel-head p-3.5 flex items-center justify-between gap-2 shrink-0">
+              <p className="text-sm font-bold text-white">{t("notifications.title")}</p>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => markRead()}
+                  className="text-[11px] font-semibold text-accent-brand hover:text-white transition-colors"
+                >
+                  {t("notifications.markAllRead")}
+                </button>
+              )}
+            </div>
+            <div className="overflow-y-auto flex-1 min-h-0">
           {loading ? (
             <p className="p-4 text-sm text-text-muted">{t("common.loading")}</p>
           ) : error ? (
@@ -179,37 +245,48 @@ export default function DashboardNotifications() {
           ) : notifications.length === 0 ? (
             <p className="p-4 text-sm text-text-muted">{t("notifications.empty")}</p>
           ) : (
-            <ul className="divide-y divide-white/5">
+            <ul className="divide-y divide-white/8">
               {notifications.map((n) => (
                 <li
                   key={n.id}
-                  className={cn("p-3 cursor-pointer hover:bg-white/[0.03]", !n.read && "bg-accent-brand/5")}
+                  className={cn(
+                    "dash-notif-item p-3.5 cursor-pointer transition-colors",
+                    !n.read && "dash-notif-item-unread"
+                  )}
                   onClick={() => {
                     if (!n.read) markRead([n.id]);
                   }}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-white">{n.title}</p>
+                    <p className="text-sm font-semibold text-white leading-snug">{n.title}</p>
                     {notificationTypeLabel(n.type, t) && (
                       <span
                         className={cn(
-                          "shrink-0 text-[9px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full",
+                          "shrink-0 text-[9px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full",
                           isIncomingPaymentNotification(n.type)
-                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
-                            : "bg-white/5 text-text-muted border border-white/10"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/35"
+                            : "bg-accent-brand/15 text-accent-brand border border-accent-brand/30"
                         )}
                       >
                         {notificationTypeLabel(n.type, t)}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-text-secondary mt-1 leading-relaxed">{n.message}</p>
-                  <div className="flex items-center justify-between mt-2 gap-2">
+                  {n.type === "MEMBER_TRANSFER" && n.actorName ? (
+                    <MemberTransferNotificationMessage
+                      message={n.message}
+                      actorName={n.actorName}
+                      actorVerificationBadge={n.actorVerificationBadge}
+                    />
+                  ) : (
+                    <p className="text-xs text-text-secondary mt-1.5 leading-relaxed">{n.message}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-2.5 gap-2">
                     <p className="text-[10px] text-text-muted">{new Date(n.createdAt).toLocaleString()}</p>
                     {n.depositId && (
                       <Link
                         href="/dashboard/deposit"
-                        className="text-[10px] text-accent-brand hover:text-white"
+                        className="text-[10px] font-semibold text-accent-brand hover:text-white"
                         onClick={(e) => e.stopPropagation()}
                       >
                         View deposit →
@@ -220,7 +297,9 @@ export default function DashboardNotifications() {
               ))}
             </ul>
           )}
-        </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

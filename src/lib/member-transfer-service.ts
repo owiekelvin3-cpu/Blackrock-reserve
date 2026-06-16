@@ -9,6 +9,7 @@ import {
   getUserAccountNumber,
   resolveActiveMemberByAccountNumber,
 } from "@/lib/bank-account-number";
+import { serializeVerificationBadge } from "@/lib/verification-badge";
 
 function roundMoney(n: number) {
   return Math.round(n * 100) / 100;
@@ -36,6 +37,7 @@ export async function lookupMemberTransferRecipient(
   return {
     found: true as const,
     name: recipient.name,
+    verificationBadge: serializeVerificationBadge(recipient.verificationBadge),
     accountNumber,
     accountName: resolved.primaryChecking.name ?? "Primary Checking",
   };
@@ -149,6 +151,7 @@ export async function transferToMember(
         type: "MEMBER_TRANSFER",
         title: "Funds received",
         message: `${sender.name} sent you $${amount.toFixed(2)}.${memo ? ` Note: ${memo}` : ""}`,
+        actorUserId: senderId,
       },
       tx
     );

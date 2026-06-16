@@ -10,7 +10,9 @@ import {
 } from "lucide-react";
 import { useI18n } from "@/components/providers/I18nProvider";
 import TransactionDetailModal from "@/components/dashboard/TransactionDetailModal";
+import UserDisplayName from "@/components/ui/UserDisplayName";
 import { cn } from "@/lib/utils";
+import type { VerificationBadgeType } from "@/lib/verification-badge";
 import type { ActivityCategory } from "@/lib/activity-service";
 
 type ActivityItem = {
@@ -22,6 +24,9 @@ type ActivityItem = {
   status: string;
   type: string;
   category: ActivityCategory;
+  counterpartyName?: string | null;
+  counterpartyVerificationBadge?: VerificationBadgeType | string | null;
+  counterpartyRelation?: "sender" | "recipient" | null;
 };
 
 const DEFAULT_PAGE_SIZE = 2;
@@ -279,9 +284,22 @@ export default function RecentActivityPanel({
                           <Icon size={isMobile ? 16 : 14} className="text-accent-brand" />
                         </div>
                         <div className="min-w-0">
-                          <p className={cn("text-text-primary font-medium truncate", isMobile ? "text-[0.875rem]" : "text-sm")}>
-                            {a.name}
-                          </p>
+                          {a.type === "TRANSFER" && a.counterpartyName && a.counterpartyRelation === "sender" ? (
+                            <div className={cn("text-text-primary font-medium min-w-0", isMobile ? "text-[0.875rem]" : "text-sm")}>
+                              <span className="text-text-muted font-normal">{t("dashboard.transactionDetail.from")} </span>
+                              <UserDisplayName
+                                name={a.counterpartyName}
+                                verificationBadge={a.counterpartyVerificationBadge}
+                                badgeSize="xs"
+                                nameClassName="font-semibold"
+                                className="inline-flex max-w-full align-middle"
+                              />
+                            </div>
+                          ) : (
+                            <p className={cn("text-text-primary font-medium truncate", isMobile ? "text-[0.875rem]" : "text-sm")}>
+                              {a.name}
+                            </p>
+                          )}
                           <p className="text-xs text-text-muted mt-0.5 truncate">
                             {isMobile ? `${formatDate(a.date)} · ${formatTime(a.date)}` : a.orderId}
                           </p>

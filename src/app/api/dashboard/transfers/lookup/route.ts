@@ -26,6 +26,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     found: true,
     name: result.name,
+    verificationBadge: result.verificationBadge,
     accountNumber: result.accountNumber,
     accountName: result.accountName,
   });

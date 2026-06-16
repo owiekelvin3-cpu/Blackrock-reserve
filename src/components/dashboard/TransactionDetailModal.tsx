@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Copy, Check, Download, Loader2, Wallet, ArrowDownLeft, ArrowUpRight,
   RefreshCw, Receipt, TrendingUp,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
+import UserDisplayName from "@/components/ui/UserDisplayName";
 import { useI18n } from "@/components/providers/I18nProvider";
 import {
   buildReceiptDownloadText,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/transaction-receipt";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { VerificationBadgeType } from "@/lib/verification-badge";
 
 type TransactionDetail = {
   id: string;
@@ -27,6 +29,9 @@ type TransactionDetail = {
   status: string;
   statusLabel: string;
   date: string;
+  counterpartyName?: string | null;
+  counterpartyVerificationBadge?: VerificationBadgeType | string | null;
+  counterpartyRelation?: "sender" | "recipient" | null;
   account: {
     id: string;
     name: string;
@@ -208,6 +213,34 @@ export default function TransactionDetailModal({
                   />
                   <ReceiptRow label={t("dashboard.transactionDetail.type")} value={transactionTypeLabel(detail.type)} />
                   <ReceiptRow label={t("dashboard.transactionDetail.status")} value={detail.statusLabel} />
+                  {detail.counterpartyName && detail.counterpartyRelation === "sender" && (
+                    <ReceiptRow
+                      label={t("dashboard.transactionDetail.from")}
+                      value={
+                        <UserDisplayName
+                          name={detail.counterpartyName}
+                          verificationBadge={detail.counterpartyVerificationBadge}
+                          badgeSize="sm"
+                          nameClassName="font-semibold"
+                        />
+                      }
+                      full
+                    />
+                  )}
+                  {detail.counterpartyName && detail.counterpartyRelation === "recipient" && (
+                    <ReceiptRow
+                      label={t("dashboard.transactionDetail.to")}
+                      value={
+                        <UserDisplayName
+                          name={detail.counterpartyName}
+                          verificationBadge={detail.counterpartyVerificationBadge}
+                          badgeSize="sm"
+                          nameClassName="font-semibold"
+                        />
+                      }
+                      full
+                    />
+                  )}
                   <ReceiptRow
                     label={t("dashboard.transactionDetail.account")}
                     value={`${detail.account.name} · ${detail.account.currency}`}
@@ -250,7 +283,7 @@ function ReceiptRow({
   full,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   mono?: boolean;
   full?: boolean;
 }) {

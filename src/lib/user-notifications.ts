@@ -14,6 +14,7 @@ export async function createUserNotification(
     type: string;
     title: string;
     message: string;
+    actorUserId?: string;
     depositId?: string;
     invitationId?: string;
     jointAccountId?: string;
@@ -30,6 +31,7 @@ export async function createUserNotification(
       type: params.type,
       title: params.title,
       message: params.message,
+      actorUserId: params.actorUserId ?? null,
       depositId: params.depositId,
       invitationId: params.invitationId,
       jointAccountId: params.jointAccountId,
@@ -78,9 +80,31 @@ export async function getUserNotifications(userId: string, limit = 20, since?: D
   });
 
   const senderNames = rows
-    .filter((n) => n.type === "MEMBER_TRANSFER")
+    .filter((n) => n.type === "MEMBER_TRANSFER" && !n.actorUserId)
     .map((n) => parseMemberTransferSenderName(n.message))
     .filter((name): name is string => !!name);
+
+  const actorIds = Array.from(
+    new Set(rows.map((n) => n.actorUserId).filter((id): id is string => !!id))
+  );
+
+  const actorsById =
+    actorIds.length > 0
+      ? new Map(
+          (
+            await prisma.user.findMany({
+              where: { id: { in: actorIds } },
+              select: { id: true, name: true, verificationBadge: true },
+            })
+          ).map((u) => [
+            u.id,
+            {
+              name: u.name,
+              verificationBadge: serializeVerificationBadge(u.verificationBadge),
+            },
+          ])
+        )
+      : new Map<string, { name: string; verificationBadge: ReturnType<typeof serializeVerificationBadge> }>();
 
   const sendersByName =
     senderNames.length > 0
@@ -95,7 +119,11 @@ export async function getUserNotifications(userId: string, limit = 20, since?: D
       : new Map<string, ReturnType<typeof serializeVerificationBadge>>();
 
   return rows.map((n) => {
-    const senderName = n.type === "MEMBER_TRANSFER" ? parseMemberTransferSenderName(n.message) : null;
+    const actorFromId = n.actorUserId ? actorsById.get(n.actorUserId) : undefined;
+    const senderName =
+      n.type === "MEMBER_TRANSFER"
+        ? actorFromId?.name ?? parseMemberTransferSenderName(n.message)
+        : null;
     return {
       id: n.id,
       type: n.type,
@@ -107,8 +135,11 @@ export async function getUserNotifications(userId: string, limit = 20, since?: D
       jointAccountId: n.jointAccountId,
       approvalId: n.approvalId,
       createdAt: n.createdAt.toISOString(),
+      actorUserId: n.actorUserId,
       actorName: senderName,
-      actorVerificationBadge: senderName ? sendersByName.get(senderName) ?? "NONE" : null,
+      actorVerificationBadge: senderName
+        ? actorFromId?.verificationBadge ?? sendersByName.get(senderName) ?? "NONE"
+        : null,
     };
   });
 }

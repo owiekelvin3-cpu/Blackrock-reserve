@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Send, Users } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import UserDisplayName from "@/components/ui/UserDisplayName";
 import TransactionPinModal from "@/components/dashboard/TransactionPinModal";
 import MemberTransferReceiptModal, {
   type MemberTransferReceiptData,
@@ -12,6 +13,7 @@ import { useTransactionPin } from "@/hooks/use-transaction-pin";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { VerificationBadgeType } from "@/lib/verification-badge";
 
 type AccountOption = {
   id: string;
@@ -31,6 +33,8 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [recipientAccountNumber, setRecipientAccountNumber] = useState("");
   const [beneficiaryName, setBeneficiaryName] = useState<string | null>(null);
+  const [beneficiaryVerificationBadge, setBeneficiaryVerificationBadge] =
+    useState<VerificationBadgeType | string | null>(null);
   const [lookupState, setLookupState] = useState<"idle" | "loading" | "found" | "not_found" | "error">("idle");
   const [amountUsd, setAmountUsd] = useState("");
   const [note, setNote] = useState("");
@@ -45,6 +49,7 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
     const trimmed = recipientAccountNumber.trim();
     if (trimmed.length < 8) {
       setBeneficiaryName(null);
+      setBeneficiaryVerificationBadge(null);
       setLookupState("idle");
       return;
     }
@@ -59,13 +64,16 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
         const json = await res.json();
         if (!res.ok || !json.found) {
           setBeneficiaryName(null);
+          setBeneficiaryVerificationBadge(null);
           setLookupState("not_found");
           return;
         }
         setBeneficiaryName(json.name as string);
+        setBeneficiaryVerificationBadge((json.verificationBadge as string) ?? "NONE");
         setLookupState("found");
       } catch {
         setBeneficiaryName(null);
+        setBeneficiaryVerificationBadge(null);
         setLookupState("error");
       }
     }, 400);
@@ -99,6 +107,7 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
       }
       setRecipientAccountNumber("");
       setBeneficiaryName(null);
+      setBeneficiaryVerificationBadge(null);
       setLookupState("idle");
       setAmountUsd("");
       setNote("");
@@ -145,13 +154,11 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
   const beneficiaryHint =
     lookupState === "loading"
       ? t("withdrawals.memberTransfer.verifyingBeneficiary")
-      : lookupState === "found" && beneficiaryName
-        ? `${t("withdrawals.memberTransfer.beneficiaryName")}: ${beneficiaryName}`
-        : lookupState === "not_found"
-          ? t("withdrawals.memberTransfer.beneficiaryNotFound")
-          : lookupState === "error"
-            ? t("withdrawals.memberTransfer.beneficiaryLookupFailed")
-            : null;
+      : lookupState === "not_found"
+        ? t("withdrawals.memberTransfer.beneficiaryNotFound")
+        : lookupState === "error"
+          ? t("withdrawals.memberTransfer.beneficiaryLookupFailed")
+          : null;
 
   return (
     <>
@@ -195,11 +202,25 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
               placeholder="BR-1234567890"
               required
             />
+            {lookupState === "found" && beneficiaryName && (
+              <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-accent-green/30 bg-accent-green/10 px-3 py-2.5">
+                <span className="text-xs text-text-muted shrink-0">
+                  {t("withdrawals.memberTransfer.beneficiaryName")}:
+                </span>
+                <UserDisplayName
+                  name={beneficiaryName}
+                  verificationBadge={beneficiaryVerificationBadge}
+                  badgeSize="sm"
+                  nameClassName="text-sm font-semibold text-white"
+                  className="min-w-0"
+                />
+              </div>
+            )}
             {beneficiaryHint && (
               <p
                 className={cn(
                   "text-xs mt-1.5",
-                  lookupState === "found" ? "text-accent-green" : "text-accent-red"
+                  lookupState === "loading" ? "text-text-muted" : "text-accent-red"
                 )}
               >
                 {beneficiaryHint}
