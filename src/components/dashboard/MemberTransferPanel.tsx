@@ -99,12 +99,24 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || t("withdrawals.memberTransfer.failed"));
 
+      closePin();
       if (json.receipt) {
         setReceiptData(json.receipt as MemberTransferReceiptData);
-        setReceiptOpen(true);
       } else {
-        toast.success(json.message || t("withdrawals.memberTransfer.success"));
+        setReceiptData({
+          id: json.referenceId ?? `transfer-${Date.now()}`,
+          amount: Number(json.amount ?? amountUsd),
+          recipientAccountNumber: recipientAccountNumber.trim(),
+          recipientName: beneficiaryName ?? json.recipientName ?? "",
+          recipientVerificationBadge: beneficiaryVerificationBadge,
+          senderName: "",
+          accountName: selectedAccount?.name ?? "",
+          note: note.trim() || null,
+          createdAt: new Date().toISOString(),
+          status: "COMPLETED",
+        });
       }
+      window.setTimeout(() => setReceiptOpen(true), 120);
       setRecipientAccountNumber("");
       setBeneficiaryName(null);
       setBeneficiaryVerificationBadge(null);

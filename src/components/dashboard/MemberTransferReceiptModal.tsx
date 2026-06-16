@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Copy, Check, Download, X } from "lucide-react";
+import { Check, Copy, CheckCircle2, Download, X, ArrowDown } from "lucide-react";
 import Button from "@/components/ui/Button";
 import AppIconMark from "@/components/ui/AppIconMark";
 import UserDisplayName from "@/components/ui/UserDisplayName";
@@ -37,6 +37,8 @@ type Props = {
   receipt: MemberTransferReceiptData | null;
   onClose: () => void;
 };
+
+const spring = { type: "spring" as const, stiffness: 380, damping: 28 };
 
 function lockPageScroll() {
   const scrollY = window.scrollY;
@@ -153,130 +155,212 @@ function MemberTransferReceiptView({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.22 }}
+      transition={{ duration: 0.25 }}
     >
-      <motion.div
-        aria-hidden
-        className="tx-member-transfer-page-blur"
+      <motion.button
+        type="button"
+        aria-label={t("common.close")}
+        className="tx-member-transfer-page-dismiss"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        onClick={onClose}
       />
+      <motion.div aria-hidden className="tx-member-transfer-page-blur" />
+
       <motion.div
         role="dialog"
         aria-modal="true"
         aria-labelledby="member-transfer-receipt-title"
-        className="tx-receipt-modal tx-member-transfer-receipt"
-        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+        className="tx-mt-receipt-card"
+        initial={{ opacity: 0, y: 48, scale: 0.94 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 12, scale: 0.98 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        exit={{ opacity: 0, y: 24, scale: 0.97 }}
+        transition={{ ...spring, delay: 0.04 }}
       >
-        <div className="tx-mt-top">
-          <div className="tx-mt-brand">
-            <span className="tx-mt-brand-icon" aria-hidden>
-              <AppIconMark size={32} className="rounded-lg" />
-            </span>
-            <div className="min-w-0">
-              <p className="tx-mt-brand-name">{t("brand.name")}</p>
-              <p className="tx-mt-brand-tag">{t("withdrawals.memberTransfer.receipt.subtitle")}</p>
-            </div>
+        <div className="tx-mt-receipt-glow" aria-hidden />
+
+        <div className="tx-mt-receipt-header">
+          <div className="tx-mt-receipt-brand">
+            <AppIconMark size={28} className="rounded-lg" />
+            <span className="tx-mt-receipt-brand-name">{t("brand.name")}</span>
           </div>
-          <button type="button" onClick={onClose} className="tx-receipt-close tx-mt-close" aria-label={t("common.close")}>
-            <X size={16} />
+          <button type="button" onClick={onClose} className="tx-mt-receipt-close" aria-label={t("common.close")}>
+            <X size={18} />
           </button>
         </div>
 
-        <div className="tx-mt-hero">
-          <div className="tx-mt-hero-icon" aria-hidden>
-            <CheckCircle2 size={22} className="text-accent-green" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 id="member-transfer-receipt-title" className="tx-mt-title">
-              {t("withdrawals.memberTransfer.receipt.successTitle")}
-            </h2>
-            <p className="tx-mt-meta">
-              {t("withdrawals.memberTransfer.receipt.completed")} · {referenceId}
-            </p>
-          </div>
-          <p className="tx-mt-amount">{formatCurrency(receipt.amount)}</p>
-        </div>
+        <motion.div
+          className="tx-mt-success-hero"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...spring, delay: 0.1 }}
+        >
+          <motion.div
+            className="tx-mt-success-ring"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ ...spring, delay: 0.14 }}
+          >
+            <motion.div
+              className="tx-mt-success-check"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ ...spring, delay: 0.28 }}
+            >
+              <Check size={28} strokeWidth={3} />
+            </motion.div>
+          </motion.div>
 
-        <dl className="tx-mt-details">
-          <DetailItem label={t("withdrawals.receipt.dateTime")} value={dateTime} />
-          <DetailItem label={t("withdrawals.memberTransfer.receipt.transferType")} value={t("withdrawals.memberTransfer.title")} />
-          <DetailItem label={t("withdrawals.receipt.sourceAccount")} value={receipt.accountName} />
-          <DetailItem
-            label={t("withdrawals.memberTransfer.receipt.sender")}
-            valueNode={
-              <UserDisplayName
-                name={receipt.senderName}
-                verificationBadge={receipt.senderVerificationBadge}
-                badgeSize="xs"
-                nameClassName="text-sm font-medium text-text-primary"
-              />
-            }
-            sub={
+          <motion.p
+            className="tx-mt-success-eyebrow"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+          >
+            {t("withdrawals.memberTransfer.receipt.instant")}
+          </motion.p>
+
+          <motion.h2
+            id="member-transfer-receipt-title"
+            className="tx-mt-success-title"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.26 }}
+          >
+            {t("withdrawals.memberTransfer.receipt.successTitle")}
+          </motion.h2>
+
+          <motion.p
+            className="tx-mt-success-amount"
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ ...spring, delay: 0.32 }}
+          >
+            {formatCurrency(receipt.amount)}
+          </motion.p>
+
+          <motion.div
+            className="tx-mt-success-status"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.38 }}
+          >
+            <CheckCircle2 size={14} className="text-accent-green shrink-0" />
+            <span>{t("withdrawals.memberTransfer.receipt.completed")}</span>
+            <span className="tx-mt-success-status-dot" aria-hidden />
+            <span className="tx-mt-success-ref">{referenceId}</span>
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          className="tx-mt-parties"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...spring, delay: 0.42 }}
+        >
+          <PartyCard
+            roleLabel={t("withdrawals.memberTransfer.receipt.sender")}
+            name={receipt.senderName}
+            badge={receipt.senderVerificationBadge}
+            meta={
               receipt.senderAccountNumber
                 ? formatBankAccountNumberDisplay(receipt.senderAccountNumber)
-                : undefined
+                : receipt.accountName
             }
           />
-          <DetailItem
-            label={t("withdrawals.memberTransfer.receipt.beneficiary")}
-            valueNode={
-              <UserDisplayName
-                name={receipt.recipientName}
-                verificationBadge={receipt.recipientVerificationBadge}
-                badgeSize="xs"
-                nameClassName="text-sm font-medium text-text-primary"
-              />
-            }
-            sub={formatBankAccountNumberDisplay(receipt.recipientAccountNumber)}
+          <div className="tx-mt-parties-arrow" aria-hidden>
+            <ArrowDown size={18} />
+          </div>
+          <PartyCard
+            roleLabel={t("withdrawals.memberTransfer.receipt.beneficiary")}
+            name={receipt.recipientName}
+            badge={receipt.recipientVerificationBadge}
+            meta={formatBankAccountNumberDisplay(receipt.recipientAccountNumber)}
+            highlight
           />
+        </motion.div>
+
+        <motion.dl
+          className="tx-mt-details-panel"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.48 }}
+        >
+          <DetailRow label={t("withdrawals.receipt.dateTime")} value={dateTime} />
+          <DetailRow label={t("withdrawals.memberTransfer.receipt.transferType")} value={t("withdrawals.memberTransfer.title")} />
+          <DetailRow label={t("withdrawals.receipt.sourceAccount")} value={receipt.accountName} />
           {receipt.note && (
-            <DetailItem label={t("withdrawals.memberTransfer.memoOptional")} value={receipt.note} />
+            <DetailRow label={t("withdrawals.memberTransfer.memoOptional")} value={receipt.note} />
           )}
-        </dl>
+        </motion.dl>
 
-        <p className="tx-mt-footnote">{t("withdrawals.memberTransfer.receipt.confirmationShort")}</p>
+        <motion.p
+          className="tx-mt-secure-note"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.52 }}
+        >
+          {t("withdrawals.memberTransfer.receipt.confirmationShort")}
+        </motion.p>
 
-        <div className="tx-mt-actions">
-          <button type="button" className="tx-mt-action-btn" onClick={handleDownload}>
-            <Download size={15} />
-            <span>{t("withdrawals.receipt.download")}</span>
-          </button>
-          <button type="button" className="tx-mt-action-btn" onClick={handleCopy}>
-            {copied ? <Check size={15} className="text-accent-green" /> : <Copy size={15} />}
-            <span>{t("withdrawals.receipt.copyId")}</span>
-          </button>
-          <Button type="button" size="sm" className="tx-mt-close-btn" onClick={onClose}>
+        <motion.div
+          className="tx-mt-receipt-actions"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.56 }}
+        >
+          <Button type="button" className="tx-mt-done-btn w-full" onClick={onClose}>
             {t("withdrawals.receipt.close")}
           </Button>
-        </div>
+          <div className="tx-mt-secondary-actions">
+            <button type="button" className="tx-mt-secondary-btn" onClick={handleDownload}>
+              <Download size={16} />
+              <span>{t("withdrawals.receipt.download")}</span>
+            </button>
+            <button type="button" className="tx-mt-secondary-btn" onClick={handleCopy}>
+              {copied ? <Check size={16} className="text-accent-green" /> : <Copy size={16} />}
+              <span>{t("withdrawals.receipt.copyId")}</span>
+            </button>
+          </div>
+        </motion.div>
       </motion.div>
     </motion.div>
   );
 }
 
-function DetailItem({
-  label,
-  value,
-  valueNode,
-  sub,
+function PartyCard({
+  roleLabel,
+  name,
+  badge,
+  meta,
+  highlight,
 }: {
-  label: string;
-  value?: string;
-  valueNode?: ReactNode;
-  sub?: string;
+  roleLabel: string;
+  name: string;
+  badge?: VerificationBadgeType | string | null;
+  meta: string;
+  highlight?: boolean;
 }) {
   return (
-    <div className="tx-mt-detail">
-      <dt className="tx-mt-detail-label">{label}</dt>
-      <dd className="tx-mt-detail-value">
-        {valueNode ?? <span>{value}</span>}
-        {sub && <span className="tx-mt-detail-sub">{sub}</span>}
-      </dd>
+    <div className={highlight ? "tx-mt-party tx-mt-party-highlight" : "tx-mt-party"}>
+      <p className="tx-mt-party-role">{roleLabel}</p>
+      <UserDisplayName
+        name={name}
+        verificationBadge={badge}
+        badgeSize="sm"
+        nameClassName="text-sm font-semibold text-text-primary"
+      />
+      <p className="tx-mt-party-meta">{meta}</p>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="tx-mt-detail-row">
+      <dt className="tx-mt-detail-row-label">{label}</dt>
+      <dd className="tx-mt-detail-row-value">{value}</dd>
     </div>
   );
 }

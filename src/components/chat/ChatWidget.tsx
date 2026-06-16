@@ -3,13 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Send, Bot, User, Minimize2, Headphones, Info } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Minimize2, Headphones, Info } from "lucide-react";
 import type { ChatSuggestion } from "@/lib/chatbot";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { useChat } from "@/components/providers/ChatProvider";
 import { getLocalizedWelcome } from "@/lib/i18n/chat-i18n";
-import { LogoMark } from "@/components/layout/Logo";
 
 type ChatMessage = {
   id: string;
@@ -636,10 +635,10 @@ export default function ChatWidget() {
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="relative h-14 w-14 rounded-2xl shadow-brand flex items-center justify-center overflow-hidden transition-transform hover:scale-105"
+            className="relative h-14 w-14 rounded-full brand-gradient-bg shadow-brand flex items-center justify-center text-white transition-transform hover:scale-105"
             aria-label={t("chat.ariaLabel")}
           >
-            <LogoMark size="sm" className="rounded-2xl w-full h-full" />
+            <MessageCircle size={22} />
             <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-bg-primary" />
           </button>
         </div>
