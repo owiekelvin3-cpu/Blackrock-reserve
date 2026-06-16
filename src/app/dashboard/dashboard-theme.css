@@ -1509,7 +1509,7 @@ html.tx-member-transfer-scroll-lock {
 .tx-member-transfer-page {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 500;
   display: flex;
   align-items: center;
   justify-content: center;

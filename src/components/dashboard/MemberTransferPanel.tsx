@@ -6,9 +6,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import UserDisplayName from "@/components/ui/UserDisplayName";
 import TransactionPinModal from "@/components/dashboard/TransactionPinModal";
-import MemberTransferReceiptModal, {
-  type MemberTransferReceiptData,
-} from "@/components/dashboard/MemberTransferReceiptModal";
+import type { MemberTransferReceiptData } from "@/components/dashboard/MemberTransferReceiptModal";
 import { useTransactionPin } from "@/hooks/use-transaction-pin";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { toast } from "sonner";
@@ -24,11 +22,11 @@ type AccountOption = {
 
 type Props = {
   accounts: AccountOption[];
-  onSuccess?: () => void;
+  onTransferComplete?: (receipt: MemberTransferReceiptData) => void;
   className?: string;
 };
 
-export default function MemberTransferPanel({ accounts, onSuccess, className }: Props) {
+export default function MemberTransferPanel({ accounts, onTransferComplete, className }: Props) {
   const { t, formatCurrency } = useI18n();
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [recipientAccountNumber, setRecipientAccountNumber] = useState("");
@@ -39,8 +37,6 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
   const [amountUsd, setAmountUsd] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [receiptOpen, setReceiptOpen] = useState(false);
-  const [receiptData, setReceiptData] = useState<MemberTransferReceiptData | null>(null);
 
   const selectedAccount = accounts.find((a) => a.id === accountId);
   const { open: pinOpen, loading: pinLoading, error: pinError, requestPin, closePin, confirmPin } = useTransactionPin();
@@ -82,6 +78,13 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
   }, [recipientAccountNumber]);
 
   const submitTransfer = async (transactionPin: string) => {
+    const transferAmount = Number(amountUsd);
+    const recipientNumber = recipientAccountNumber.trim();
+    const recipientName = beneficiaryName ?? "";
+    const recipientBadge = beneficiaryVerificationBadge;
+    const memo = note.trim() || null;
+    const sourceAccountName = selectedAccount?.name ?? "";
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/dashboard/transfers", {
@@ -90,42 +93,43 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
         credentials: "include",
         body: JSON.stringify({
           accountId,
-          recipientAccountNumber: recipientAccountNumber.trim(),
-          amount: Number(amountUsd),
-          note: note.trim() || undefined,
+          recipientAccountNumber: recipientNumber,
+          amount: transferAmount,
+          note: memo || undefined,
           transactionPin,
         }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || t("withdrawals.memberTransfer.failed"));
 
-      closePin();
-      if (json.receipt) {
-        setReceiptData(json.receipt as MemberTransferReceiptData);
-      } else {
-        setReceiptData({
-          id: json.referenceId ?? `transfer-${Date.now()}`,
-          amount: Number(json.amount ?? amountUsd),
-          recipientAccountNumber: recipientAccountNumber.trim(),
-          recipientName: beneficiaryName ?? json.recipientName ?? "",
-          recipientVerificationBadge: beneficiaryVerificationBadge,
-          senderName: "",
-          accountName: selectedAccount?.name ?? "",
-          note: note.trim() || null,
-          createdAt: new Date().toISOString(),
-          status: "COMPLETED",
-        });
-      }
-      window.setTimeout(() => setReceiptOpen(true), 120);
+      const receipt: MemberTransferReceiptData = json.receipt
+        ? (json.receipt as MemberTransferReceiptData)
+        : {
+            id: json.referenceId ?? `transfer-${Date.now()}`,
+            amount: Number(json.amount ?? transferAmount),
+            recipientAccountNumber: recipientNumber,
+            recipientName: recipientName || (json.recipientName as string) || "",
+            recipientVerificationBadge: recipientBadge,
+            senderName: (json.senderName as string) ?? "",
+            senderVerificationBadge: json.senderVerificationBadge ?? null,
+            senderAccountNumber: json.senderAccountNumber ?? null,
+            accountName: sourceAccountName,
+            note: memo,
+            createdAt: new Date().toISOString(),
+            status: "COMPLETED",
+          };
+
       setRecipientAccountNumber("");
       setBeneficiaryName(null);
       setBeneficiaryVerificationBadge(null);
       setLookupState("idle");
       setAmountUsd("");
       setNote("");
-      onSuccess?.();
+
+      onTransferComplete?.(receipt);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("withdrawals.memberTransfer.failed"));
+      throw err;
     } finally {
       setSubmitting(false);
     }
@@ -283,15 +287,6 @@ export default function MemberTransferPanel({ accounts, onSuccess, className }: 
         onConfirm={confirmPin}
         loading={pinLoading || submitting}
         error={pinError}
-      />
-
-      <MemberTransferReceiptModal
-        open={receiptOpen}
-        receipt={receiptData}
-        onClose={() => {
-          setReceiptOpen(false);
-          setReceiptData(null);
-        }}
       />
     </>
   );

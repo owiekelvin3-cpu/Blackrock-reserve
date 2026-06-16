@@ -14,8 +14,8 @@ export function useTransactionPin() {
     setOpen(true);
   }, []);
 
-  const closePin = useCallback(() => {
-    if (loading) return;
+  const closePin = useCallback((force = false) => {
+    if (!force && loading) return;
     setOpen(false);
     setError("");
     executorRef.current = null;
