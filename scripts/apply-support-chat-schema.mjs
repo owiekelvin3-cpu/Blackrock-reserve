@@ -1,5 +1,11 @@
 import { PrismaClient } from "@prisma/client";
-import { isDatabaseUnavailable, warnAndSkip } from "./schema-migration-utils.mjs";
+import {
+  isDatabaseUnavailable,
+  skipBuildMigrationIfNoDatabase,
+  warnAndSkip,
+} from "./schema-migration-utils.mjs";
+
+skipBuildMigrationIfNoDatabase("Support chat schema apply");
 
 const prisma = new PrismaClient();
 

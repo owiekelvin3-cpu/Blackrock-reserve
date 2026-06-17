@@ -1,12 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-import { isDatabaseUnavailable, warnAndSkip } from "./schema-migration-utils.mjs";
+import { hasDatabaseUrl, isDatabaseUnavailable, warnAndSkip } from "./schema-migration-utils.mjs";
 
 const directUrl = process.env.DIRECT_URL?.trim();
 const databaseUrl = process.env.DATABASE_URL?.trim();
 
-if (!directUrl) {
+if (!hasDatabaseUrl() || !directUrl) {
   console.warn(
-    "Verification badge schema apply skipped: DIRECT_URL is not set. Add your Supabase direct connection (port 5432) to run this migration."
+    "Verification badge schema apply skipped: DATABASE_URL and DIRECT_URL must be set (Supabase direct connection on port 5432)."
   );
   process.exit(0);
 }

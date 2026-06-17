@@ -1,4 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  isDatabaseUnavailable,
+  skipBuildMigrationIfNoDatabase,
+  warnAndSkip,
+} from "./schema-migration-utils.mjs";
+
+skipBuildMigrationIfNoDatabase("Notification actor schema apply");
 
 const directUrl = process.env.DIRECT_URL?.trim();
 const prisma = new PrismaClient(
@@ -26,6 +33,10 @@ async function main() {
 
 main()
   .catch((e) => {
+    if (isDatabaseUnavailable(e)) {
+      warnAndSkip("Notification actor schema apply (database unavailable)", e);
+      return;
+    }
     console.error("Notification actor schema apply failed:", e.message ?? e);
     process.exit(1);
   })

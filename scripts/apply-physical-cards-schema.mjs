@@ -1,19 +1,19 @@
 import { PrismaClient } from "@prisma/client";
-import { isDatabaseUnavailable, warnAndSkip } from "./schema-migration-utils.mjs";
+import {
+  isDatabaseUnavailable,
+  skipBuildMigrationIfNoDatabase,
+  warnAndSkip,
+} from "./schema-migration-utils.mjs";
 
-const prisma = new PrismaClient();
+skipBuildMigrationIfNoDatabase("Physical cards schema apply");
+
+const directUrl = process.env.DIRECT_URL?.trim();
+const prisma = new PrismaClient(
+  directUrl ? { datasources: { db: { url: directUrl } } } : undefined
+);
 
 const statements = [
-  `DROP TABLE IF EXISTS "CardTransaction" CASCADE`,
-  `DROP TABLE IF EXISTS "CardRequestEvent" CASCADE`,
-  `DROP TABLE IF EXISTS "BankCard" CASCADE`,
-  `DROP TABLE IF EXISTS "CardRequest" CASCADE`,
-  `DROP TYPE IF EXISTS "CardTransactionStatus"`,
-  `DROP TYPE IF EXISTS "CardRequestType"`,
-  `DROP TYPE IF EXISTS "BankCardTheme"`,
-  `DROP TYPE IF EXISTS "PhysicalCardTier"`,
-  `DROP TYPE IF EXISTS "CardRequestStatus"`,
-  `DROP TYPE IF EXISTS "BankCardStatus" CASCADE`,
+  `SET statement_timeout = 0`,
   `DO $$ BEGIN
     CREATE TYPE "PhysicalCardTier" AS ENUM ('STANDARD', 'PREMIUM', 'BLACK_ELITE');
   EXCEPTION WHEN duplicate_object THEN NULL;
