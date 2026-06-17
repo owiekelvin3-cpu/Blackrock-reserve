@@ -6,7 +6,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import DashboardGate from "@/components/dashboard/DashboardGate";
-import ProfitWithdrawPanel from "@/components/dashboard/ProfitWithdrawPanel";
+import ProfitWithdrawButton from "@/components/dashboard/ProfitWithdrawButton";
 import { formatCurrency, cn } from "@/lib/utils";
 import { fetchJson } from "@/lib/fetch-json";
 import { useI18n } from "@/components/providers/I18nProvider";
@@ -75,7 +75,11 @@ export default function InvestmentsPage() {
             <p className="text-sm text-text-secondary">{t("investments.profitBalance")}</p>
             <p className="text-2xl font-bold text-accent-green mt-1">{fmt(profitBalance)}</p>
             <p className="text-xs text-text-muted mt-1">{t("investments.profitBalanceDesc")}</p>
-            <ProfitWithdrawPanel profitBalance={profitBalance} onSuccess={loadData} />
+            {profitBalance > 0 && (
+              <div className="mt-3">
+                <ProfitWithdrawButton profitBalance={profitBalance} onSuccess={loadData} />
+              </div>
+            )}
           </Card>
           <Card>
             <p className="text-sm text-text-secondary">{t("investments.tradingProfit")}</p>

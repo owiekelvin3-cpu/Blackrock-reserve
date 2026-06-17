@@ -306,26 +306,37 @@ export default function TransactionDetailModal({
                 </div>
                 </div>
 
-                <div className="tx-receipt-actions">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1 min-h-[44px]"
-                    onClick={handleDownload}
-                    disabled={downloading}
-                  >
-                    <Download size={16} />
-                    {downloading ? t("common.processing") : t("withdrawals.receipt.download")}
-                  </Button>
-                  <Button type="button" variant="outline" className="flex-1 min-h-[44px]" onClick={handleCopy}>
-                    {copied ? <Check size={16} className="text-accent-green" /> : <Copy size={16} />}
-                    {t("withdrawals.receipt.copyId")}
+                <div className="tx-receipt-footer-actions">
+                  <div className="tx-receipt-actions">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full min-h-[44px] sm:flex-1"
+                      onClick={handleDownload}
+                      disabled={downloading}
+                    >
+                      <Download size={16} className="shrink-0" />
+                      {downloading ? t("common.processing") : t("withdrawals.receipt.download")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full min-h-[44px] sm:flex-1"
+                      onClick={handleCopy}
+                    >
+                      {copied ? (
+                        <Check size={16} className="shrink-0 text-accent-green" />
+                      ) : (
+                        <Copy size={16} className="shrink-0" />
+                      )}
+                      {t("withdrawals.receipt.copyId")}
+                    </Button>
+                  </div>
+
+                  <Button type="button" className="w-full min-h-[44px]" onClick={onClose}>
+                    {t("withdrawals.receipt.close")}
                   </Button>
                 </div>
-
-                <Button type="button" className="w-full min-h-[44px] mt-4" onClick={onClose}>
-                  {t("withdrawals.receipt.close")}
-                </Button>
               </>
             )}
           </motion.div>

@@ -691,14 +691,6 @@
   color: var(--accent-green);
 }
 
-.dash-mobile-metric-with-action {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
 .dash-profit-withdraw-btn {
   display: inline-flex;
   align-items: center;
@@ -2161,9 +2153,37 @@ html.tx-member-transfer-scroll-lock {
   .tx-receipt-grid {
     grid-template-columns: 1fr;
   }
+}
 
-  .tx-receipt-actions-stack-sm {
+@media (max-width: 639px) {
+  .tx-receipt-backdrop {
+    align-items: flex-end;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tx-receipt-modal {
+    max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-bottom: 0;
+  }
+
+  .tx-receipt-actions {
     flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .tx-receipt-actions > button,
+  .tx-receipt-actions > a {
+    width: 100%;
+    flex: none;
+  }
+
+  .tx-mt-secondary-actions {
+    grid-template-columns: 1fr;
   }
 }
 

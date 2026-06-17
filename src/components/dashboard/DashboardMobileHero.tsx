@@ -132,21 +132,19 @@ export default function DashboardMobileHero({
             {balanceVisible ? formatCurrency(investedBalance) : "••••••"}
           </span>
         </Link>
-        <div className="dash-mobile-metric dash-mobile-metric-with-action">
-          <Link href="/dashboard/investments" className="min-w-0 flex-1">
-            <span className="dash-mobile-metric-label">{t("dashboard.profitBalance")}</span>
-            <span className="dash-mobile-metric-value dash-mobile-metric-value-profit">
-              {balanceVisible ? formatCurrency(profitBalance) : "••••••"}
-            </span>
-          </Link>
-          {onProfitWithdraw && (
-            <ProfitWithdrawButton
-              profitBalance={profitBalance}
-              onSuccess={onProfitWithdraw}
-            />
-          )}
-        </div>
+        <Link href="/dashboard/investments" className="dash-mobile-metric">
+          <span className="dash-mobile-metric-label">{t("dashboard.profitBalance")}</span>
+          <span className="dash-mobile-metric-value dash-mobile-metric-value-profit">
+            {balanceVisible ? formatCurrency(profitBalance) : "••••••"}
+          </span>
+        </Link>
       </div>
+
+      {onProfitWithdraw && profitBalance > 0 && (
+        <div className="flex justify-end -mt-1">
+          <ProfitWithdrawButton profitBalance={profitBalance} onSuccess={onProfitWithdraw} />
+        </div>
+      )}
     </section>
   );
 }
