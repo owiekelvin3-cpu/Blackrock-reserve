@@ -182,7 +182,7 @@ export default function ProfitWithdrawPanel({
 
       <button
         type="button"
-        disabled={loading || pinLoading || !showPreview}
+        disabled={loading || pinLoading}
         onClick={() => submit()}
         className="profit-withdraw-submit"
       >

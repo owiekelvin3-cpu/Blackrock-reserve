@@ -696,6 +696,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 0.5rem;
+  overflow: visible;
 }
 
 .dash-mobile-metric-profit-link {
@@ -711,6 +712,8 @@
   align-items: center;
   gap: 0.3rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
   padding: 0.35rem 0.55rem;
   border-radius: 0.5rem;
   font-size: 0.6875rem;
@@ -721,6 +724,8 @@
   border: 1px solid rgba(34, 197, 94, 0.28);
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  cursor: pointer;
 }
 
 .dash-profit-withdraw-btn:hover {
@@ -764,7 +769,7 @@
 .profit-withdraw-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 110;
+  z-index: 120;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -783,12 +788,14 @@
 
 .profit-withdraw-sheet {
   position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 28rem;
   max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 1rem));
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: none;
   border-radius: 1.25rem 1.25rem 0 0;
@@ -1028,6 +1035,8 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  cursor: pointer;
 }
 
 .profit-withdraw-chip:hover {
@@ -1064,6 +1073,8 @@
   background: var(--accent-green);
   border: none;
   transition: opacity 0.15s, transform 0.15s;
+  touch-action: manipulation;
+  cursor: pointer;
 }
 
 .profit-withdraw-submit:hover:not(:disabled) {

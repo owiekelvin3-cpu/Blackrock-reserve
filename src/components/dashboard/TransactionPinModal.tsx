@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, X, ShieldCheck } from "lucide-react";
@@ -31,6 +32,11 @@ export default function TransactionPinModal({
   const [pin, setPin] = useState("");
   const [pinConfigured, setPinConfigured] = useState<boolean | null>(null);
   const [locked, setLocked] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -54,29 +60,37 @@ export default function TransactionPinModal({
     await onConfirm(pin);
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div
+          className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center p-0 sm:p-4"
+          role="presentation"
+          onClick={loading ? undefined : onClose}
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-black/75 backdrop-blur-sm"
-            onClick={loading ? undefined : onClose}
           />
           <motion.div
             initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
-            className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-white/10 bg-bg-secondary p-6 shadow-2xl"
+            className="relative z-[1] w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-white/10 bg-bg-secondary p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
               className="absolute right-4 top-4 p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/5 disabled:opacity-50"
-              aria-label="Close"
+              aria-label={t("common.close")}
             >
               <X size={18} />
             </button>
@@ -134,6 +148,7 @@ export default function TransactionPinModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
