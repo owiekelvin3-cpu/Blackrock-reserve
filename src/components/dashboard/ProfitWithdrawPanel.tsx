@@ -12,9 +12,15 @@ const QUICK_FRACTIONS = [0.25, 0.5, 0.75] as const;
 interface ProfitWithdrawPanelProps {
   profitBalance: number;
   onSuccess: () => void;
+  /** Omit outer divider when shown inside a modal */
+  embedded?: boolean;
 }
 
-export default function ProfitWithdrawPanel({ profitBalance, onSuccess }: ProfitWithdrawPanelProps) {
+export default function ProfitWithdrawPanel({
+  profitBalance,
+  onSuccess,
+  embedded = false,
+}: ProfitWithdrawPanelProps) {
   const { t, formatCurrency } = useI18n();
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,16 +70,18 @@ export default function ProfitWithdrawPanel({ profitBalance, onSuccess }: Profit
   if (maxAmount <= 0) return null;
 
   return (
-    <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
-      <div className="flex items-start gap-2">
-        <div className="h-8 w-8 rounded-lg bg-accent-green/10 border border-accent-green/20 flex items-center justify-center shrink-0">
-          <ArrowDownToLine size={15} className="text-accent-green" />
+    <div className={embedded ? "space-y-3" : "mt-4 pt-4 border-t border-white/10 space-y-3"}>
+      {!embedded && (
+        <div className="flex items-start gap-2">
+          <div className="h-8 w-8 rounded-lg bg-accent-green/10 border border-accent-green/20 flex items-center justify-center shrink-0">
+            <ArrowDownToLine size={15} className="text-accent-green" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white">{t("investments.profitWithdrawTitle")}</p>
+            <p className="text-xs text-text-muted mt-0.5">{t("investments.profitWithdrawDesc")}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-white">{t("investments.profitWithdrawTitle")}</p>
-          <p className="text-xs text-text-muted mt-0.5">{t("investments.profitWithdrawDesc")}</p>
-        </div>
-      </div>
+      )}
 
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">$</span>

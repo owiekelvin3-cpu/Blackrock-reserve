@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowUpRight, TrendingUp } from "lucide-react";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
 import SavingsApyBadge from "@/components/dashboard/SavingsApyBadge";
+import ProfitWithdrawButton from "@/components/dashboard/ProfitWithdrawButton";
 import { useProfileImage } from "@/components/providers/ProfileImageProvider";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { getFirstName } from "@/lib/greeting";
@@ -20,6 +21,7 @@ type DashboardMobileHeroProps = {
   savingsBalance: number;
   savingsCurrency?: string;
   savingsApy?: number;
+  onProfitWithdraw?: () => void;
 };
 
 function maskAmount(formatted: string) {
@@ -33,6 +35,7 @@ export default function DashboardMobileHero({
   savingsBalance,
   savingsCurrency,
   savingsApy = 20,
+  onProfitWithdraw,
 }: DashboardMobileHeroProps) {
   const { data: session } = useSession();
   const { image: profileImage } = useProfileImage();
@@ -129,12 +132,20 @@ export default function DashboardMobileHero({
             {balanceVisible ? formatCurrency(investedBalance) : "••••••"}
           </span>
         </Link>
-        <Link href="/dashboard/investments" className="dash-mobile-metric">
-          <span className="dash-mobile-metric-label">{t("dashboard.profitBalance")}</span>
-          <span className="dash-mobile-metric-value dash-mobile-metric-value-profit">
-            {balanceVisible ? formatCurrency(profitBalance) : "••••••"}
-          </span>
-        </Link>
+        <div className="dash-mobile-metric dash-mobile-metric-with-action">
+          <Link href="/dashboard/investments" className="min-w-0 flex-1">
+            <span className="dash-mobile-metric-label">{t("dashboard.profitBalance")}</span>
+            <span className="dash-mobile-metric-value dash-mobile-metric-value-profit">
+              {balanceVisible ? formatCurrency(profitBalance) : "••••••"}
+            </span>
+          </Link>
+          {onProfitWithdraw && (
+            <ProfitWithdrawButton
+              profitBalance={profitBalance}
+              onSuccess={onProfitWithdraw}
+            />
+          )}
+        </div>
       </div>
     </section>
   );

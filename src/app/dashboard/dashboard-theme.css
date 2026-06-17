@@ -691,6 +691,40 @@
   color: var(--accent-green);
 }
 
+.dash-mobile-metric-with-action {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.dash-profit-withdraw-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent-green);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dash-profit-withdraw-btn:hover {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.dash-profit-withdraw-btn:active {
+  transform: scale(0.96);
+}
+
 .dash-quick-actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

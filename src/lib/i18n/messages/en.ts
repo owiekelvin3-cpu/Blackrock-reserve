@@ -121,6 +121,7 @@ const enBase = {
     quickActions: "Quick actions",
     investedBalance: "Invested balance",
     profitBalance: "Profit balance",
+    profitWithdraw: "Withdraw",
     seeDetails: "See details",
     viewPortfolio: "View portfolio",
     cashFlow: "Cash Flow",
