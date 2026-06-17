@@ -22,24 +22,39 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.trim().toLowerCase() },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            password: true,
-            role: true,
-            emailVerified: true,
-            status: true,
-          },
-        });
-
-        if (!user || !user.password) {
+        if (!credentials.password) {
           throw new Error("Invalid credentials");
         }
 
-        if (!credentials.password) {
+        let user;
+        try {
+          user = await prisma.user.findUnique({
+            where: { email: credentials.email.trim().toLowerCase() },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              password: true,
+              role: true,
+              emailVerified: true,
+              status: true,
+            },
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (
+            message.includes("connection pool") ||
+            message.includes("P2024") ||
+            message.includes("Timed out fetching")
+          ) {
+            console.error("[auth] Database pool timeout during login:", message);
+            throw new Error("Sign-in is temporarily busy. Please wait a moment and try again.");
+          }
+          console.error("[auth] Database error during login:", error);
+          throw new Error("Unable to sign in right now. Please try again shortly.");
+        }
+
+        if (!user || !user.password) {
           throw new Error("Invalid credentials");
         }
 

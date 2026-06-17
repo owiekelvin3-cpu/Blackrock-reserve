@@ -49,10 +49,16 @@ function LoginFormInner() {
       email: data.email,
       password: data.password,
       redirect: false,
+      callbackUrl: destination,
     });
 
     if (result?.error) {
       toast.error(result.error);
+      return;
+    }
+
+    if (!result?.ok) {
+      toast.error(t("auth.configError"));
       return;
     }
 

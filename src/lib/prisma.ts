@@ -9,6 +9,29 @@ function appendParam(url: string, param: string) {
   return `${url}${url.includes("?") ? "&" : "?"}${param}`;
 }
 
+function isServerlessRuntime() {
+  return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+}
+
+/** Vercel/Lambda: one connection per instance — higher limits exhaust Supabase pooler. */
+function getPoolConnectionLimit() {
+  return isServerlessRuntime() ? 1 : 5;
+}
+
+function enforceConnectionLimit(url: string, limit: number) {
+  try {
+    const normalized = url.replace(/^postgresql:/i, "postgres:");
+    const parsed = new URL(normalized);
+    parsed.searchParams.set("connection_limit", String(limit));
+    return parsed.toString().replace(/^postgres:/i, "postgresql:");
+  } catch {
+    if (url.includes("connection_limit=")) {
+      return url.replace(/connection_limit=\d+/i, `connection_limit=${limit}`);
+    }
+    return appendParam(url, `connection_limit=${limit}`);
+  }
+}
+
 function isPoolerUrl(url: string) {
   return url.includes("pgbouncer") || url.includes(":6543") || url.includes("pooler.supabase.com");
 }
@@ -63,9 +86,11 @@ function withPoolSettings(url: string | undefined) {
   if (!result.includes("pool_timeout")) {
     result = appendParam(result, "pool_timeout=30");
   }
-  // Supabase pooler allows ~5 connections — keep Prisma pool small but usable in dev
-  if (isPoolerUrl(result) && !result.includes("connection_limit")) {
-    result = appendParam(result, "connection_limit=5");
+  if (isPoolerUrl(result)) {
+    if (!result.includes("pgbouncer=") && result.includes(":6543")) {
+      result = appendParam(result, "pgbouncer=true");
+    }
+    result = enforceConnectionLimit(result, getPoolConnectionLimit());
   }
   return result;
 }
@@ -74,6 +99,9 @@ function withDirectConnectionSettings(url: string) {
   let result = url;
   if (!result.includes("connect_timeout")) {
     result = appendParam(result, "connect_timeout=10");
+  }
+  if (isServerlessRuntime()) {
+    result = enforceConnectionLimit(result, 1);
   }
   return result;
 }
