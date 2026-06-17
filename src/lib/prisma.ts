@@ -204,9 +204,7 @@ function getTransactionPrisma(): PrismaClient {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;
 
 /**
  * Run an interactive Prisma transaction on a direct Postgres connection.

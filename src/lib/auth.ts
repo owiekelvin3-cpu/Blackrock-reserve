@@ -5,6 +5,48 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { stripJwtBloat } from "@/lib/cookie-audit";
 
+function isTransientDbError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("connection pool") ||
+    message.includes("P2024") ||
+    message.includes("P1001") ||
+    message.includes("Timed out fetching") ||
+    message.includes("statement timeout") ||
+    message.includes("57014") ||
+    message.includes("Can't reach database")
+  );
+}
+
+async function findLoginUser(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await prisma.user.findUnique({
+        where: { email: normalizedEmail },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          password: true,
+          role: true,
+          emailVerified: true,
+          status: true,
+        },
+      });
+    } catch (error) {
+      if (!isTransientDbError(error) || attempt === maxAttempts) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, attempt * 400));
+    }
+  }
+
+  return null;
+}
+
 /**
  * JWT session cookie must stay small (<4 KB). Only store auth primitives.
  * Profile images, settings, and user data belong in the database.
@@ -28,26 +70,10 @@ export const authOptions: NextAuthOptions = {
 
         let user;
         try {
-          user = await prisma.user.findUnique({
-            where: { email: credentials.email.trim().toLowerCase() },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              password: true,
-              role: true,
-              emailVerified: true,
-              status: true,
-            },
-          });
+          user = await findLoginUser(credentials.email);
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          if (
-            message.includes("connection pool") ||
-            message.includes("P2024") ||
-            message.includes("Timed out fetching")
-          ) {
-            console.error("[auth] Database pool timeout during login:", message);
+          if (isTransientDbError(error)) {
+            console.error("[auth] Database timeout during login:", error);
             throw new Error("Sign-in is temporarily busy. Please wait a moment and try again.");
           }
           console.error("[auth] Database error during login:", error);
