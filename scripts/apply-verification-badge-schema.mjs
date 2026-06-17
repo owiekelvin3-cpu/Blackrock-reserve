@@ -1,5 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-import { hasDatabaseUrl, isDatabaseUnavailable, warnAndSkip } from "./schema-migration-utils.mjs";
+import {
+  hasDatabaseUrl,
+  isDatabaseUnavailable,
+  skipBuildMigrationOnVercel,
+  warnAndSkip,
+} from "./schema-migration-utils.mjs";
+
+skipBuildMigrationOnVercel("Verification badge schema apply");
 
 const directUrl = process.env.DIRECT_URL?.trim();
 const databaseUrl = process.env.DATABASE_URL?.trim();

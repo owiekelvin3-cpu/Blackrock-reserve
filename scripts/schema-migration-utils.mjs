@@ -2,6 +2,16 @@ export function hasDatabaseUrl() {
   return Boolean(process.env.DATABASE_URL?.trim());
 }
 
+/** Exit 0 during Vercel builds — migrations must not run against production on every deploy. */
+export function skipBuildMigrationOnVercel(label) {
+  if (process.env.VERCEL === "1" || process.env.SKIP_BUILD_MIGRATIONS === "true") {
+    console.warn(
+      `${label} skipped during Vercel build. Schema changes belong in npm run db:migrate (run locally once).`
+    );
+    process.exit(0);
+  }
+}
+
 /** Exit 0 during `npm run build` when Vercel/env has no database configured yet. */
 export function skipBuildMigrationIfNoDatabase(label) {
   if (!hasDatabaseUrl()) {

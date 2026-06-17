@@ -2,9 +2,11 @@ import { PrismaClient } from "@prisma/client";
 import {
   isDatabaseUnavailable,
   skipBuildMigrationIfNoDatabase,
+  skipBuildMigrationOnVercel,
   warnAndSkip,
 } from "./schema-migration-utils.mjs";
 
+skipBuildMigrationOnVercel("Physical cards schema apply");
 skipBuildMigrationIfNoDatabase("Physical cards schema apply");
 
 const directUrl = process.env.DIRECT_URL?.trim();

@@ -2,9 +2,11 @@ import { PrismaClient } from "@prisma/client";
 import {
   isDatabaseUnavailable,
   skipBuildMigrationIfNoDatabase,
+  skipBuildMigrationOnVercel,
   warnAndSkip,
 } from "./schema-migration-utils.mjs";
 
+skipBuildMigrationOnVercel("Deposit proof image schema apply");
 skipBuildMigrationIfNoDatabase("Deposit proof image schema apply");
 
 const prisma = new PrismaClient();
