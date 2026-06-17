@@ -130,7 +130,7 @@ function MemberTransferReceiptView({
       await downloadReceiptAsImage(
         captureRef.current,
         `member-transfer-${receipt.id.slice(-8)}.png`,
-        { backgroundColor: "#141416" }
+        { backgroundColor: "#141416", width: 440 }
       );
       toast.success(t("withdrawals.memberTransfer.receipt.downloaded"));
     } catch {

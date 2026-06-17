@@ -1,13 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import { getAccounts } from "@/lib/dashboard-data";
 
-/** Total capital deployed via completed investment orders (excludes fees). */
+/** Capital currently deployed in open holdings (cost basis), excluding sold positions. */
 export async function getInvestedBalance(userId: string): Promise<number> {
-  const result = await prisma.investmentOrder.aggregate({
-    where: { userId, status: "COMPLETED", side: "BUY" },
-    _sum: { amountUsd: true },
+  const holdings = await prisma.investment.findMany({
+    where: { userId },
+    select: { shares: true, avgPrice: true },
   });
-  return Math.round(Number(result._sum.amountUsd ?? 0) * 100) / 100;
+
+  const total = holdings.reduce((sum, holding) => {
+    const shares = Number(holding.shares);
+    if (shares <= 0) return sum;
+    return sum + shares * Number(holding.avgPrice);
+  }, 0);
+
+  return Math.round(total * 100) / 100;
 }
 
 export async function getProfitBalance(userId: string): Promise<number> {

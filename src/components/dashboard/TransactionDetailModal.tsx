@@ -13,6 +13,7 @@ import {
   transactionTypeLabel,
 } from "@/lib/transaction-receipt";
 import { downloadReceiptAsImage } from "@/lib/receipt-image";
+import TransactionReceiptExport from "@/components/dashboard/TransactionReceiptExport";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { VerificationBadgeType } from "@/lib/verification-badge";
@@ -66,7 +67,7 @@ export default function TransactionDetailModal({
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const captureRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   const open = !!transactionId;
 
@@ -112,12 +113,13 @@ export default function TransactionDetailModal({
   };
 
   const handleDownload = async () => {
-    if (!detail || !captureRef.current) return;
+    if (!detail || !exportRef.current) return;
     setDownloading(true);
     try {
       await downloadReceiptAsImage(
-        captureRef.current,
-        `transaction-${detail.id.slice(-8)}.png`
+        exportRef.current,
+        `transaction-${detail.id.slice(-8)}.png`,
+        { width: 440 }
       );
       toast.success(t("withdrawals.receipt.downloaded"));
     } catch {
@@ -181,7 +183,13 @@ export default function TransactionDetailModal({
               </div>
             ) : (
               <>
-                <div ref={captureRef} className="tx-receipt-capture">
+                {detail && (
+                  <div className="receipt-export-host" aria-hidden="true">
+                    <TransactionReceiptExport ref={exportRef} detail={detail} />
+                  </div>
+                )}
+
+                <div className="tx-receipt-capture">
                   <div className="tx-receipt-header">
                     <div className="tx-detail-type-icon" aria-hidden>
                       <Icon size={22} className="text-accent-brand" />

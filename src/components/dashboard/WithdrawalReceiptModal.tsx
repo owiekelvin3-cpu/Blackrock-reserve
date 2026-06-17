@@ -67,7 +67,8 @@ export default function WithdrawalReceiptModal({
     try {
       await downloadReceiptAsImage(
         captureRef.current,
-        `withdrawal-receipt-${receipt.id.slice(-8)}.png`
+        `withdrawal-receipt-${receipt.id.slice(-8)}.png`,
+        { width: 440 }
       );
       toast.success(t("withdrawals.receipt.downloaded"));
     } catch {

@@ -204,6 +204,10 @@ const enBase = {
       from: "From",
       to: "To",
       loadError: "Could not load transaction details",
+      exportDisclaimer:
+        "This is an official electronic receipt issued by Blackrock Reserve. Keep for your records.",
+      exportTransactionId: "Transaction ID",
+      exportGenerated: "Generated",
     },
   },
   deposit: {
@@ -261,7 +265,7 @@ const enBase = {
     emptyDescription: "Buy assets in the Trading Marketplace to build your portfolio. Realized profits appear here when you sell.",
     emptyAction: "Open Marketplace",
     investedBalance: "Capital Deployed",
-    investedBalanceDesc: "Total amount used to buy holdings",
+    investedBalanceDesc: "Capital currently in your open holdings",
     profitBalance: "Total Profit Balance",
     profitBalanceDesc: "Earnings from trading and portfolio credits — withdraw to your main balance anytime",
     profitWithdrawTitle: "Withdraw to main balance",
