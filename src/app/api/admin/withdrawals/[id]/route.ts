@@ -9,7 +9,6 @@ import { formatCurrency } from "@/lib/utils";
 import { prisma, runInteractiveTransaction } from "@/lib/prisma";
 import { invalidateAdminCaches } from "@/lib/admin-cache";
 import { assertWithdrawalCanBeApproved } from "@/lib/withdrawal-charge";
-import { reduceProfitBalanceOnSpend } from "@/lib/spendable-balance";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getAdminSession();
@@ -68,8 +67,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           where: { id: withdrawal.accountId },
           data: { balance: balanceBefore - amount },
         });
-
-        await reduceProfitBalanceOnSpend(tx, withdrawal.userId, amount);
 
         await tx.transaction.create({
           data: {

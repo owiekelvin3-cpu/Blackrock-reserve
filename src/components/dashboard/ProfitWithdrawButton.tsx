@@ -19,8 +19,7 @@ export default function ProfitWithdrawButton({
 }: ProfitWithdrawButtonProps) {
   const { t, formatCurrency } = useI18n();
   const [open, setOpen] = useState(false);
-
-  if (profitBalance <= 0) return null;
+  const canWithdraw = profitBalance > 0;
 
   const handleSuccess = () => {
     onSuccess();
@@ -34,10 +33,13 @@ export default function ProfitWithdrawButton({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          if (!canWithdraw) return;
           setOpen(true);
         }}
-        className={`dash-profit-withdraw-btn ${className}`.trim()}
+        disabled={!canWithdraw}
+        className={`dash-profit-withdraw-btn ${!canWithdraw ? "dash-profit-withdraw-btn-disabled" : ""} ${className}`.trim()}
         aria-label={t("investments.profitWithdrawTitle")}
+        title={!canWithdraw ? t("investments.profitWithdrawNoBalance") : undefined}
       >
         <ArrowDownToLine size={12} strokeWidth={2.5} />
         {t("dashboard.profitWithdraw")}

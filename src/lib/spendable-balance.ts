@@ -5,7 +5,7 @@ function roundMoney(n: number) {
   return Math.round(n * 100) / 100;
 }
 
-/** Profit is credited to the wallet — reduce it when the user spends, up to the spend amount. */
+/** @deprecated Profit is held separately until withdrawn; spending no longer reduces profit balance. */
 export async function reduceProfitBalanceOnSpend(
   tx: Prisma.TransactionClient,
   userId: string,
@@ -113,8 +113,6 @@ export async function deductFromUserAccounts(
     sorted[0]?.id;
 
   if (!primaryAccountId) throw new Error("No account available for investment");
-
-  await reduceProfitBalanceOnSpend(tx, userId, amountDue);
 
   return { debits, primaryAccountId };
 }

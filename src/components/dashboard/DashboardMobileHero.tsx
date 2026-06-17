@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, ArrowUpRight, TrendingUp } from "lucide-react";
+import { Eye, EyeOff, ArrowUpRight } from "lucide-react";
 import ProfileAvatar from "@/components/ui/ProfileAvatar";
 import SavingsApyBadge from "@/components/dashboard/SavingsApyBadge";
 import ProfitWithdrawButton from "@/components/dashboard/ProfitWithdrawButton";
@@ -46,12 +46,6 @@ export default function DashboardMobileHero({
   const { clock, ready } = useLiveClock(firstName, locale, t);
   const formattedTotal = formatCurrency(totalBalance);
   const formattedSavings = formatCurrency(savingsBalance, savingsCurrency);
-
-  const growthPct = useMemo(() => {
-    if (totalBalance <= 0 || profitBalance <= 0) return null;
-    const pct = (profitBalance / totalBalance) * 100;
-    return pct >= 0.1 ? `+${pct.toFixed(1)}%` : null;
-  }, [totalBalance, profitBalance]);
 
   return (
     <section className="dash-mobile-hero" aria-label={t("dashboard.myBalance")}>
@@ -96,12 +90,6 @@ export default function DashboardMobileHero({
               {balanceVisible ? <Eye size={15} /> : <EyeOff size={15} />}
             </button>
           </div>
-          {growthPct && (
-            <span className="dash-mobile-growth-pill">
-              <TrendingUp size={11} strokeWidth={2.5} />
-              {growthPct}
-            </span>
-          )}
         </div>
 
         <p className={cn("dash-mobile-balance-amount", !balanceVisible && "dash-mobile-balance-masked")}>
@@ -132,19 +120,21 @@ export default function DashboardMobileHero({
             {balanceVisible ? formatCurrency(investedBalance) : "••••••"}
           </span>
         </Link>
-        <Link href="/dashboard/investments" className="dash-mobile-metric">
-          <span className="dash-mobile-metric-label">{t("dashboard.profitBalance")}</span>
-          <span className="dash-mobile-metric-value dash-mobile-metric-value-profit">
-            {balanceVisible ? formatCurrency(profitBalance) : "••••••"}
-          </span>
-        </Link>
-      </div>
-
-      {onProfitWithdraw && profitBalance > 0 && (
-        <div className="flex justify-end -mt-1">
-          <ProfitWithdrawButton profitBalance={profitBalance} onSuccess={onProfitWithdraw} />
+        <div className="dash-mobile-metric dash-mobile-metric-profit">
+          <Link href="/dashboard/investments" className="dash-mobile-metric-profit-link">
+            <span className="dash-mobile-metric-label">{t("dashboard.profitBalance")}</span>
+            <span className="dash-mobile-metric-value dash-mobile-metric-value-profit">
+              {balanceVisible ? formatCurrency(profitBalance) : "••••••"}
+            </span>
+          </Link>
+          {onProfitWithdraw && (
+            <ProfitWithdrawButton
+              profitBalance={profitBalance}
+              onSuccess={onProfitWithdraw}
+            />
+          )}
         </div>
-      )}
+      </div>
     </section>
   );
 }

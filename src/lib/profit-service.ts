@@ -38,17 +38,12 @@ export async function addUserProfit(params: {
   const profitBefore = Number(user.profitBalance);
   const balanceBefore = Number(account.balance);
   const profitAfter = Math.round((profitBefore + amount) * 100) / 100;
-  const balanceAfter = Math.round((balanceBefore + amount) * 100) / 100;
+  const balanceAfter = balanceBefore;
 
   const result = await runInteractiveTransaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
       data: { profitBalance: profitAfter },
-    });
-
-    await tx.bankAccount.update({
-      where: { id: account.id },
-      data: { balance: balanceAfter },
     });
 
     const transaction = await tx.transaction.create({
@@ -83,7 +78,7 @@ export async function addUserProfit(params: {
 
   const amountLabel = formatCurrency(amount);
   const title = "Investment profit credited";
-  const message = `${amountLabel} has been added to your profit balance and main account. ${reason.trim()}`;
+  const message = `${amountLabel} has been added to your profit balance. Withdraw to your main balance when ready. ${reason.trim()}`;
 
   await createUserNotification({ userId, type: "PROFIT_CREDIT", title, message });
   await sendUserNotificationEmail({ userId, title, message });
@@ -158,22 +153,13 @@ export async function removeUserProfit(params: {
   if (!account) throw new Error("No bank account found for user");
 
   const balanceBefore = Number(account.balance);
-  if (balanceBefore < amount) {
-    throw new Error(`Insufficient main balance to remove profit (${formatCurrency(balanceBefore)} available)`);
-  }
-
   const profitAfter = Math.round((profitBefore - amount) * 100) / 100;
-  const balanceAfter = Math.round((balanceBefore - amount) * 100) / 100;
+  const balanceAfter = balanceBefore;
 
   const result = await runInteractiveTransaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
       data: { profitBalance: profitAfter },
-    });
-
-    await tx.bankAccount.update({
-      where: { id: account.id },
-      data: { balance: balanceAfter },
     });
 
     const transaction = await tx.transaction.create({

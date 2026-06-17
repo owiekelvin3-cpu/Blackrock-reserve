@@ -1,5 +1,4 @@
 import { prisma, runInteractiveTransaction } from "@/lib/prisma";
-import { reduceProfitBalanceOnSpend } from "@/lib/spendable-balance";
 import { getAvailableBalance } from "@/lib/withdrawal-balance";
 import { createUserNotification } from "@/lib/user-notifications";
 import {
@@ -113,8 +112,6 @@ export async function transferToMember(
       where: { id: fromAccount.id },
       data: { balance: roundMoney(fromBalance - amount) },
     });
-
-    await reduceProfitBalanceOnSpend(tx, senderId, amount);
 
     await tx.bankAccount.update({
       where: { id: toAccount.id },

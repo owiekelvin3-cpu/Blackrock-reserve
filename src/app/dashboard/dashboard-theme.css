@@ -691,6 +691,21 @@
   color: var(--accent-green);
 }
 
+.dash-mobile-metric-profit {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.dash-mobile-metric-profit-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+}
+
 .dash-profit-withdraw-btn {
   display: inline-flex;
   align-items: center;
@@ -715,6 +730,19 @@
 
 .dash-profit-withdraw-btn:active {
   transform: scale(0.96);
+}
+
+.dash-profit-withdraw-btn:disabled,
+.dash-profit-withdraw-btn-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.dash-profit-withdraw-btn:disabled:hover,
+.dash-profit-withdraw-btn-disabled:hover {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.28);
 }
 
 .dash-quick-actions {

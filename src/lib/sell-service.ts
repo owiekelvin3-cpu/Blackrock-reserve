@@ -117,7 +117,8 @@ export async function executeSell(input: ExecuteSellInput): Promise<ExecuteSellR
 
     const balanceBefore = Number(bankAccount.balance);
     const profitBefore = Number(user.profitBalance);
-    const balanceAfter = roundMoney(balanceBefore + netProceeds);
+    const bankCredit = realizedPnl > 0 ? costBasis : netProceeds;
+    const balanceAfter = roundMoney(balanceBefore + bankCredit);
     const profitAfter = roundMoney(profitBefore + realizedPnl);
 
     await tx.bankAccount.update({

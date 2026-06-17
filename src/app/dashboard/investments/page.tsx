@@ -75,11 +75,9 @@ export default function InvestmentsPage() {
             <p className="text-sm text-text-secondary">{t("investments.profitBalance")}</p>
             <p className="text-2xl font-bold text-accent-green mt-1">{fmt(profitBalance)}</p>
             <p className="text-xs text-text-muted mt-1">{t("investments.profitBalanceDesc")}</p>
-            {profitBalance > 0 && (
-              <div className="mt-3">
-                <ProfitWithdrawButton profitBalance={profitBalance} onSuccess={loadData} />
-              </div>
-            )}
+            <div className="mt-3">
+              <ProfitWithdrawButton profitBalance={profitBalance} onSuccess={loadData} />
+            </div>
           </Card>
           <Card>
             <p className="text-sm text-text-secondary">{t("investments.tradingProfit")}</p>

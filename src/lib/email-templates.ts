@@ -247,7 +247,7 @@ export function profitAddedEmail(data: {
         <p style="margin:0;color:#fff;">${data.reason}</p>
       </div>
       <p style="margin:0 0 8px;"><strong style="color:#fff;">Updated profit balance:</strong> ${data.profitBalance}</p>
-      <p style="margin:0 0 24px;"><strong style="color:#fff;">Updated main balance:</strong> ${data.mainBalance}</p>
+      <p style="margin:0 0 24px;color:#9a9aa8;font-size:13px;">Withdraw profits to your main balance from the dashboard when you are ready to spend them.</p>
       <p style="margin:0;color:#9a9aa8;font-size:13px;">Credited on ${new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</p>
       <div style="text-align:center;margin:28px 0 0;">
         <a href="${data.siteUrl}/dashboard" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,${ACCENT},#ff0000);color:#ffffff;text-decoration:none;font-weight:600;border-radius:999px;font-size:15px;">View Dashboard</a>
@@ -258,7 +258,7 @@ export function profitAddedEmail(data: {
   return {
     subject: `${BRAND} — ${data.amount} investment profit credited`,
     html,
-    text: `Hi ${data.name}, ${data.amount} was credited to your profit balance. Profit: ${data.profitBalance}. Main: ${data.mainBalance}. Reason: ${data.reason}`,
+    text: `Hi ${data.name}, ${data.amount} was credited to your profit balance. Profit: ${data.profitBalance}. Withdraw from the dashboard to move funds to your main balance. Reason: ${data.reason}`,
   };
 }
 
@@ -280,7 +280,6 @@ export function profitRemovedEmail(data: {
         <p style="margin:0;color:#fff;">${data.reason}</p>
       </div>
       <p style="margin:0 0 8px;"><strong style="color:#fff;">Updated profit balance:</strong> ${data.profitBalance}</p>
-      <p style="margin:0 0 24px;"><strong style="color:#fff;">Updated main balance:</strong> ${data.mainBalance}</p>
       <div style="text-align:center;margin:28px 0 0;">
         <a href="${data.siteUrl}/dashboard" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,${ACCENT},#ff0000);color:#ffffff;text-decoration:none;font-weight:600;border-radius:999px;font-size:15px;">View Dashboard</a>
       </div>
@@ -290,7 +289,7 @@ export function profitRemovedEmail(data: {
   return {
     subject: `${BRAND} — Investment profit adjustment`,
     html,
-    text: `Hi ${data.name}, ${data.amount} was removed from your profit balance. Profit: ${data.profitBalance}. Main: ${data.mainBalance}. Reason: ${data.reason}`,
+    text: `Hi ${data.name}, ${data.amount} was removed from your profit balance. Profit: ${data.profitBalance}. Reason: ${data.reason}`,
   };
 }
 
