@@ -189,7 +189,11 @@ export default function TransactionDetailModal({
                   </div>
                 )}
 
-                <div className="tx-receipt-capture">
+                <div className="tx-detail-formal-receipt">
+                  <TransactionReceiptExport detail={detail} />
+                </div>
+
+                <div className="tx-receipt-capture tx-detail-screen-receipt">
                   <div className="tx-receipt-header">
                     <div className="tx-detail-type-icon" aria-hidden>
                       <Icon size={22} className="text-accent-brand" />
@@ -231,14 +235,12 @@ export default function TransactionDetailModal({
                   </p>
                 </div>
 
-                <div className="tx-receipt-grid">
+                <div className="tx-receipt-grid tx-detail-grid">
                   <ReceiptRow label={t("dashboard.transactionDetail.reference")} value={detail.referenceId} mono />
                   <ReceiptRow
                     label={t("dashboard.transactionDetail.dateTime")}
                     value={`${formatDate(detail.date)} · ${formatTime(detail.date)}`}
                   />
-                  <ReceiptRow label={t("dashboard.transactionDetail.type")} value={transactionTypeLabel(detail.type)} />
-                  <ReceiptRow label={t("dashboard.transactionDetail.status")} value={detail.statusLabel} />
                   {isMemberTransfer && isOutgoingTransfer && detail.ownerName && (
                     <ReceiptRow
                       label={t("dashboard.transactionDetail.from")}

@@ -396,7 +396,7 @@ export default function ProfilePage() {
 
           {activeTab === "preferences" && (
             <div className="profile-prefs-grid">
-              <div className="profile-card">
+              <div className="profile-card profile-card-dropdown">
                 <div className="profile-card-head">
                   <h3 className="profile-card-title">{t("settings.languagePreference")}</h3>
                   <p className="profile-card-subtitle">{t("settings.languagePreferenceDesc")}</p>

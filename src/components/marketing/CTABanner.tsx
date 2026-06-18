@@ -66,7 +66,7 @@ export default function CTABanner() {
               href="/register"
               className="inline-flex items-center justify-center gap-2 font-semibold rounded-full px-8 py-4 text-base bg-white text-accent-brand hover:bg-white/90 min-w-[180px] transition-colors"
             >
-              {t("common.getStarted")} <ArrowRight size={18} />
+              {t("marketing.cta.openAccount")} <ArrowRight size={18} />
             </Link>
             <Link href="/contact">
               <Button
@@ -74,7 +74,7 @@ export default function CTABanner() {
                 size="lg"
                 className="rounded-full px-8 border-white/30 text-white hover:bg-white/10 min-w-[180px]"
               >
-                {t("marketing.cta.contactSales")}
+                {t("marketing.cta.speakWithAdvisor")}
               </Button>
             </Link>
           </motion.div>

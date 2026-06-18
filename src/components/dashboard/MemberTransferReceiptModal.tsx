@@ -184,7 +184,7 @@ function MemberTransferReceiptView({
 
         <div className="tx-mt-receipt-header">
           <div className="tx-mt-receipt-brand">
-            <AppIconMark size={28} className="rounded-lg" />
+            <AppIconMark size={24} className="rounded-lg" />
             <span className="tx-mt-receipt-brand-name">{t("brand.name")}</span>
           </div>
         </div>
@@ -207,7 +207,7 @@ function MemberTransferReceiptView({
               animate={{ scale: 1 }}
               transition={{ ...spring, delay: 0.28 }}
             >
-              <Check size={28} strokeWidth={3} />
+              <Check size={20} strokeWidth={3} />
             </motion.div>
           </motion.div>
 
@@ -269,7 +269,7 @@ function MemberTransferReceiptView({
             }
           />
           <div className="tx-mt-parties-arrow" aria-hidden>
-            <ArrowDown size={18} />
+            <ArrowDown size={14} />
           </div>
           <PartyCard
             roleLabel={t("withdrawals.memberTransfer.receipt.beneficiary")}
@@ -354,7 +354,7 @@ function PartyCard({
         name={name}
         verificationBadge={badge}
         badgeSize="sm"
-        nameClassName="text-sm font-semibold text-text-primary"
+        nameClassName="text-xs font-semibold text-text-primary leading-tight"
       />
       <p className="tx-mt-party-meta">{meta}</p>
     </div>

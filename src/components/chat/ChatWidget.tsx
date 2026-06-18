@@ -60,7 +60,6 @@ export default function ChatWidget() {
   const welcome = getLocalizedWelcome(t);
   const isDashboard = pathname.startsWith("/dashboard");
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [humanMessages, setHumanMessages] = useState<ChatMessage[]>([]);
   const [chatMode, setChatMode] = useState<ChatMode>("bot");
@@ -76,12 +75,10 @@ export default function ChatWidget() {
   const isAdmin = pathname.startsWith("/admin");
   const hideLauncher = isAdmin || isDashboard;
   const openChatRef = useRef(() => {
-    setDismissed(false);
     setOpen(true);
   });
 
   openChatRef.current = () => {
-    setDismissed(false);
     setOpen(true);
   };
 
@@ -98,19 +95,6 @@ export default function ChatWidget() {
     prevPathRef.current = pathname;
     if (!wasDashboard && nowDashboard) setOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    try {
-      localStorage.removeItem("pcb-chat-dismissed");
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const dismissChat = useCallback(() => {
-    setOpen(false);
-    setDismissed(true);
-  }, []);
 
   useEffect(() => {
     const stored = loadMessages();
@@ -317,7 +301,6 @@ export default function ChatWidget() {
 
   if (isAdmin) return null;
   if (isDashboard && !open) return null;
-  if (!isDashboard && dismissed) return null;
 
   const panelWidth = Math.min(window.innerWidth - 32, PANEL_WIDTH);
   const panelHeight = Math.min(window.innerHeight * 0.7, PANEL_HEIGHT);
@@ -404,24 +387,14 @@ export default function ChatWidget() {
                   <X size={20} />
                 </button>
               ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="p-1.5 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
-                    aria-label={t("chat.minimizeChat")}
-                  >
-                    <Minimize2 size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={dismissChat}
-                    className="p-1.5 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
-                    aria-label={t("chat.dismissChat")}
-                  >
-                    <X size={16} />
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="p-1.5 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+                  aria-label={t("chat.minimizeChat")}
+                >
+                  <Minimize2 size={16} />
+                </button>
               )}
             </div>
 
@@ -620,18 +593,6 @@ export default function ChatWidget() {
           )}
           role="group"
         >
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              dismissChat();
-            }}
-            className="absolute -top-1 -right-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-bg-elevated text-text-secondary shadow-md transition-colors hover:bg-surface-overlay hover:text-text-primary"
-            aria-label={t("chat.removeChatIcon")}
-          >
-            <X size={11} />
-          </button>
-
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}

@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { maskBankAccountNumberDisplay } from "@/lib/bank-account-number";
+import {
+  bankAccountNumberSelect,
+  getDbSchemaCapabilities,
+} from "@/lib/db-schema-capabilities";
 import { getSignedTransactionAmount } from "@/lib/transaction-amount";
 import { loadCounterpartiesForTransactions } from "@/lib/transaction-counterparty";
 import { serializeVerificationBadge } from "@/lib/verification-badge";
@@ -140,6 +145,8 @@ function formatTransactionStatus(status: string): string {
 }
 
 export async function getActivityById(userId: string, id: string) {
+  const caps = await getDbSchemaCapabilities();
+
   const row = await prisma.transaction.findFirst({
     where: { id, userId },
     select: {
@@ -154,7 +161,12 @@ export async function getActivityById(userId: string, id: string) {
         select: { id: true, name: true, verificationBadge: true },
       },
       account: {
-        select: { id: true, name: true, currency: true },
+        select: {
+          id: true,
+          name: true,
+          currency: true,
+          ...bankAccountNumberSelect(caps),
+        },
       },
     },
   });
@@ -170,6 +182,10 @@ export async function getActivityById(userId: string, id: string) {
     }),
   ]);
   const counterparty = counterpartyMap.get(row.id) ?? null;
+  const accountNumber =
+    caps.bankAccountNumbers && "accountNumber" in row.account
+      ? row.account.accountNumber
+      : null;
 
   return {
     id: row.id,
@@ -193,7 +209,9 @@ export async function getActivityById(userId: string, id: string) {
       id: row.account.id,
       name: row.account.name,
       currency: row.account.currency,
-      maskedNumber: `•••• ${row.account.id.slice(-4)}`,
+      maskedNumber: accountNumber
+        ? maskBankAccountNumberDisplay(accountNumber)
+        : "BR •••• •••• ••••",
     },
   };
 }

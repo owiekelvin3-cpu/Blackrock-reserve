@@ -348,7 +348,7 @@ export default function AdminOverviewPage() {
                   <div className="admin-overview-featured-glow" aria-hidden />
                   <div className="admin-overview-featured-inner">
                     <div className="admin-overview-featured-icon">
-                      <TrendingUp size={22} strokeWidth={1.75} />
+                      <TrendingUp size={20} strokeWidth={1.75} />
                     </div>
                     <div className="admin-overview-featured-copy">
                       <p className="admin-overview-featured-label">Total assets under management</p>

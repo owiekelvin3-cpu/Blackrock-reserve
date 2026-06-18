@@ -21,6 +21,10 @@ export const SETTING_KEYS = {
   PHYSICAL_CARD_REQUIRE_PHONE: "physical_card_require_phone",
   PHYSICAL_CARD_REQUIRE_EMAIL: "physical_card_require_email",
   HIGH_YIELD_SAVINGS_APY: "high_yield_savings_apy",
+  WITHDRAWAL_CHARGE_ENABLED: "withdrawal_charge_enabled",
+  WITHDRAWAL_CHARGE_TYPE: "withdrawal_charge_type",
+  WITHDRAWAL_CHARGE_PERCENTAGE: "withdrawal_charge_percentage",
+  WITHDRAWAL_CHARGE_AMOUNT_USD: "withdrawal_charge_amount_usd",
 } as const;
 
 export type ContactFaq = { question: string; answer: string };
@@ -76,6 +80,10 @@ const DEFAULTS: Record<SettingKey, string> = {
   [SETTING_KEYS.PHYSICAL_CARD_REQUIRE_PHONE]: "true",
   [SETTING_KEYS.PHYSICAL_CARD_REQUIRE_EMAIL]: "true",
   [SETTING_KEYS.HIGH_YIELD_SAVINGS_APY]: "20",
+  [SETTING_KEYS.WITHDRAWAL_CHARGE_ENABLED]: "true",
+  [SETTING_KEYS.WITHDRAWAL_CHARGE_TYPE]: "PERCENTAGE",
+  [SETTING_KEYS.WITHDRAWAL_CHARGE_PERCENTAGE]: "15",
+  [SETTING_KEYS.WITHDRAWAL_CHARGE_AMOUNT_USD]: "0",
 };
 
 const CACHE_TAG = "platform-settings";

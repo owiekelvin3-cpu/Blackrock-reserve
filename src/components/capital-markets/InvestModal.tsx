@@ -288,7 +288,8 @@ export default function InvestModal({
                     </Button>
                     {onClosePosition && (
                       <Button
-                        className="flex-1 border-accent-red/30 bg-accent-red/10 text-accent-red hover:bg-accent-red/20"
+                        variant="danger"
+                        className="flex-1"
                         onClick={() => {
                           onClosePosition(asset.symbol);
                           onClose();

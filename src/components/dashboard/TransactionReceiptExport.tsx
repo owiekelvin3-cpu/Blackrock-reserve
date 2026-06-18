@@ -100,8 +100,6 @@ const TransactionReceiptExport = forwardRef<HTMLDivElement, TransactionReceiptEx
             label={t("dashboard.transactionDetail.dateTime")}
             value={`${formatDate(detail.date)} · ${formatTime(detail.date)}`}
           />
-          <ExportField label={t("dashboard.transactionDetail.type")} value={transactionTypeLabel(detail.type)} />
-          <ExportField label={t("dashboard.transactionDetail.status")} value={detail.statusLabel} />
 
           {isMemberTransfer && isOutgoingTransfer && detail.ownerName && (
             <ExportField

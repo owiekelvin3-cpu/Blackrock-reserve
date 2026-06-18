@@ -38,10 +38,29 @@ export default function Hero() {
 
         <motion.p
           variants={fadeUp}
-          className="mt-5 text-sm sm:text-base text-text-secondary max-w-xl mx-auto leading-relaxed"
+          className="mt-5 text-sm sm:text-base text-text-secondary max-w-2xl mx-auto leading-relaxed"
         >
           {t("marketing.hero.subtitle")}
         </motion.p>
+
+        <motion.div
+          variants={fadeUp}
+          className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3"
+        >
+          {[
+            t("marketing.hero.trustFdic"),
+            t("marketing.hero.trustEncryption"),
+            t("marketing.hero.trustSupport"),
+          ].map((label) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium border border-white/10 bg-white/[0.04] text-text-secondary"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-accent-green shrink-0" />
+              {label}
+            </span>
+          ))}
+        </motion.div>
 
         <motion.div
           variants={fadeUp}
@@ -54,7 +73,7 @@ export default function Hero() {
           </Link>
           <Link href="/contact">
             <Button variant="outline" size="lg" className="rounded-full px-8 min-w-[180px]">
-              {t("marketing.hero.bookDemo")} <ArrowRight size={18} />
+              {t("marketing.hero.speakWithAdvisor")} <ArrowRight size={18} />
             </Button>
           </Link>
         </motion.div>

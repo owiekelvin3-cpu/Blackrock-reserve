@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, TrendingUp, TrendingDown, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { X, TrendingUp, TrendingDown, ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { translateApiErrorMessage } from "@/lib/i18n/api-error-messages";
@@ -11,6 +11,8 @@ import Button from "@/components/ui/Button";
 import TransactionPinModal from "@/components/dashboard/TransactionPinModal";
 import { useTransactionPin } from "@/hooks/use-transaction-pin";
 import StockIcon from "@/components/capital-markets/StockIcon";
+import SellReceiptView from "@/components/capital-markets/SellReceiptView";
+import type { SellReceiptData } from "@/lib/sell-receipt";
 
 type Step = "amount" | "summary" | "success";
 type SellMode = "shares" | "usd";
@@ -46,11 +48,7 @@ export default function SellModal({ holding, open, onClose, onSuccess }: SellMod
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{
-    sharesSold: number;
-    netProceeds: number;
-    realizedPnl: number;
-  } | null>(null);
+  const [result, setResult] = useState<SellReceiptData | null>(null);
   const { open: pinOpen, loading: pinLoading, error: pinError, requestPin, closePin, confirmPin } =
     useTransactionPin();
 
@@ -151,9 +149,17 @@ export default function SellModal({ holding, open, onClose, onSuccess }: SellMod
         if (!res.ok) throw new Error(translateApiErrorMessage(json.error || "Sale failed", t));
 
         setResult({
+          id: json.sale.orderId,
+          symbol: json.sale.symbol,
+          assetName: json.sale.assetName,
           sharesSold: json.sale.sharesSold,
+          priceAtSale: json.sale.priceAtSale,
+          grossProceeds: json.sale.grossProceeds,
+          fee: json.sale.fee,
           netProceeds: json.sale.netProceeds,
+          costBasis: json.sale.costBasis,
           realizedPnl: json.sale.realizedPnl,
+          createdAt: json.sale.createdAt,
         });
         setStep("success");
         onSuccess();
@@ -190,6 +196,17 @@ export default function SellModal({ holding, open, onClose, onSuccess }: SellMod
             aria-modal="true"
             aria-labelledby="sell-modal-title"
           >
+            {step === "success" && result ? (
+              <div className="p-3 sm:p-4">
+                <SellReceiptView
+                  receipt={result}
+                  logoDomain={holding.logoDomain}
+                  logoUrl={holding.logoUrl}
+                  onClose={onClose}
+                />
+              </div>
+            ) : (
+              <>
             <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--surface-elevated)]">
               <div className="flex items-center gap-3 min-w-0">
                 <StockIcon
@@ -366,35 +383,6 @@ export default function SellModal({ holding, open, onClose, onSuccess }: SellMod
                 </>
               )}
 
-              {step === "success" && result && (
-                <div className="text-center py-4 space-y-4">
-                  <CheckCircle2 size={48} className="mx-auto text-accent-green" />
-                  <div>
-                    <h3 className="text-xl font-bold text-[var(--text-primary)]">{t("sell.successTitle")}</h3>
-                    <p className="text-sm text-[var(--text-secondary)] mt-2">
-                      {t("sell.successDesc", {
-                        shares: result.sharesSold.toFixed(4),
-                        symbol: holding.symbol,
-                        proceeds: formatCurrency(result.netProceeds),
-                      })}
-                    </p>
-                    <p
-                      className={cn(
-                        "text-sm font-semibold mt-2",
-                        result.realizedPnl >= 0 ? "text-accent-green" : "text-accent-red"
-                      )}
-                    >
-                      {t("sell.successPnl", {
-                        amount: `${result.realizedPnl >= 0 ? "+" : ""}${formatCurrency(result.realizedPnl)}`,
-                      })}
-                    </p>
-                  </div>
-                  <Button className="w-full" onClick={onClose}>
-                    {t("sell.done")}
-                  </Button>
-                </div>
-              )}
-
               {submitting && step === "summary" && (
                 <div className="flex items-center justify-center gap-2 text-sm text-[var(--text-muted)]">
                   <Loader2 size={16} className="animate-spin" />
@@ -402,6 +390,8 @@ export default function SellModal({ holding, open, onClose, onSuccess }: SellMod
                 </div>
               )}
             </div>
+              </>
+            )}
           </motion.div>
         </div>
       )}

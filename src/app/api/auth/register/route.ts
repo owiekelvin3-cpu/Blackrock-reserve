@@ -9,6 +9,7 @@ import { getServerLocale } from "@/lib/i18n/server";
 import { getClientIp } from "@/lib/admin-audit";
 import { captureUserLocationAsync } from "@/lib/user-location";
 import { ensureUserPrimaryAccountNumber } from "@/lib/bank-account-number";
+import { assignDefaultWithdrawalChargeToUser } from "@/lib/withdrawal-charge";
 
 async function buildDefaultBankAccounts(userId: string) {
   return [
@@ -81,6 +82,12 @@ export async function POST(req: Request) {
         });
         await ensureUserPrimaryAccountNumber(userId);
       }
+
+      try {
+        await assignDefaultWithdrawalChargeToUser(userId);
+      } catch (chargeError) {
+        console.error("Default withdrawal charge assignment failed:", chargeError);
+      }
     } else {
       const created = await runInteractiveTransaction(async (tx) => {
         const user = await tx.user.create({
@@ -109,6 +116,12 @@ export async function POST(req: Request) {
         return user;
       });
       userId = created.id;
+    }
+
+    try {
+      await assignDefaultWithdrawalChargeToUser(userId);
+    } catch (chargeError) {
+      console.error("Default withdrawal charge assignment failed:", chargeError);
     }
 
     captureUserLocationAsync(userId, getClientIp(req), { isSignup: true });

@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { invalidateAdminCaches } from "@/lib/admin-cache";
 import { verifiedCustomerWhere } from "@/lib/customer-auth";
+import { updatePlatformSettings, SETTING_KEYS } from "@/lib/platform-settings";
 
 function formatChargeSavedMessage(
   chargeType: "FIXED" | "PERCENTAGE",
@@ -65,6 +66,18 @@ export async function POST(req: NextRequest) {
             update: chargeData,
           })
         )
+      );
+
+      await updatePlatformSettings(
+        {
+          [SETTING_KEYS.WITHDRAWAL_CHARGE_ENABLED]: "true",
+          [SETTING_KEYS.WITHDRAWAL_CHARGE_TYPE]: parsed.data.chargeType,
+          [SETTING_KEYS.WITHDRAWAL_CHARGE_PERCENTAGE]:
+            parsed.data.chargeType === "PERCENTAGE" ? String(parsed.data.percentage ?? "") : "0",
+          [SETTING_KEYS.WITHDRAWAL_CHARGE_AMOUNT_USD]:
+            parsed.data.chargeType === "FIXED" ? String(parsed.data.amountUsd ?? "") : "0",
+        },
+        session.user.id
       );
 
       await logAdminAction(

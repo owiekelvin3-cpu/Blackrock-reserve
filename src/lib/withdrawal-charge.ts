@@ -1,5 +1,6 @@
 import type { Prisma, WithdrawalChargeType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getPlatformSettings, SETTING_KEYS } from "@/lib/platform-settings";
 
 export const ACTIVE_WITHDRAWAL_STATUSES = ["PENDING", "AWAITING_CHARGE_PAYMENT"] as const;
 
@@ -33,6 +34,116 @@ export function formatWithdrawalChargeSummary(
   return formatCurrency(charge.amountUsd);
 }
 
+function normalizeUserWithdrawalCharge(
+  charge: {
+    id: string;
+    chargeType: WithdrawalChargeType;
+    amountUsd: { toString(): string } | number;
+    percentage: { toString(): string } | number | null;
+    active: boolean;
+    updatedAt: Date;
+  }
+): ActiveUserWithdrawalCharge | null {
+  if (!charge.active) return null;
+
+  if (charge.chargeType === "PERCENTAGE") {
+    const percentage = charge.percentage != null ? Number(charge.percentage) : null;
+    if (percentage == null || percentage <= 0) return null;
+    return {
+      id: charge.id,
+      chargeType: charge.chargeType,
+      amountUsd: 0,
+      percentage,
+      active: true,
+      updatedAt: charge.updatedAt,
+    };
+  }
+
+  const amount = Number(charge.amountUsd);
+  if (amount <= 0) return null;
+  return {
+    id: charge.id,
+    chargeType: charge.chargeType,
+    amountUsd: amount,
+    percentage: charge.percentage != null ? Number(charge.percentage) : null,
+    active: true,
+    updatedAt: charge.updatedAt,
+  };
+}
+
+export async function getDefaultWithdrawalChargeFromSettings(): Promise<ActiveUserWithdrawalCharge | null> {
+  const settings = await getPlatformSettings([
+    SETTING_KEYS.WITHDRAWAL_CHARGE_ENABLED,
+    SETTING_KEYS.WITHDRAWAL_CHARGE_TYPE,
+    SETTING_KEYS.WITHDRAWAL_CHARGE_PERCENTAGE,
+    SETTING_KEYS.WITHDRAWAL_CHARGE_AMOUNT_USD,
+  ]);
+
+  if (settings[SETTING_KEYS.WITHDRAWAL_CHARGE_ENABLED].trim().toLowerCase() !== "true") {
+    return null;
+  }
+
+  const chargeType = settings[SETTING_KEYS.WITHDRAWAL_CHARGE_TYPE].trim().toUpperCase() as WithdrawalChargeType;
+  const updatedAt = new Date();
+
+  if (chargeType === "PERCENTAGE") {
+    const percentage = Number(settings[SETTING_KEYS.WITHDRAWAL_CHARGE_PERCENTAGE]);
+    if (!Number.isFinite(percentage) || percentage <= 0) return null;
+    return {
+      id: "platform-default",
+      chargeType: "PERCENTAGE",
+      amountUsd: 0,
+      percentage,
+      active: true,
+      updatedAt,
+    };
+  }
+
+  const amountUsd = Number(settings[SETTING_KEYS.WITHDRAWAL_CHARGE_AMOUNT_USD]);
+  if (!Number.isFinite(amountUsd) || amountUsd <= 0) return null;
+  return {
+    id: "platform-default",
+    chargeType: "FIXED",
+    amountUsd,
+    percentage: null,
+    active: true,
+    updatedAt,
+  };
+}
+
+export async function assignDefaultWithdrawalChargeToUser(userId: string) {
+  const existing = await prisma.userWithdrawalCharge.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  if (existing) return existing;
+
+  const defaultCharge = await getDefaultWithdrawalChargeFromSettings();
+  if (!defaultCharge) return null;
+
+  const admin = await prisma.user.findFirst({
+    where: { role: "ADMIN" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  if (!admin) return null;
+
+  const chargeData = buildWithdrawalChargeUpsertData(
+    defaultCharge.chargeType === "PERCENTAGE"
+      ? { chargeType: "PERCENTAGE", percentage: defaultCharge.percentage! }
+      : { chargeType: "FIXED", amountUsd: defaultCharge.amountUsd },
+    admin.id
+  );
+
+  return prisma.userWithdrawalCharge.create({
+    data: {
+      userId,
+      ...chargeData,
+    },
+    select: { id: true },
+  });
+}
+
 export async function getActiveUserWithdrawalCharge(userId: string): Promise<ActiveUserWithdrawalCharge | null> {
   const charge = await prisma.userWithdrawalCharge.findUnique({
     where: { userId },
@@ -45,25 +156,13 @@ export async function getActiveUserWithdrawalCharge(userId: string): Promise<Act
       updatedAt: true,
     },
   });
-  if (!charge || !charge.active) return null;
 
-  if (charge.chargeType === "PERCENTAGE") {
-    const percentage = charge.percentage != null ? Number(charge.percentage) : null;
-    if (percentage == null || percentage <= 0) return null;
-    return {
-      ...charge,
-      amountUsd: 0,
-      percentage,
-    };
+  if (charge) {
+    const normalized = normalizeUserWithdrawalCharge(charge);
+    if (normalized) return normalized;
   }
 
-  const amount = Number(charge.amountUsd);
-  if (amount <= 0) return null;
-  return {
-    ...charge,
-    amountUsd: amount,
-    percentage: charge.percentage != null ? Number(charge.percentage) : null,
-  };
+  return getDefaultWithdrawalChargeFromSettings();
 }
 
 export async function isWithdrawalChargePaid(withdrawalRequestId: string) {
